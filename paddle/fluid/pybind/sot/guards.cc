@@ -13,12 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 #include "paddle/fluid/pybind/sot/guards.h"
+#include <optional>
 #include "paddle/phi/api/include/tensor.h"
 
 #if SOT_IS_SUPPORTED
 
 #include <Python.h>
 #include <frameobject.h>
+#include <object.h>
 
 #if !defined(PyObject_CallOneArg) && !PY_3_9_PLUS
 static inline PyObject* PyObject_CallOneArg(PyObject* func, PyObject* arg) {
@@ -126,5 +128,54 @@ bool LayerMatchGuard::check(PyObject* value) {
 bool InstanceCheckGuard::check(PyObject* value) {
   return PyObject_IsInstance(value, expected_);
 }
+
+#if PY_3_11_PLUS
+PyObject* ConstantExprNode::eval(PyInterpreterFrameProxy* frame) {
+  return value_ptr_;
+}
+
+PyObject* LocalVarExprNode::eval(PyInterpreterFrameProxy* frame) {
+  return PyDict_GetItemString(frame->frame->f_locals, var_name_.c_str());
+}
+PyObject* GlobalVarExprNode::eval(PyInterpreterFrameProxy* frame) {
+  return PyDict_GetItemString(frame->frame->f_globals, var_name_.c_str());
+}
+PyObject* AttributeExprNode::eval(PyInterpreterFrameProxy* frame) {
+  PyObject* var = var_expr_->eval(frame);
+  return PyObject_GetAttrString(var, attr_name_.c_str());
+}
+PyObject* ItemExprNode::eval(PyInterpreterFrameProxy* frame) {
+  PyObject* var = var_expr_->eval(frame);
+  PyObject* key = key_expr_->eval(frame);
+  return PyObject_GetItem(var, key);
+}
+
+std::optional<int> GuardNode::check(PyInterpreterFrameProxy* frame) {
+  auto value = expr->eval(frame);
+  if (guard->check(value)) {
+    if (return_cache_index.has_value()) {
+      return return_cache_index.value();
+    }
+    for (auto& next_guard_node : next_guard_nodes) {
+      auto ret = next_guard_node->check(frame);
+      if (ret.has_value()) {
+        return ret.value();
+      }
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<int> GuardTree::check(PyInterpreterFrameProxy* frame) {
+  for (auto& guard_node : guard_nodes_) {
+    auto ret = guard_node->check(frame);
+    if (ret.has_value()) {
+      return ret.value();
+    }
+  }
+  return std::nullopt;
+}
+
+#endif
 
 #endif

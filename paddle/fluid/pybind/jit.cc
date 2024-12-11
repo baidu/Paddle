@@ -28,6 +28,8 @@ limitations under the License. */
 #include "paddle/phi/common/data_type.h"
 #include "paddle/phi/common/place.h"
 #include "paddle/utils/pybind.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/pytypes.h"
 
 namespace py = pybind11;
 
@@ -121,6 +123,79 @@ void BindGuard(pybind11::module *m) {
 #endif
 }
 
+void BindGuardTree(pybind11::module *m) {
+#if SOT_IS_SUPPORTED
+  py::class_<GuardTree, std::shared_ptr<GuardTree>>(
+      *m, "GuardTree", R"DOC(GuardTree Class.)DOC")
+      .def(py::init<
+               const std::vector<std::vector<std::shared_ptr<GuardNode>>> &>(),
+           py::arg("guard_nodes_list"))
+      .def(
+          "check",
+          [](GuardTree &self, py::object frame) {
+            return self.check(
+                reinterpret_cast<PyInterpreterFrameProxy *>(frame.ptr()));
+          },
+          py::arg("frame"));
+
+  py::class_<GuardNode, std::shared_ptr<GuardNode>>(
+      *m, "GuardNode", R"DOC(GuardNode Class.)DOC")
+      .def(py::init<const std::shared_ptr<GuardBase> &,
+                    const std::shared_ptr<ExprNode> &,
+                    const std::vector<std::shared_ptr<GuardNode>> &,
+                    const std::optional<int> &>(),
+           py::arg("guard"),
+           py::arg("expr"),
+           py::arg("next_guard_nodes") = py::list(),
+           py::arg("return_cache_index") = py::none())
+      .def_property(
+          "return_cache_index",
+          [](GuardNode &self) { return self.return_cache_index; },
+          [](GuardNode &self, int index) { self.return_cache_index = index; })
+      .def(
+          "check",
+          [](GuardNode &self, py::object frame) {
+            return self.check(
+                reinterpret_cast<PyInterpreterFrameProxy *>(frame.ptr()));
+          },
+          py::arg("frame"));
+
+  py::class_<ExprNode, std::shared_ptr<ExprNode>>(
+      *m, "ExprNode", R"DOC(ExprNode Class.)DOC")
+      .def(
+          "eval",
+          [](ExprNode &self, py::object frame) {
+            return self.eval(
+                reinterpret_cast<PyInterpreterFrameProxy *>(frame.ptr()));
+          },
+          py::arg("frame"));
+
+  py::class_<ConstantExprNode, ExprNode, std::shared_ptr<ConstantExprNode>>(
+      *m, "ConstantExprNode", R"DOC(ConstantExprNode Class.)DOC")
+      .def(py::init<const py::object &>(), py::arg("value_ptr"));
+
+  py::class_<LocalVarExprNode, ExprNode, std::shared_ptr<LocalVarExprNode>>(
+      *m, "LocalVarExprNode", R"DOC(LocalVarExprNode Class.)DOC")
+      .def(py::init<const std::string &>(), py::arg("var_name"));
+
+  py::class_<GlobalVarExprNode, ExprNode, std::shared_ptr<GlobalVarExprNode>>(
+      *m, "GlobalVarExprNode", R"DOC(GlobalVarExprNode Class.)DOC")
+      .def(py::init<const std::string &>(), py::arg("var_name"));
+
+  py::class_<AttributeExprNode, ExprNode, std::shared_ptr<AttributeExprNode>>(
+      *m, "AttributeExprNode", R"DOC(AttributeExprNode Class.)DOC")
+      .def(py::init<std::shared_ptr<ExprNode>, const std::string &>(),
+           py::arg("var_expr"),
+           py::arg("attr_name"));
+
+  py::class_<ItemExprNode, ExprNode, std::shared_ptr<ItemExprNode>>(
+      *m, "ItemExprNode", R"DOC(ItemExprNode Class.)DOC")
+      .def(py::init<std::shared_ptr<ExprNode>, std::shared_ptr<ExprNode>>(),
+           py::arg("var_expr"),
+           py::arg("key_expr"));
+#endif
+}
+
 void BindSot(pybind11::module *m) {
 #if SOT_IS_SUPPORTED
   PyInit__eval_frame();
@@ -186,6 +261,7 @@ void BindSot(pybind11::module *m) {
       },
       py::arg("py_codes"));
   BindGuard(m);
+  BindGuardTree(m);
 #endif
 }
 

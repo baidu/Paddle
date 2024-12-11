@@ -14,7 +14,10 @@ limitations under the License. */
 #pragma once
 
 #include <Python.h>
+#include <memory>
 #include "paddle/fluid/framework/data_type.h"
+#include "paddle/fluid/pybind/sot/eval_frame_tools.h"
+#include "paddle/fluid/pybind/sot/frame_proxy.h"
 #include "paddle/fluid/pybind/sot/macros.h"
 #include "paddle/phi/core/utils/data_type.h"
 #include "paddle/utils/pybind.h"
@@ -214,5 +217,116 @@ class InstanceCheckGuard : public GuardBase {
  private:
   PyObject* expected_;
 };
+
+#if PY_3_11_PLUS
+
+class GuardTreeNode {};
+
+class AttributeExprNode;
+class ItemExprNode;
+class ExprNode : public GuardTreeNode,
+                 public std::enable_shared_from_this<ExprNode> {
+ public:
+  virtual PyObject* eval(PyInterpreterFrameProxy* frame) = 0;
+};
+class ConstantExprNode : public ExprNode {
+ public:
+  explicit ConstantExprNode(PyObject* value_ptr) : value_ptr_(value_ptr) {}
+  explicit ConstantExprNode(const py::object& value_obj)
+      : value_ptr_(value_obj.ptr()) {
+    Py_INCREF(value_ptr_);
+  }
+  ~ConstantExprNode() { Py_DECREF(value_ptr_); }
+  PyObject* eval(PyInterpreterFrameProxy* frame);
+
+ private:
+  PyObject* value_ptr_;
+};
+
+class LocalVarExprNode : public ExprNode {
+ public:
+  explicit LocalVarExprNode(const std::string& var_name)
+      : var_name_(var_name) {}
+
+  PyObject* eval(PyInterpreterFrameProxy* frame);
+
+ private:
+  std::string var_name_;
+};
+class GlobalVarExprNode : public ExprNode {
+ public:
+  explicit GlobalVarExprNode(const std::string& var_name)
+      : var_name_(var_name) {}
+
+  PyObject* eval(PyInterpreterFrameProxy* frame);
+
+ private:
+  std::string var_name_;
+};
+class AttributeExprNode : public ExprNode {
+ public:
+  explicit AttributeExprNode(std::shared_ptr<ExprNode> var_expr,
+                             const std::string& attr_name)
+      : var_expr_(var_expr), attr_name_(attr_name) {}
+
+  PyObject* eval(PyInterpreterFrameProxy* frame);
+
+ private:
+  std::shared_ptr<ExprNode> var_expr_;
+  std::string attr_name_;
+};
+class ItemExprNode : public ExprNode {
+ public:
+  explicit ItemExprNode(std::shared_ptr<ExprNode> var_expr,
+                        std::shared_ptr<ExprNode> key_expr)
+      : var_expr_(var_expr), key_expr_(key_expr) {}
+
+  PyObject* eval(PyInterpreterFrameProxy* frame);
+
+ private:
+  std::shared_ptr<ExprNode> var_expr_;
+  std::shared_ptr<ExprNode> key_expr_;
+};
+
+class GuardNode : public GuardTreeNode {
+ public:
+  std::shared_ptr<GuardBase> guard;
+  std::shared_ptr<ExprNode> expr;
+  std::vector<std::shared_ptr<GuardNode>> next_guard_nodes;
+  std::optional<int> return_cache_index;
+  GuardNode(std::shared_ptr<GuardBase> guard,
+            std::shared_ptr<ExprNode> expr,
+            std::vector<std::shared_ptr<GuardNode>> next_guard_nodes,
+            std::optional<int> return_cache_index)
+      : guard(guard),
+        expr(expr),
+        next_guard_nodes(next_guard_nodes),
+        return_cache_index(return_cache_index) {}
+
+  std::optional<int> check(PyInterpreterFrameProxy* frame);
+};
+
+class GuardTree {
+ public:
+  GuardTree(const std::vector<std::vector<std::shared_ptr<GuardNode>>>&
+                guard_nodes_list) {
+    for (size_t index = 0; index < guard_nodes_list.size(); ++index) {
+      const auto& guard_nodes = guard_nodes_list[index];
+      for (size_t i = 1; i < guard_nodes.size(); ++i) {
+        guard_nodes[i - 1]->next_guard_nodes.push_back(guard_nodes[i]);
+      }
+      guard_nodes.back()->return_cache_index = index;
+      guard_nodes_.push_back(guard_nodes.front());
+    }
+  }
+
+  std::optional<int> check(PyInterpreterFrameProxy* frame);
+
+ private:
+  std::vector<std::shared_ptr<GuardNode>> guard_nodes_;
+};
+#endif
+
+std::string guard_tree_to_str(const GuardTree& guard_tree);
 
 #endif
