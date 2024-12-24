@@ -171,6 +171,8 @@ phi::DeviceContext* ParseDeviceContext(pir::Operation* op,
             op_name.compare(paddle::dialect::Broadcast_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::BroadcastOp::name()) == 0 ||
             op_name.compare(paddle::dialect::AllGatherOp::name()) == 0 ||
+            op_name.compare(paddle::dialect::PSendOp::name()) == 0 ||
+            op_name.compare(paddle::dialect::PRecvOp::name()) == 0 ||
             op_name.compare(paddle::dialect::MpAllreduceSum_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::CIdentity_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::CConcatOp::name()) == 0) {

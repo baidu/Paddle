@@ -97,17 +97,16 @@ class SameStatusReshardFunction(ReshardFunction):
                         )
 
                 comm_group = new_process_group([src, dst], group_type="p2p")
-                paddle._C_ops.send_v2(
+                paddle._C_ops.p_send(
                     src_value,
                     comm_group.id,
                     comm_group.ranks.index(dst),
-                    True,
                     False,
                 )
                 point = paddle.base.libpaddle.pir.get_current_insertion_point()
                 point.prev()
                 new_op = point.get_operation()
-                assert new_op.name() == "pd_op.send_v2"
+                assert new_op.name() == "pd_op.p_send"
                 new_op.dist_attr = (
                     paddle.base.libpaddle.pir.create_op_dist_attribute(
                         src_mesh, [src_dist_attr], [], chunk_id
@@ -128,12 +127,11 @@ class SameStatusReshardFunction(ReshardFunction):
                 ), "dynamic shape is not supported by pir-auto parallel yet."
 
                 comm_group = new_process_group([src, dst], group_type="p2p")
-                recv_value = paddle._C_ops.recv_v2(
-                    dst_type._local_shape,
-                    dst_type.dtype,
-                    comm_group.ranks.index(src),
+                recv_value = paddle._C_ops.p_recv(
                     comm_group.id,
-                    True,
+                    comm_group.ranks.index(src),
+                    dst_type.dtype,
+                    dst_type._local_shape,
                     False,
                 )
                 new_op = recv_value.get_defining_op()

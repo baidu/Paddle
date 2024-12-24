@@ -364,7 +364,7 @@ class Inserter:
     @staticmethod
     def insert_send_op(block, idx, tensor, src, dst, op_role, sync=True):
         """Insert send op into block at the given index."""
-        op_type = 'send_v2'
+        op_type = 'p_send'
         insert_operation = (
             block._insert_op if sync else block._insert_op_without_sync
         )
@@ -373,11 +373,10 @@ class Inserter:
         send_op = insert_operation(
             idx,
             type=op_type,
-            inputs={'X': [tensor]},
+            inputs={'x': [tensor]},
             attrs={
                 'ring_id': process_group.id,
                 'peer': process_group.ranks.index(dst),
-                'use_calc_stream': True,
                 'op_role': op_role,
                 'dynamic_shape': True,
             },
@@ -387,7 +386,7 @@ class Inserter:
     @staticmethod
     def insert_recv_op(block, idx, tensor, src, dst, op_role, sync=True):
         """Insert recv op into block at the given index."""
-        op_type = 'recv_v2'
+        op_type = 'p_recv'
         insert_operation = (
             block._insert_op if sync else block._insert_op_without_sync
         )
@@ -396,14 +395,12 @@ class Inserter:
         recv_op = insert_operation(
             idx,
             type=op_type,
-            inputs={'X': [tensor]},
-            outputs={'Out': [tensor]},
+            outputs={'out': [tensor]},
             attrs={
                 'ring_id': process_group.id,
                 'peer': process_group.ranks.index(src),
                 'out_shape': tensor.shape,
                 'dtype': tensor.dtype,
-                'use_calc_stream': True,
                 'op_role': op_role,
                 'dynamic_shape': True,
             },
@@ -3179,7 +3176,7 @@ class Resharder:
                     group_ranks = [key, op_desc.dst]
                     shape = op_desc.shape
                     send_desc = build_comm_desc(
-                        "send_v2", group_ranks, dtype, shape
+                        "p_send", group_ranks, dtype, shape
                     )
                     idx, is_the_same = _get_idx(comm_ranks, group_ranks)
                     if idx is None:

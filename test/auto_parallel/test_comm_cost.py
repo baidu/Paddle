@@ -95,7 +95,7 @@ class TestCommOpCost(unittest.TestCase):
 
         # Check SendOpCost cost
         send_op_desc = build_comm_desc(
-            "send_v2", [0, 1], paddle.float32, [1, 32 * (10**6)]
+            "p_send", [0, 1], paddle.float32, [1, 32 * (10**6)]
         )
         send_op_cost = SendOpCost(
             op_desc=send_op_desc, comm_context=comm_context
@@ -104,7 +104,7 @@ class TestCommOpCost(unittest.TestCase):
 
         # Check RecvOpCost cost
         recv_op_desc = build_comm_desc(
-            "recv_v2", [0, 1], paddle.float32, [1, 32 * (10**6)]
+            "p_recv", [0, 1], paddle.float32, [1, 32 * (10**6)]
         )
         recv_op_cost = RecvOpCost(
             op_desc=recv_op_desc, comm_context=comm_context
@@ -173,7 +173,7 @@ class TestCommOpCost(unittest.TestCase):
 
         # Check SendOpCost cost
         send_op_desc = build_comm_desc(
-            "send_v2", [0, 1], paddle.float32, [1, 32 * (10**6)]
+            "p_send", [0, 1], paddle.float32, [1, 32 * (10**6)]
         )
         send_op_cost = SendOpCost(
             op_desc=send_op_desc, comm_context=comm_context
@@ -182,7 +182,7 @@ class TestCommOpCost(unittest.TestCase):
 
         # Check RecvOpCost cost
         recv_op_desc = build_comm_desc(
-            "recv_v2", [0, 1], paddle.float32, [1, 32 * (10**6)]
+            "p_recv", [0, 1], paddle.float32, [1, 32 * (10**6)]
         )
         recv_op_cost = RecvOpCost(
             op_desc=recv_op_desc, comm_context=comm_context

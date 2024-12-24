@@ -93,12 +93,12 @@ class TestCollectiveSendRecvAPI(TestCollectiveAPIRunnerBase):
     def __init__(self):
         self.global_ring_id = 0
 
-    def get_model(self, main_prog, startup_program, rank):
+    def get_model(self, main_prog, startup_program, rank, dtype="float32"):
         with base.program_guard(main_prog, startup_program):
             tindata = paddle.static.data(
                 name="tindata",
                 shape=[10, 1000],
-                dtype='float32',
+                dtype=dtype,
             )
             if rank == 0:
                 paddle.distributed.send(tindata, dst=1)

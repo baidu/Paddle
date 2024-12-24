@@ -68,7 +68,7 @@ void SectionWorker::Initialize(const TrainerDesc &desc) {
 
     // pipeline backward send op
     if (op_role != BACKWARD) continue;
-    if (op_type != "send_v2" && op_type != "partial_send") continue;
+    if (op_type != "p_send" && op_type != "partial_send") continue;
 
     auto var_name = op->InputVars()[0];
     VLOG(3) << "Pipeline backward send var " << var_name;

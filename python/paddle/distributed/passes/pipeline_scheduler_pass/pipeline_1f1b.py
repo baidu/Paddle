@@ -336,7 +336,7 @@ class Pipeline1F1BPass(PipelinePassBase):
             "gelu": 180,
             "dropout": 160,
             "c_identity": 0,
-            "recv_v2": 0,
+            "p_recv": 0,
         }
 
         op_type = op.type
@@ -477,15 +477,13 @@ class ProgramSplitter:
         # TODO(liym27): This function should not be in ProgramSplitter, move it to pipeline_pass_base.py after vpp fixed.
         for block in program.blocks:
             for op in block.ops:
-                if op.name() == "pd_op.send_v2":
+                if op.name() == "pd_op.p_send":
                     op.set_bool_attr("dynamic_shape", False)
-                    op.set_bool_attr("use_calc_stream", True)
                     ring_id = op.attrs()["ring_id"]
                     op.set_execution_stream("send_recv_stream")
                     op.set_scheduling_priority(0)
-                elif op.name() == "pd_op.recv_v2":
+                elif op.name() == "pd_op.p_recv":
                     op.set_bool_attr("dynamic_shape", False)
-                    op.set_bool_attr("use_calc_stream", True)
                     op.set_execution_stream("send_recv_stream")
                     op.set_scheduling_priority(0)
 
@@ -519,16 +517,16 @@ class ProgramSplitter:
 
             if region == "opt":
                 self._erase_op_from_other_programs(op_idx, OPT)
-            elif region == "bwd" and op.name() == "pd_op.send_v2":
+            elif region == "bwd" and op.name() == "pd_op.p_send":
                 self._handle_func(op_idx, SEND_BACKWARD, self.job_types[4:])
                 self._erase_op_from_other_programs(op_idx, SEND_BACKWARD)
-            elif region == "bwd" and op.name() != "pd_op.send_v2":
+            elif region == "bwd" and op.name() != "pd_op.p_send":
                 self._handle_func(op_idx, BACKWARD, self.job_types[3:])
                 self._erase_op_from_other_programs(op_idx, BACKWARD)
-            elif region == "fwd" and op.name() != "pd_op.recv_v2":
+            elif region == "fwd" and op.name() != "pd_op.p_recv":
                 self._handle_func(op_idx, FORWARD, self.job_types[2:])
                 self._erase_op_from_other_programs(op_idx, FORWARD)
-            elif region == "fwd" and op.name() == "pd_op.recv_v2":
+            elif region == "fwd" and op.name() == "pd_op.p_recv":
                 self._handle_func(op_idx, RECV_FORWARD, self.job_types[1:])
                 self._erase_op_from_other_programs(op_idx, RECV_FORWARD)
         progs = []
@@ -585,7 +583,7 @@ class ProgramSplitter:
         '''
         Add the extra event dependency of the two operators.
         This function mainly aims for the cross-programs in pipeline parallelism,
-        especial for the 'send_v2' 'recv_v2' etc.
+        especial for the 'p_send' 'p_recv' etc.
         '''
         if not recorder_op.has_attr("force_record_event"):
             recorder_op.set_bool_attr("force_record_event", True)

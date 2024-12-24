@@ -3394,7 +3394,7 @@ std::map<std::string, std::set<std::string>> op_passing_outs_map = {
     {"sync_batch_norm", {"MeanOut", "VarianceOut"}},
     {"accuracy", {"Correct", "Total"}},
     {"fill_constant", {"Out"}},
-    {"recv_v2", {"Out"}},
+    {"p_recv", {"Out"}},
     {"partial_recv", {"Out"}},
     {"matmul", {"Out"}},
     {"c_broadcast", {"Out"}},

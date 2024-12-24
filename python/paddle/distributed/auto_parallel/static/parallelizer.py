@@ -490,7 +490,7 @@ class AutoParallelizer:
             if self._dist_strategy.auto_search:
                 is_pipeline = False
                 for op in dist_main_prog.global_block().ops:
-                    if op.type == "send_v2" or op.type == "recv_v2":
+                    if op.type == "p_send" or op.type == "p_recv":
                         is_pipeline = True
                         break
                 if is_pipeline:

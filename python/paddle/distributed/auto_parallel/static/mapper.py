@@ -50,7 +50,7 @@ def is_collective_comm_op(op):
 
 
 def is_p2p_comm_op(op):
-    comm_list = ["send_v2", "recv_v2"]
+    comm_list = ["p_send", "p_recv"]
     if op.type in comm_list:
         return True
     else:
@@ -87,7 +87,7 @@ def get_comm_volume(comm_op, src_rank, tgt_rank):
     if src_rank == tgt_rank:
         return comm_volume
     comm_op_type = comm_op.type
-    if comm_op_type != "recv_v2":
+    if comm_op_type != "p_recv":
         tensor_name = comm_op.input_arg_names[0]
     else:
         tensor_name = comm_op.output_arg_names[0]
@@ -123,12 +123,12 @@ def get_comm_volume(comm_op, src_rank, tgt_rank):
             comm_volume = None
         else:
             comm_volume = tensor_bytes
-    elif "send_v2" in comm_op_type:
+    elif "p_send" in comm_op_type:
         if comm_op.attr("peer") == tgt_rank:
             comm_volume = tensor_bytes
         else:
             comm_volume = None
-    elif "recv_v2" in comm_op_type:
+    elif "p_recv" in comm_op_type:
         comm_volume = None
     else:
         raise ValueError("Unrecognized communication operator.")

@@ -617,6 +617,7 @@
     param : [peer, dtype, out_shape, dynamic_shape]
     data_type : dtype
   traits : paddle::dialect::ForwardOnlyTrait
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
 
 - op : p_recv_array
   args : (int ring_id = 0, int peer = 0, DataType dtype = DataType::FLOAT32, int[] out_shape = {})
@@ -639,7 +640,7 @@
     func : p_send
     param : [x, peer, dynamic_shape]
     data_type : x
-  traits : paddle::dialect::ForwardOnlyTrait
+  traits : pir::SideEffectTrait, paddle::dialect::ForwardOnlyTrait
 
 - op : p_send_array
   args : (Tensor x, int ring_id = 0, int peer = 0, bool dynamic_shape = false)

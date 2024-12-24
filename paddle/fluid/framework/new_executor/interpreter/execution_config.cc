@@ -27,8 +27,8 @@
 // FLAGS_force_sync_ops is used to finer control the op-sync in executor.
 // The format is: "micro_batch_id, job_name, op_id, op_name | micro_batch_id,
 // job_name, op_id, op_name | ...". Keep spaces to syncs all name/id. Example:
-// 1. sync the recv_v2 op in the second backward-job of 1F1B scheduling:
-// FLAGS_force_sync_ops="1, backward, , recv_v2"
+// 1. sync the p_recv op in the second backward-job of 1F1B scheduling:
+// FLAGS_force_sync_ops="1, backward, , p_recv"
 // 2. sync the full op with op_id=5: FLAGS_force_sync_ops=" , , 5, full"
 // 3. sync all ops in the first default-job: FLAGS_force_sync_ops="0,default,,
 // 4. sync all ops in the forward-job and backward-job: FLAGS_force_sync_ops=" ,

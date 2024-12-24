@@ -1024,8 +1024,8 @@ class ShardingOptimizer(MetaOptimizerBase):
                 "c_gen_bkcl_id",
                 "c_gen_xccl_id",
                 "c_comm_init",
-                'send_v2',
-                'recv_v2',
+                'p_send',
+                'p_recv',
             ]:
                 pass
             elif op.type == "conditional_block":

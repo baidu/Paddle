@@ -596,6 +596,31 @@
   interfaces : paddle::dialect::InferSymbolicShapeInterface
   traits : paddle::dialect::ForwardOnlyTrait
 
+- op : p_recv
+  args : (int ring_id = 0, int peer = 0, DataType dtype = DataType::FLOAT32, int[] out_shape = {}, bool dynamic_shape = false)
+  output : Tensor(out)
+  infer_meta :
+    func : PRecvInferMeta
+    param : [peer, dtype, out_shape, dynamic_shape]
+  kernel :
+    func : p_recv
+    param : [peer, dtype, out_shape, dynamic_shape]
+    data_type : dtype
+  traits : paddle::dialect::ForwardOnlyTrait
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
+
+- op : p_send
+  args : (Tensor x, int ring_id = 0, int peer = 0, bool dynamic_shape = false)
+  output :
+  infer_meta :
+    func : PSendInferMeta
+    param : [x, peer]
+  kernel :
+    func : p_send
+    param : [x, peer, dynamic_shape]
+    data_type : x
+  traits : pir::SideEffectTrait, paddle::dialect::ForwardOnlyTrait
+
 - op : partial_recv
   args : (int ring_id = 0, int peer = 0, DataType dtype=DataType::FLOAT32, int[] out_shape= {}, int num = 1, int id = 0)
   output : Tensor(out)
@@ -697,18 +722,6 @@
   inplace : (scale -> out_scale, in_accum -> out_accum, in_state -> out_state)
   interfaces : paddle::dialect::InferSymbolicShapeInterface
 
-- op : recv_v2
-  args : (int[] out_shape = {}, DataType dtype = DataType::FLOAT32, int peer = 0, int ring_id = 0, bool use_calc_stream = false, bool dynamic_shape = false)
-  output : Tensor(out)
-  infer_meta:
-    func: RecvV2InferMeta
-    param: [ring_id, dynamic_shape, peer, out_shape, dtype]
-  kernel :
-    func : recv_v2
-    param : [ring_id, dynamic_shape, peer, out_shape, dtype, use_calc_stream]
-    data_type : dtype
-  interfaces : paddle::dialect::InferSymbolicShapeInterface
-
 - op : remainder
   args : (Tensor x, Tensor y)
   output : Tensor (out)
@@ -762,17 +775,6 @@
     func : send_and_recv
     param : [x, message_name, mode, send_var_name, recv_var_name, trainer_id, endpoints, next_endpoints, previous_endpoints]
   inplace: (x -> out)
-
-- op : send_v2
-  args : (Tensor x, int ring_id = 0, int peer = 0, bool use_calc_stream = false, bool dynamic_shape = false)
-  output :
-  infer_meta:
-    func: SendV2InferMeta
-    param: [peer, ring_id]
-  kernel :
-    func : send_v2
-    param : [x, ring_id, dynamic_shape, peer, use_calc_stream]
-  traits : pir::SideEffectTrait
 
 - op : sequence_expand
   args: (Tensor x, Tensor y, int ref_level = -1)

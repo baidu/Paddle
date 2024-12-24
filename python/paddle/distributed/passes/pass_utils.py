@@ -513,20 +513,18 @@ def _pir_overlap_send_recv(program):
     This function is used to replace the function '_insert_sync_for_fthenb_1f1b'.
     The finally target of this function is as follows:
         1. no need to insert the 'c_sync_calc' and 'c_sync_calc' operators
-        2. 'send_v2' operator uses 'dist_attr.execution_stream' to set stream of its own.
-        3. 'recv_v2' operator uses 'dist_attr.execution_stream' to set stream of its own.
+        2. 'p_send' operator uses 'dist_attr.execution_stream' to set stream of its own.
+        3. 'p_recv' operator uses 'dist_attr.execution_stream' to set stream of its own.
     """
     for block in program.blocks:
         for op in block.ops:
-            if op.name() == "pd_op.send_v2":
+            if op.name() == "pd_op.p_send":
                 op.set_bool_attr("dynamic_shape", False)
-                op.set_bool_attr("use_calc_stream", True)
                 ring_id = op.attrs()["ring_id"]
                 op.set_execution_stream(f"send_stream_{ring_id}")
                 op.set_scheduling_priority(0)
-            elif op.name() == "pd_op.recv_v2":
+            elif op.name() == "pd_op.p_recv":
                 op.set_bool_attr("dynamic_shape", False)
-                op.set_bool_attr("use_calc_stream", True)
                 op.set_execution_stream("recv_stream")
                 op.set_scheduling_priority(0)
 
@@ -535,7 +533,7 @@ def _insert_sync_for_fthenb_1f1b(program, dist_context=None):
     """
     This implementation refers to lots of Paddle/python/paddle/base/optimizer.py.
     The difference between this function with 'PipelineOptimizer' is that
-    'send_v2' op and 'recv_v2' op have been inserted in program by 'reshard'.
+    'p_send' op and 'p_recv' op have been inserted in program by 'reshard'.
     """
 
     for block in program.blocks:
@@ -549,15 +547,13 @@ def _insert_sync_for_fthenb_1f1b(program, dist_context=None):
         # insert sync ops
         for index, op in enumerate(list(block.ops)):
             # NOTE: pipeline might hang when dynamic_shape is True
-            if op.type in ['send_v2', 'recv_v2']:
+            if op.type in ['p_send', 'p_recv']:
                 op._set_attr("dynamic_shape", False)
             # set send op on comm stream
-            if op.type == 'send_v2':
-                # step1: set 'use_calc_stream' False
-                op._set_attr("use_calc_stream", False)
+            if op.type == 'p_send':
                 op_role = op.attr('op_role')
                 ring_id = op.attr('ring_id')
-                # step2: insert 'c_sync_calc_stream' op before 'send_v2' op
+                # step1: insert 'c_sync_calc_stream' op before 'p_send' op
                 var_name = op.input_arg_names[0]
                 var = block.var(var_name)
                 sync_calc_op = block._insert_op_without_sync(
@@ -568,7 +564,7 @@ def _insert_sync_for_fthenb_1f1b(program, dist_context=None):
                     attrs={'op_role': op_role},
                 )
                 offset += 1
-                # step3: insert 'c_sync_comm_stream' op after 'send_v2' op or
+                # step2: insert 'c_sync_comm_stream' op after 'p_send' op or
                 # before the first optimize op
                 insert_index = None
                 new_op_role = None
@@ -613,7 +609,7 @@ def _insert_sync_for_fthenb_1f1b(program, dist_context=None):
                             sync_comm_op, op_dist_attr
                         )
 
-                # step4: If 'send_v2' op in forward parse, set 'pipeline_flag' to distinguish
+                # step3: If 'p_send' op in forward parse, set 'pipeline_flag' to distinguish
                 # whether the 'c_sync_comm_stream' op is inserted for pipeline.
                 if int(op_role) == int(OpRole.Forward):
                     sync_comm_op._set_attr('pipeline_flag', '')
@@ -623,7 +619,7 @@ def _insert_sync_for_fthenb_1f1b(program, dist_context=None):
         offset = 0
         backward_recv_index = None
         for index, op in enumerate(block.ops):
-            if op.type == "recv_v2" and is_backward_op(op):
+            if op.type == "p_recv" and is_backward_op(op):
                 backward_recv_index = index
                 break
         if backward_recv_index is None:
@@ -647,20 +643,18 @@ def _overlap_send_recv(program):
     This function is used to replace the function '_insert_sync_for_fthenb_1f1b'.
     The finally target of this function is as follows:
         1. no need to insert the 'c_sync_calc' and 'c_sync_calc' operators
-        2. 'send_v2' operator uses 'dist_attr.execution_stream' to set stream of its own.
-        3. 'recv_v2' operator uses 'dist_attr.execution_stream' to set stream of its own.
+        2. 'p_send' operator uses 'dist_attr.execution_stream' to set stream of its own.
+        3. 'p_recv' operator uses 'dist_attr.execution_stream' to set stream of its own.
     """
     for block in program.blocks:
         for op in block.ops:
-            if op.type == 'send_v2':
+            if op.type == 'p_send':
                 op._set_attr("dynamic_shape", False)
-                op._set_attr("use_calc_stream", True)
                 ring_id = op.attr("ring_id")
                 op.dist_attr.execution_stream = "send_stream_" + str(ring_id)
                 op.dist_attr.stream_priority = 0
-            elif op.type == 'recv_v2':
+            elif op.type == 'p_recv':
                 op._set_attr("dynamic_shape", False)
-                op._set_attr("use_calc_stream", True)
                 op.dist_attr.execution_stream = "recv_stream"
                 op.dist_attr.stream_priority = 0
             else:
@@ -1026,7 +1020,7 @@ def _pir_get_backward_op_type(all_ops, op_idx):
                 return True
         return False
 
-    # For the cur_op doesn't have output such as 'send_v2', it should be backward_b.
+    # For the cur_op doesn't have output such as 'p_send', it should be backward_b.
     if cur_op.num_results() == 0:
         return ["backward_b"]
 
@@ -1476,7 +1470,7 @@ def _get_backward_op_type(block, cur_op, idx):
                     return True
         return False
 
-    # For the cur_op doesn't have output such as 'send_v2', it should be backward_b.
+    # For the cur_op doesn't have output such as 'p_send', it should be backward_b.
     if len(cur_op.output_arg_names) == 0:
         return ["backward_b"]
 
@@ -1718,7 +1712,7 @@ def _add_event_dependency(recorder_op, waiter_op):
     '''
     Add the extra event dependency of the two operators.
     This function mainly aims for the cross-programs in pipeline parallelism,
-    especial for the 'send_v2' 'recv_v2' etc.
+    especial for the 'p_send' 'p_recv' etc.
     '''
     if not recorder_op.dist_attr.force_record_event:
         recorder_op.dist_attr.force_record_event = True

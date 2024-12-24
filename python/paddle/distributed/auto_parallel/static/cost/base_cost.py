@@ -25,8 +25,8 @@ from ..process_group import get_process_group
 from ..utils import _get_comm_group, _get_idx_in_axis
 
 COMM_OP_TYPE = [
-    "send_v2",
-    "recv_v2",
+    "p_send",
+    "p_recv",
     "broadcast",
     "all_gather",
     "c_allreduce_sum",
@@ -349,7 +349,10 @@ def build_comm_desc(op_type, group_ranks, dtype, shape, attrs=None):
     desc = {}
     desc["op"] = op_type
     desc["group_ranks"] = group_ranks
-    desc["inputs"] = {"X": [(dtype, shape)]}
+    if op_type == "p_send":
+        desc["inputs"] = {"x": [(dtype, shape)]}
+    else:
+        desc["inputs"] = {"X": [(dtype, shape)]}
     desc["attrs"] = attrs
     return desc
 
