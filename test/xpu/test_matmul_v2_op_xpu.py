@@ -77,6 +77,7 @@ class XPUTestMatmulV2Op(XPUOpTestWrapper):
             import os
 
             os.environ["XPU_PADDLE_L3_SIZE"] = str(13 * 1024 * 1024)
+            os.environ["XPU_PADDLE_FC_FLOAT"] = "1"
             x = np.random.random(self.x_shape)
             y = np.random.random(self.y_shape)
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
 
 import numpy as np
@@ -218,6 +219,8 @@ class XPUTestConv3DOp(XPUOpTestWrapper):
             self.init_dilation()
             self.init_test_case()
 
+            os.environ["XPU_PADDLE_CONV_FLOAT"] = "1"
+
             conv3d_param = {
                 'stride': self.stride,
                 'pad': self.pad,
@@ -389,6 +392,8 @@ class XPUTestConv3DOp_v2(XPUOpTestWrapper):
             self.init_paddings()
 
             self.init_test_case_2()
+
+            os.environ["XPU_PADDLE_CONV_FLOAT"] = "1"
 
             conv3d_param = {
                 'stride': self.stride,

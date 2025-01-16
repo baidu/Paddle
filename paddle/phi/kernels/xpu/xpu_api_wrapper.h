@@ -16,6 +16,7 @@
 
 #ifdef PADDLE_WITH_XPU
 
+#include <unordered_map>
 #include <vector>
 #include "paddle/phi/backends/xpu/enforce_xpu.h"
 #include "paddle/phi/backends/xpu/xpu_header.h"
@@ -41,29 +42,60 @@ enum XPUFCCalcType {
   FC_FLOAT16,
 };
 
-template <typename T>
-XPUFCCalcType FCCalcType() {
-  const char* xpu_paddle_fc_float16 = std::getenv("XPU_PADDLE_FC_FLOAT16");
-  if (xpu_paddle_fc_float16 != nullptr &&
-      (std::is_same<phi::dtype::float16, T>::value ||
-       std::is_same<XPUTypeFP16, T>::value || std::is_same<float, T>::value)) {
-    return XPUFCCalcType::FC_FLOAT16;
-  } else if (std::is_same<phi::dtype::float16, T>::value ||
-             std::is_same<XPUTypeFP16, T>::value) {
-    return XPUFCCalcType::FC_INT16;
-  } else if (std::getenv("XPU_PADDLE_FC_INT32") != nullptr) {
-    return XPUFCCalcType::FC_INT32;
-  } else if (std::getenv("XPU_PADDLE_FC_LOCAL_INT16") != nullptr) {
-    return XPUFCCalcType::FC_FLOAT;
-  } else if (std::getenv("XPU_PADDLE_FC_INT32_WITH_LL") != nullptr) {
-    return XPUFCCalcType::FC_INT32_WITH_LL;
-  } else if ((std::is_same<phi::dtype::bfloat16, T>::value ||
-              std::is_same<XPUTypeBF16, T>::value) ||
-             (std::is_same<float, T>::value &&
-              std::getenv("XPU_PADDLE_FC_TF32") != nullptr)) {
-    return XPUFCCalcType::FC_TF32;
+using XPUFCCalcTypeMap = std::unordered_map<const char*, XPUFCCalcType>;
+
+inline XPUFCCalcType GetFCCalcTypeFromEnv(const XPUFCCalcTypeMap& env_map,
+                                          XPUFCCalcType default_calc_type) {
+  for (auto [env_name, calc_type] : env_map) {
+    if (std::getenv(env_name) != nullptr) {
+      return calc_type;
+    }
   }
-  return XPUFCCalcType::FC_INT16;
+  return default_calc_type;
+}
+
+template <typename T>
+inline XPUFCCalcType FCCalcType() {
+  // FLOAT32
+  XPUFCCalcTypeMap calc_type_map = {
+      {"XPU_PADDLE_FC_TF32", XPUFCCalcType::FC_TF32},
+      {"XPU_PADDLE_FC_FLOAT", XPUFCCalcType::FC_FLOAT},
+      {"XPU_PADDLE_FC_LOCAL_INT16", XPUFCCalcType::FC_FLOAT},
+      {"XPU_PADDLE_FC_INT16", XPUFCCalcType::FC_INT16},
+      {"XPU_PADDLE_FC_INT32", XPUFCCalcType::FC_INT32},
+      {"XPU_PADDLE_FC_INT32_WITH_LL", XPUFCCalcType::FC_INT32_WITH_LL},
+  };
+#ifdef PADDLE_WITH_XPU_XRE5
+  auto default_calc_type = XPUFCCalcType::FC_TF32;
+#else
+  auto default_calc_type = XPUFCCalcType::FC_INT16;
+#endif
+  return GetFCCalcTypeFromEnv(calc_type_map, default_calc_type);
+}
+
+template <>
+inline XPUFCCalcType FCCalcType<XPUTypeFP16>() {
+  XPUFCCalcTypeMap calc_type_map = {
+      {"XPU_PADDLE_FC_FLOAT16", XPUFCCalcType::FC_FLOAT16},
+      {"XPU_PADDLE_FC_INT16", XPUFCCalcType::FC_INT16},
+      {"XPU_PADDLE_FC_FLOAT", XPUFCCalcType::FC_FLOAT},
+      {"XPU_PADDLE_FC_LOCAL_INT16", XPUFCCalcType::FC_FLOAT}};
+#ifdef PADDLE_WITH_XPU_XRE5
+  auto default_calc_type = XPUFCCalcType::FC_FLOAT16;
+#else
+  auto default_calc_type = XPUFCCalcType::FC_INT16;
+#endif
+  return GetFCCalcTypeFromEnv(calc_type_map, default_calc_type);
+}
+
+template <>
+inline XPUFCCalcType FCCalcType<XPUTypeBF16>() {
+  XPUFCCalcTypeMap calc_type_map = {
+      // TF32 is the default, do not to be listed here.
+      {"XPU_PADDLE_FC_FLOAT", XPUFCCalcType::FC_FLOAT},
+      {"XPU_PADDLE_FC_LOCAL_INT16", XPUFCCalcType::FC_FLOAT}};
+  auto default_calc_type = XPUFCCalcType::FC_TF32;
+  return GetFCCalcTypeFromEnv(calc_type_map, default_calc_type);
 }
 
 struct XpuFcInfo {
