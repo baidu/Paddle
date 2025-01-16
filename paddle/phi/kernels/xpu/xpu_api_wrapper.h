@@ -91,7 +91,7 @@ inline XPUFCCalcType FCCalcType<XPUTypeFP16>() {
 template <>
 inline XPUFCCalcType FCCalcType<XPUTypeBF16>() {
   XPUFCCalcTypeMap calc_type_map = {
-      // TF32 is the default, do not to be listed here.
+      // TF32 is the default, do not need to be listed here.
       {"XPU_PADDLE_FC_FLOAT", XPUFCCalcType::FC_FLOAT},
       {"XPU_PADDLE_FC_LOCAL_INT16", XPUFCCalcType::FC_FLOAT}};
   auto default_calc_type = XPUFCCalcType::FC_TF32;
