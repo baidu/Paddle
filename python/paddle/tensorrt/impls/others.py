@@ -24,6 +24,7 @@ from paddle.tensorrt.converter_utils import (
     get_input_constant_value,
     get_shape_tensor_element,
     get_trt_plugin,
+    replenish_layer_and_output,
     trt_concat,
     trt_prod,
     trt_shape,
@@ -149,6 +150,15 @@ def multiclass_nms3_converter(network, paddle_op, inputs):
     shape_weight = trt.Weights(np.array([0], dtype=np.int32))
     constant_layer = network.add_constant([1, 1], shape_weight)
 
+    replenish_layer_and_output(
+        nms_shuffle_layer, paddle_op.name(), paddle_op.get_output_names()[0]
+    )
+    replenish_layer_and_output(
+        constant_layer, paddle_op.name(), paddle_op.get_output_names()[1]
+    )
+    replenish_layer_and_output(
+        batch_nms_layer, paddle_op.name(), paddle_op.get_output_names()[2]
+    )
     return (
         nms_shuffle_layer.get_output(0),
         constant_layer.get_output(0),
@@ -263,6 +273,9 @@ def set_value_converter(network, paddle_op, inputs):
         x, indice_tensor, updates, trt.ScatterMode.ELEMENT
     )
     layer.axis = axes
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -272,6 +285,9 @@ def share_data_converter(network, paddle_op, inputs):
 
     identity_layer = network.add_identity(x)
 
+    replenish_layer_and_output(
+        identity_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return identity_layer.get_output(0)
 
 
@@ -438,6 +454,9 @@ def anchor_generator_converter(network, paddle_op, inputs):
     anchor_generator_layer = network.add_plugin_v2([inputs], plugin)
     out0 = anchor_generator_layer.get_output(0)
     out1 = anchor_generator_layer.get_output(1)
+    replenish_layer_and_output(
+        anchor_generator_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return (out0, out1)
 
 
@@ -488,5 +507,11 @@ def affine_channel_converter(network, paddle_op, inputs):
         shuffle_layer2 = network.add_shuffle(out_tensor)
         shuffle_layer2.first_transpose = (0, 2, 3, 1)
         out_tensor = shuffle_layer2.get_output(0)
+        replenish_layer_and_output(
+            shuffle_layer2, paddle_op.name(), paddle_op.get_output_names()
+        )
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return out_tensor

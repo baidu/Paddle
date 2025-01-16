@@ -25,6 +25,7 @@ from paddle.tensorrt.converter_utils import (
     get_input_constant_value,
     get_shape_tensor_element,
     has_dynamic_shape,
+    replenish_layer_and_output,
     resize_to_1d,
     trt_concat,
     trt_expand,
@@ -73,6 +74,9 @@ def reshape_converter(network, paddle_op, inputs):
         'you should modify trt_config(a TensorRTConfig object) and set trt_config.disable_ops = ["pd_op.reshape"] to forbid this op.'
     )
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -83,6 +87,9 @@ def gather_nd_converter(network, paddle_op, inputs):
         input_tensor, indices_tensor, trt.GatherMode.ND
     )
     non_zero_layer.num_elementwise_dims = 0
+    replenish_layer_and_output(
+        non_zero_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return non_zero_layer.get_output(0)
 
 
@@ -167,6 +174,9 @@ def flatten_converter(network, paddle_op, inputs):
         final_shape_layer.name = f"{input_val.name}_final_shape"
         flatten_layer.set_input(1, final_shape_layer.get_output(0))
 
+    replenish_layer_and_output(
+        flatten_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return flatten_layer.get_output(0)
 
 
@@ -183,6 +193,9 @@ def concat_converter(network, paddle_op, inputs):
         axis = len(input_tensors[0].shape) + axis
     concat_layer.axis = axis
 
+    replenish_layer_and_output(
+        concat_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return concat_layer.get_output(0)
 
 
@@ -235,6 +248,9 @@ def unsqueeze_converter(network, paddle_op, inputs):
         network, trt_concat(network, concat_inputs), gather_indices
     )
     layer.set_input(1, real_shape_tensor)
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -290,6 +306,9 @@ def squeeze_converter(network, paddle_op, inputs):
     real_shape_tensor = trt_gather(network, shape_tensor, gather_indices)
     layer.set_input(1, real_shape_tensor)
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -311,7 +330,7 @@ def expand_converter(network, paddle_op, inputs):
     else:
         shape_tensor = inputs[1]
         shape_rank = shape_tensor.shape[0]
-    return trt_expand(network, input, rank, shape_tensor, shape_rank)
+    return trt_expand(network, paddle_op, input, rank, shape_tensor, shape_rank)
 
 
 @converter_registry.register(
@@ -331,7 +350,7 @@ def expand_as_converter(network, paddle_op, inputs):
         shape = paddle_op.attrs().get("target_shape")
         shape_tensor = add_1D_constant_layer(network, shape)
         shape_rank = len(shape)
-    return trt_expand(network, input, rank, shape_tensor, shape_rank)
+    return trt_expand(network, paddle_op, input, rank, shape_tensor, shape_rank)
 
 
 @converter_registry.register("pd_op.cast", trt_version="8.x")
@@ -359,6 +378,9 @@ def cast_converter(network, paddle_op, inputs):
     cast_layer = network.add_identity(input_tensor)
     cast_layer.set_output_type(0, out_dtype)
     cast_layer.get_output(0).dtype = out_dtype
+    replenish_layer_and_output(
+        cast_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return cast_layer.get_output(0)
 
 
@@ -461,6 +483,9 @@ def slice_converter(network, paddle_op, inputs):
     slice_layer.set_input(2, size_tensor)
 
     output_tensor = slice_layer.get_output(0)
+    replenish_layer_and_output(
+        slice_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
 
     # Handle decrease_axis
     if len(decrease_axis) > 0:
@@ -480,6 +505,9 @@ def slice_converter(network, paddle_op, inputs):
             shuffle_layer.set_input(1, real_size_tensor)
 
         output_tensor = shuffle_layer.get_output(0)
+        replenish_layer_and_output(
+            shuffle_layer, paddle_op.name(), paddle_op.get_output_names()
+        )
 
     return output_tensor
 
@@ -550,6 +578,9 @@ def split_with_num_converter(network, paddle_op, inputs):
         )
         slice_layer.set_input(1, start_tensor)
         slice_layer.set_input(2, size_tensor)
+        replenish_layer_and_output(
+            slice_layer, paddle_op.name(), paddle_op.get_output_names()
+        )
 
         outputs.append(slice_layer.get_output(0))
 
@@ -626,6 +657,9 @@ def split_converter(network, paddle_op, inputs):
             )
             slice_layer.set_input(1, start_tensor)
             slice_layer.set_input(2, size_tensor)
+            replenish_layer_and_output(
+                slice_layer, paddle_op.name(), paddle_op.get_output_names()
+            )
 
             outputs.append(slice_layer.get_output(0))
 
@@ -671,6 +705,9 @@ def split_converter(network, paddle_op, inputs):
             )
             slice_layer.set_input(1, start_tensor)
             slice_layer.set_input(2, size_tensor)
+            replenish_layer_and_output(
+                slice_layer, paddle_op.name(), paddle_op.get_output_names()
+            )
 
             outputs.append(slice_layer.get_output(0))
 
@@ -733,6 +770,10 @@ def stack_converter(network, paddle_op, inputs):
         and paddle_op.results()[0].shape[0] != -1
     ):
         output_tensor = resize_to_1d(network, output_tensor)
+
+    replenish_layer_and_output(
+        concat_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return output_tensor
 
 
@@ -788,6 +829,9 @@ def tile_converter(network, paddle_op, inputs):
     else:
         slice_layer.mode = trt.SliceMode.WRAP
 
+    replenish_layer_and_output(
+        slice_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return slice_layer.get_output(0)
 
 
@@ -854,6 +898,9 @@ def strided_slice_converter(network, paddle_op, inputs):
     layer.set_input(1, start_tensor)
     layer.set_input(2, size_tensor)
     layer.set_input(3, step_tensor)
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -920,6 +967,9 @@ def roll_converter(network, paddle_op, inputs):
                 input=layer.get_output(0), indices=concat_input_tensor, axis=axi
             )
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -929,5 +979,8 @@ def numel_converter(network, paddle_op, inputs):
     shape_tensor = network.add_shape(input_tensor).get_output(0)
     layer = network.add_reduce(
         shape_tensor, trt.ReduceOperation.PROD, axes=1, keep_dims=False
+    )
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
     )
     return layer.get_output(0)

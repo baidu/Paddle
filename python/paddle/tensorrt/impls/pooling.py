@@ -16,7 +16,10 @@
 import numpy as np
 import tensorrt as trt
 
-from paddle.tensorrt.converter_utils import get_input_constant_value
+from paddle.tensorrt.converter_utils import (
+    get_input_constant_value,
+    replenish_layer_and_output,
+)
 from paddle.tensorrt.register import converter_registry
 
 
@@ -307,4 +310,7 @@ def pool2d_converter(network, paddle_op, inputs):
     if layer is None:
         raise RuntimeError("Failed to create pooling layer in TensorRT.")
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)

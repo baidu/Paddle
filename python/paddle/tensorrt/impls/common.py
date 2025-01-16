@@ -20,6 +20,7 @@ from paddle import pir
 from paddle.tensorrt.converter_utils import (
     get_input_constant_value,
     get_shape_tensor_element,
+    replenish_layer_and_output,
 )
 from paddle.tensorrt.register import converter_registry
 from paddle.tensorrt.util import get_trt_version_list
@@ -48,6 +49,9 @@ def dropout_converter(network, paddle_op, inputs):
         power=power_weights,
     )
 
+    replenish_layer_and_output(
+        scale_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return scale_layer.get_output(0)
 
 
@@ -196,6 +200,9 @@ def bilinear_interp_converter(network, paddle_op, inputs):
             ).get_output(0)
             resize_layer.set_input(1, output_size_tensor)
 
+    replenish_layer_and_output(
+        resize_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return resize_layer.get_output(0)
 
 
@@ -292,4 +299,7 @@ def nearest_interp_converter(network, paddle_op, inputs):
     else:
         resize_layer.scales = scales
 
+    replenish_layer_and_output(
+        resize_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return resize_layer.get_output(0)

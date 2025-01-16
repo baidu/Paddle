@@ -16,7 +16,11 @@
 import numpy as np
 import tensorrt as trt
 
-from paddle.tensorrt.converter_utils import add_1D_constant_layer, cast_tensor
+from paddle.tensorrt.converter_utils import (
+    add_1D_constant_layer,
+    cast_tensor,
+    replenish_layer_and_output,
+)
 from paddle.tensorrt.register import converter_registry
 
 
@@ -64,4 +68,7 @@ def one_hot_converter(network, paddle_op, inputs):
     one_hot_layer.set_output_type(0, trt_dtype)
     output_tensor = one_hot_layer.get_output(0)
 
+    replenish_layer_and_output(
+        one_hot_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return [output_tensor]

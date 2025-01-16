@@ -19,6 +19,7 @@ from paddle.tensorrt.converter_utils import (
     add_1D_constant_layer,
     broadcast,
     get_shape_tensor_element,
+    replenish_layer_and_output,
     trt_shape,
     trt_sum,
 )
@@ -58,6 +59,9 @@ def matmul_converter(network, paddle_op, inputs):
     out = network.add_matrix_multiply(
         lhs_val, self_matrix_op, rhs_val, other_matrix_op
     )
+    replenish_layer_and_output(
+        out, paddle_op.name(), paddle_op.get_output_names()
+    )
     return out.get_output(0)
 
 
@@ -68,6 +72,9 @@ def transpose_converter(network, paddle_op, inputs):
     perm = paddle_op.attrs()["perm"]
     transposed_tensor = network.add_shuffle(inputs[0])
     transposed_tensor.second_transpose = perm
+    replenish_layer_and_output(
+        transposed_tensor, paddle_op.name(), paddle_op.get_output_names()
+    )
     return transposed_tensor.get_output(0)
 
 
@@ -75,6 +82,9 @@ def transpose_converter(network, paddle_op, inputs):
 def bmm_converter(network, paddle_op, inputs):
     out = network.add_matrix_multiply(
         inputs[0], trt.MatrixOperation.NONE, inputs[1], trt.MatrixOperation.NONE
+    )
+    replenish_layer_and_output(
+        out, paddle_op.name(), paddle_op.get_output_names()
     )
     return out.get_output(0)
 
@@ -115,6 +125,9 @@ def flip_converter(network, paddle_op, inputs):
         input_tensor = loop_out_layer.get_output(0)
 
     identity_layer = network.add_identity(input_tensor)
+    replenish_layer_and_output(
+        identity_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return identity_layer.get_output(0)
 
 

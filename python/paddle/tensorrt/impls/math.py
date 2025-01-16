@@ -27,6 +27,7 @@ from paddle.tensorrt.converter_utils import (
     get_axis_length,
     get_input_constant_value,
     get_shape_tensor_element,
+    replenish_layer_and_output,
     trt_cast,
     trt_concat,
     trt_expand,
@@ -120,6 +121,9 @@ def scale_converter(network, paddle_op, inputs):
                     trt.ElementWiseOperation.PROD,
                 )
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -144,6 +148,9 @@ def max_converter(network, paddle_op, inputs):
         trt.ReduceOperation.MAX,
         axes=get_axes_for_reduce_op(axis),
         keep_dims=keepdim,
+    )
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
     )
     return layer.get_output(0)
 
@@ -181,7 +188,7 @@ def clip_converter(network, paddle_op, inputs):
             )
         else:
             expanded_tensor = trt_expand(
-                network, constant_inputs, 1, input_shape_tensor, rank
+                network, paddle_op, constant_inputs, 1, input_shape_tensor, rank
             )
             if expanded_tensor.dtype != input_tensor.dtype:
                 expanded_tensor = cast_tensor(
@@ -210,6 +217,9 @@ def clip_converter(network, paddle_op, inputs):
     lower_clip = trt_max(network, input_tensor, alpha_t)
     layer = network.add_elementwise(
         lower_clip, beta_t, trt.ElementWiseOperation.MIN
+    )
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
     )
     return layer.get_output(0)
 
@@ -264,6 +274,9 @@ def remainder_converter(network, paddle_op, inputs):
     remainder = remainder_layer.get_output(0)
     support_fp32_mix_precision(paddle_op.name(), remainder_layer)
 
+    replenish_layer_and_output(
+        remainder_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return remainder
 
 
@@ -376,6 +389,9 @@ def cumsum_converter(network, paddle_op, inputs):
     loop_out = loop.add_loop_output(cur_sum, reverse_flag, axis)
     loop_out.set_input(1, trip_limit)
 
+    replenish_layer_and_output(
+        loop_out, paddle_op.name(), paddle_op.get_output_names()
+    )
     return loop_out.get_output(0)
 
 
@@ -390,6 +406,9 @@ def floor_divide_converter(network, paddle_op, inputs):
 def sqrt_converter(network, paddle_op, inputs):
     input_tensor = trt_cast(network, inputs[0], trt.float32)
     layer = network.add_unary(input_tensor, trt.UnaryOperation.LOG)
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 

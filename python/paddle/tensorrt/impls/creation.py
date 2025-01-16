@@ -21,6 +21,7 @@ from paddle.tensorrt.converter_utils import (
     add_1D_constant_layer,
     cast_tensor,
     get_input_constant_value,
+    replenish_layer_and_output,
     resize_to_1d,
     trt_cast,
     trt_floor_div,
@@ -41,6 +42,9 @@ def full_int_array_converter(network, paddle_op, inputs):
         return ()
     value_weight = trt.Weights(np.array(value, dtype=np.int32))
     full_int_array_layer = network.add_constant([len(value)], value_weight)
+    replenish_layer_and_output(
+        full_int_array_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return full_int_array_layer.get_output(0)
 
 
@@ -57,6 +61,9 @@ def full_converter(network, paddle_op, inputs):
     full_layer = network.add_constant(
         shape, np.full(shape, value, dtype=out_dtype)
     )
+    replenish_layer_and_output(
+        full_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return full_layer.get_output(0)
 
 
@@ -65,6 +72,9 @@ def full_converter(network, paddle_op, inputs):
 def assign_converter(network, paddle_op, inputs):
     input_tensor = inputs[0]
     identity_layer = network.add_identity(input_tensor)
+    replenish_layer_and_output(
+        identity_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return identity_layer.get_output(0)
 
 
@@ -98,6 +108,9 @@ def assign_value_converter(network, paddle_op, inputs):
     if const_layer is None:
         raise RuntimeError("Failed to create constant layer for assign_value.")
 
+    replenish_layer_and_output(
+        const_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return const_layer.get_output(0)
 
 
@@ -124,6 +137,9 @@ def arange_converter(network, paddle_op, inputs):
     fill_layer.set_input(1, start_tensor)
     fill_layer.set_input(2, step)
 
+    replenish_layer_and_output(
+        fill_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return fill_layer.get_output(0)
 
 
@@ -187,6 +203,10 @@ def full_like_converter(network, paddle_op, inputs):
     slice_layer.set_input(3, stride_tensor)
     value = trt_cast(network, value, out_dtype)
     slice_layer.set_input(4, value)
+
+    replenish_layer_and_output(
+        slice_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return slice_layer.get_output(0)
 
 
@@ -274,4 +294,7 @@ def full_with_tensor_converter(network, paddle_op, inputs):
         raise ValueError(f"Unsupported dtype for full_with_tensor: {dtype}")
 
     output_tensor = fill_layer.get_output(0)
+    replenish_layer_and_output(
+        fill_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return output_tensor

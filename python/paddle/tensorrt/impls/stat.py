@@ -14,7 +14,10 @@
 
 import tensorrt as trt
 
-from paddle.tensorrt.converter_utils import get_axes_for_reduce_op
+from paddle.tensorrt.converter_utils import (
+    get_axes_for_reduce_op,
+    replenish_layer_and_output,
+)
 from paddle.tensorrt.register import converter_registry
 
 
@@ -29,5 +32,8 @@ def mean_converter(network, paddle_op, inputs):
         trt.ReduceOperation.AVG,
         axes=get_axes_for_reduce_op(dim, network.has_implicit_batch_dimension),
         keep_dims=keep_dim,
+    )
+    replenish_layer_and_output(
+        mean_layer, paddle_op.name(), paddle_op.get_output_names()
     )
     return mean_layer.get_output(0)

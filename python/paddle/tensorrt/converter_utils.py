@@ -164,6 +164,9 @@ def add_elementwise_layer(network, paddle_op, inputs, op_type):
     )
     layer = network.add_elementwise(lhs_val, rhs_val, op_type)
     support_fp32_mix_precision(paddle_op.name(), layer)
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -202,7 +205,7 @@ def fill_constant_layer(network, shape_tensor, tensor_rank, data, trt_dtype):
     return fill_layer.get_output(0)
 
 
-def trt_expand(network, input, rank, shape_tensor, shape_rank):
+def trt_expand(network, paddle_op, input, rank, shape_tensor, shape_rank):
     if rank < shape_rank:
         one_rank_tensor = add_1D_constant_layer(
             network, [1] * (shape_rank - rank)
@@ -229,6 +232,9 @@ def trt_expand(network, input, rank, shape_tensor, shape_rank):
     slice_layer.set_input(2, sizes_tensor)
     slice_layer.set_input(3, strides_tensor)
 
+    replenish_layer_and_output(
+        slice_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return slice_layer.get_output(0)
 
 
@@ -564,6 +570,9 @@ def convert_conv2d(network, paddle_op, inputs):
     layer.dilation_nd = nv_dilations
     support_fp32_mix_precision(paddle_op.name(), layer)
 
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -604,6 +613,9 @@ def add_reduce_layer(network, paddle_op, inputs, op_type):
         keep_dims=keepdim,
     )
     layer.get_output(0).dtype = layer.get_input(0).dtype
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -634,6 +646,9 @@ def add_cast_reduce_layer(network, paddle_op, inputs, op_type):
     )
     layer.set_output_type(0, trt.bool)
     layer.get_output(0).dtype = cast_layer.get_output(0).dtype
+    replenish_layer_and_output(
+        layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return layer.get_output(0)
 
 
@@ -752,6 +767,9 @@ def unary_op_converter(network, paddle_op, inputs):
         for trt_op in ops_type_map[paddle_op.name()]:
             layer = network.add_unary(input_tensor, trt_op)
             input_tensor = layer.get_output(0)
+            replenish_layer_and_output(
+                layer, paddle_op.name(), paddle_op.get_output_names()
+            )
     else:
         raise NotImplementedError(
             f"Unsupported unary operation: {paddle_op.name()}"
@@ -760,6 +778,9 @@ def unary_op_converter(network, paddle_op, inputs):
         restore_layer = network.add_identity(input_tensor)
         restore_layer.set_output_type(0, trt_type_mapping[org_type])
         input_tensor = restore_layer.get_output(0)
+        replenish_layer_and_output(
+            restore_layer, paddle_op.name(), paddle_op.get_output_names()
+        )
 
     return input_tensor
 
@@ -777,3 +798,17 @@ def get_axis_length(network, input_tensor, axis, is_scalar=False):
             network, dynamic_shape, axis, is_scalar
         )
     return output_tensor
+
+
+def replenish_layer_and_output(layer, layer_type, output_tensor_names):
+    if layer is None:
+        return
+    num_out = len(output_tensor_names)
+    layer_name = f"{layer_type} (Output: "
+    for i in range(num_out):
+        output_tensor = layer.get_output(i)
+        output_tensor.name = output_tensor_names[i]
+        layer_name += output_tensor_names[i]
+        if i != num_out - 1:
+            layer_name += ", "
+    layer.name = layer_name + ")"

@@ -14,6 +14,7 @@
 
 import tensorrt as trt
 
+from paddle.tensorrt.converter_utils import replenish_layer_and_output
 from paddle.tensorrt.register import converter_registry
 
 
@@ -43,4 +44,7 @@ def grid_sample_converter(network, paddle_op, inputs):
     grid_sample_layer.interpolation_mode = interpolation_mode
     grid_sample_layer.align_corners = align_corners
     grid_sample_layer.sample_mode = sample_mode
+    replenish_layer_and_output(
+        grid_sample_layer, paddle_op.name(), paddle_op.get_output_names()
+    )
     return grid_sample_layer.get_output(0)
