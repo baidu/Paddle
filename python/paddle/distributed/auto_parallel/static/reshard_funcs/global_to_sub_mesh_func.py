@@ -30,13 +30,18 @@ class GlobaleToSubMeshFunction(ReshardFunction):
             return False
         in_mesh = src_dist_attr.process_mesh
         out_mesh = dst_dist_attr.process_mesh
-        if in_mesh.ndim > out_mesh.ndim + 1:
+
+        sub_mesh_dim = paddle.base.core.sub_mesh_dim(in_mesh, out_mesh)
+        if sub_mesh_dim == -1:
             return False
-        if in_mesh.ndim == out_mesh.ndim:
-            return set(out_mesh.process_ids) < set(in_mesh.process_ids)
-        else:
-            sub_meshes = paddle.base.libpaddle.pir.get_sub_meshes(in_mesh)
-            return out_mesh in sub_meshes
+        return src_dist_attr.placements_attr[sub_mesh_dim].is_replicated()
+        # if in_mesh.ndim > out_mesh.ndim + 1:
+        #     return False
+        # if in_mesh.ndim == out_mesh.ndim:
+        #     return set(out_mesh.process_ids) < set(in_mesh.process_ids)
+        # else:
+        #     sub_meshes = paddle.base.libpaddle.pir.get_sub_meshes(in_mesh)
+        #     return out_mesh in sub_meshes
 
     def reshard(self, src_dist_attr, dst_dist_attr, src_value, dst_type):
 

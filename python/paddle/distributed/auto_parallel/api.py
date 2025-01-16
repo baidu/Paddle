@@ -1256,8 +1256,6 @@ class _ShardOptimizer(Optimizer):
         if isinstance(parameters, dict):
             parameters = parameters.get('params')
 
-        print("==== block in create accumulators ====")
-        print(block.program)
         # NOTE(zhiqiu): we need to create and shard accumulators for parameters one by one,
         # to avoid OOM caused by replcated accumulators.
         for p in parameters:

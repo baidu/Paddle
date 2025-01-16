@@ -1415,14 +1415,6 @@ class Engine:
                             pir.set_insertion_point_after(
                                 src_value.get_defining_op()
                             )
-                            print("need reshard")
-                            print(
-                                var_name,
-                                " src_value:",
-                                src_value,
-                                " dst_dist_attr:",
-                                dst_dist_attr,
-                            )
                             if os.getenv("FLAGS_enable_moe_utils") == "true":
                                 # for the case like mesh=[0,1,2,3], [Replicate()] -->
                                 # mesh=[[0,1],[2,3]], [Shard(0), Replicate()]. Now this
@@ -1446,9 +1438,14 @@ class Engine:
                                         [-1] * len(src_value.shape),
                                         {},
                                     )
-                                    src_value = paddle._C_ops.reshard_v2(
-                                        src_value, tmp_dist_attr
+                                    tmp_placements = [
+                                        dist.Replicate()
+                                    ] * dst_mesh.ndim
+                                    persistable = src_value.persistable
+                                    src_value = dist.reshard(
+                                        src_value, dst_mesh, tmp_placements
                                     )
+                                    src_value.persistable = persistable
                             reshard_var = paddle._C_ops.reshard_v2(
                                 src_value, dst_dist_attr
                             )
@@ -1459,10 +1456,13 @@ class Engine:
                 for del_op in del_ops:
                     del_op.erase()
 
-                print("==== startup prog ====")
-                print(startup_prog)
                 set_all_ops_op_role(startup_prog.global_block(), OpRole.Forward)
                 ReshardPasses.apply_reshard_pass(startup_prog)
+                # resharding mesh shape is implemented with `dist_reshape`, so we
+                # should replace the `dist_op.dist_reshape` with `pd_op.reshape`
+                dist.auto_parallel.moe_utils._replace_dist_reshape_pass(
+                    startup_prog
+                )
                 paddle.base.libpaddle.pir.apply_dist2dense_pass(startup_prog)
                 remove_unuseful_comm_op_pass(startup_prog)
 

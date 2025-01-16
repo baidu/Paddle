@@ -21,6 +21,7 @@ import paddle
 import paddle.distributed as dist
 from paddle import nn
 from paddle.io import BatchSampler, DataLoader
+from paddle.static import global_scope
 
 
 class Config:
@@ -545,6 +546,24 @@ class TestSimpleNetForEP:
         )
         dist_model.train()
 
+        print("==== dense program ====")
+        print(dist_model._engine.main_program)
+        ops = dist_model._engine.main_program.global_block().ops
+        dense_program = dist_model._engine.main_program
+        # dist_model._fetch_value(ops[7].result(0), "linear_0.w_0.dist_moment1_0")
+        dist_model._fetch_value(ops[19].result(0), "linear_0.w_0.dist")
+        # dist_model._fetch_value(ops[18].result(0), "expert_weight")
+        # dist_model._fetch_value(ops[17].result(0), "linear_2.w_0.dist")
+
+        val = dense_program.get_value_by_op_id(513)
+        dist_model._fetch_value(val, "share_data_out")
+        val = dense_program.get_value_by_op_id(524)[0]
+        dist_model._fetch_value(val, "adamw_out")
+        val = dense_program.get_value_by_op_id(525)
+        dist_model._fetch_value(val, "allgather_out")
+        val = dense_program.get_value_by_op_id(526)
+        dist_model._fetch_value(val, "assign_out_out")
+        moment2_var = global_scope().find_var("linear_0.w_0.dist_moment2_0")
         loss_list = []
         for batch_id, data in enumerate(dist_dataloader()):
             if isinstance(data, dict):
