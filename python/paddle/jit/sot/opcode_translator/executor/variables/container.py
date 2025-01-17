@@ -744,11 +744,12 @@ class RangeVariable(ContainerVariable):
         frame_value_tracer = self.tracker.trace_value_from_frame()
 
         return [
-            StringifiedExpression(
-                "isinstance({0}, range) and "
+            FasterStringifiedExpression(
+                "id(type({0})) == id(range) and "
                 + f"{{0}}.start == {self.init_value.start} and "
                 + f"{{0}}.stop == {self.init_value.stop} and "
                 + f"{{0}}.step == {self.init_value.step}",
+                paddle.framework.core.RangeMatchGuard(self.init_value),
                 [frame_value_tracer],
                 frame_value_tracer.free_vars,
             )

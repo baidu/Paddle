@@ -14,7 +14,7 @@
 
 import unittest
 
-from test_case_base import TestCaseBase
+from test_case_base import TestCaseBase, test_with_faster_guard
 
 import paddle
 from paddle.jit.sot.utils import strict_mode_guard
@@ -86,6 +86,7 @@ def test_enumerate_10(layer_list, x):
 
 
 class TestEnumerate(TestCaseBase):
+    @test_with_faster_guard
     def test_cases(self):
         x = 8
         y = 5

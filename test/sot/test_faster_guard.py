@@ -113,6 +113,11 @@ class TestBasicFasterGuard(unittest.TestCase):
         self.assertTrue(guard_id.check(layer))
         self.assertFalse(guard_id.check(paddle.nn.Linear(10, 10)))
 
+    def test_string_match_guard(self):
+        guard_string = paddle.framework.core.StringCompareGuard("1")
+        self.assertTrue(guard_string.check("1"))
+        self.assertFalse(guard_string.check("2"))
+
 
 class TestFasterGuardGroup(unittest.TestCase):
     def test_guard_group(self):
