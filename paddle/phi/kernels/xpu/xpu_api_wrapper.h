@@ -66,7 +66,7 @@ inline XPUFCCalcType FCCalcType() {
       {"XPU_PADDLE_FC_INT32_WITH_LL", XPUFCCalcType::FC_INT32_WITH_LL},
   };
 #ifdef PADDLE_WITH_XPU_XRE5
-  auto default_calc_type = XPUFCCalcType::FC_TF32;
+  auto default_calc_type = XPUFCCalcType::FC_FLOAT;
 #else
   auto default_calc_type = XPUFCCalcType::FC_INT16;
 #endif
