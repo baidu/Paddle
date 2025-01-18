@@ -31,6 +31,7 @@
 #include "paddle/fluid/imperative/op_base.h"
 #include "paddle/fluid/imperative/tracer.h"
 #include "paddle/fluid/platform/profiler.h"
+#include "paddle/phi/common/memory_utils.h"
 #include "paddle/phi/kernels/autotune/switch_autotune.h"
 #include "paddle/phi/kernels/funcs/math_function.h"
 
@@ -587,6 +588,7 @@ void BasicEngine::Execute() {
 
       {
         VLOG(3) << "Start to execute grad op " << cur_op.Type();
+        phi::memory_utils::MemoryDebugger debugger(cur_op.Type());
         try {
           if (tmp_ins_ptr == nullptr) {
             OpBase::Run(cur_op.InnerOp(),

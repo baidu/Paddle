@@ -14,16 +14,25 @@
 
 #pragma once
 
+#include <glog/logging.h>
 #include <future>  // NOLINT
 #include <unordered_map>
 
+#include "paddle/common/flags.h"
 #include "paddle/common/macros.h"
+#include "paddle/fluid/memory/stats.h"
+#include "paddle/phi/backends/context_pool.h"
+#include "paddle/phi/backends/gpu/gpu_info.h"
 #include "paddle/phi/common/place.h"
 #include "paddle/phi/core/allocator.h"
 #include "paddle/phi/core/device_context.h"
 #include "paddle/phi/core/enforce.h"
 #include "paddle/phi/core/stream.h"
+#include "paddle/phi/core/tensor_utils.h"
+#include "paddle/phi/kernels/full_kernel.h"
 #include "paddle/utils/test_macros.h"
+
+COMMON_DECLARE_bool(enable_memory_debug);
 
 #ifdef PADDLE_WITH_CUDA
 #include <cuda.h>
@@ -556,6 +565,64 @@ struct ThrustAllocator {
   allocation_map_type busy_allocation_;
   phi::Place place_;
   StreamType stream_;
+};
+
+class MemoryDebugger {
+ public:
+  explicit MemoryDebugger(const std::string& op_type) : op_type_(op_type) {
+    DebugFunc(op_type_ + " begin");
+  }
+
+  ~MemoryDebugger() { DebugFunc(op_type_ + " end"); }
+
+ private:
+  std::string op_type_;
+
+  static inline int ToMegaBytes(size_t bytes) {
+    return static_cast<int>(static_cast<double>(bytes) / (1 << 20));
+  }
+
+  void DebugFunc(const std::string& info) {
+    if (FLAGS_enable_memory_debug) {
+      VLOG(1) << info << " debug start"
+              << " : memory_allocated: "
+              << ToMegaBytes(paddle::memory::DeviceMemoryStatCurrentValue(
+                     "Allocated", phi::backends::gpu::GetCurrentDeviceId()))
+              << "MB, memory_reserved: "
+              << ToMegaBytes(paddle::memory::DeviceMemoryStatCurrentValue(
+                     "Reserved", phi::backends::gpu::GetCurrentDeviceId()))
+              << "MB, max_memory_allocated: "
+              << ToMegaBytes(paddle::memory::DeviceMemoryStatPeakValue(
+                     "Allocated", phi::backends::gpu::GetCurrentDeviceId()))
+              << "MB, max_memory_reserved: "
+              << ToMegaBytes(paddle::memory::DeviceMemoryStatPeakValue(
+                     "Reserved", phi::backends::gpu::GetCurrentDeviceId()))
+              << "MB";
+
+      size_t bytes = 256;
+      char* d_data;
+      char* h_data = new char[bytes];
+
+      cudaError_t err = cudaMalloc(&d_data, bytes);
+      if (err != cudaSuccess) {
+        VLOG(1) << "cudaMalloc failed! " << cudaGetErrorString(err);
+        PADDLE_THROW(::common::errors::Fatal(cudaGetErrorString(err)));
+      }
+
+      err = cudaMemcpy(h_data, d_data, bytes, cudaMemcpyDeviceToHost);
+      if (err != cudaSuccess) {
+        VLOG(1) << "cudaMemcpy failed! " << cudaGetErrorString(err);
+        cudaFree(d_data);
+        delete[] h_data;
+        PADDLE_THROW(::common::errors::Fatal(cudaGetErrorString(err)));
+      }
+
+      cudaFree(d_data);
+      delete[] h_data;
+
+      VLOG(1) << info << " debug finished";
+    }
+  }
 };
 
 }  // namespace memory_utils

@@ -29,6 +29,7 @@
 #include "paddle/fluid/operators/custom_device_common_op_registry.h"
 #include "paddle/fluid/pybind/eager_generator.h"
 #include "paddle/fluid/pybind/pybind.h"
+#include "paddle/phi/common/memory_utils.h"
 #include "paddle/utils/string/string_helper.h"
 
 // phi
@@ -112,6 +113,7 @@ static PyObject * %s(PyObject *self, PyObject *args, PyObject *kwargs)
 {
   PyThreadState *tstate = nullptr;
   try {
+    phi::memory_utils::MemoryDebugger debugger("%s");
     %s
     framework::AttributeMap attrs;
     ConstructAttrMapFromPyArgs("%s", args, %d, PyTuple_GET_SIZE(args) , attrs);
@@ -339,6 +341,7 @@ std::string GenerateOpFunctionsBody(
   // generate op function body
   auto op_function_str = paddle::string::Sprintf(OP_FUNCTION_TEMPLATE,
                                                  func_name,
+                                                 op_type,
                                                  ins_cast_str,
                                                  op_type,
                                                  input_args_num,

@@ -279,6 +279,7 @@ paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize> {}:
    //    accumulation when the output(s) of corresponding forward OP are shared by other OP(s), which may have extra accumulation overhead than 'Local_XXXGradNode'.
   paddle::platform::RecordEvent grad_node_record_event_inner(\"Local_{}\", paddle::platform::TracerEventType::OperatorInner, 1);
 
+  phi::memory_utils::MemoryDebugger debugger("{}");
   // Fill Zero For GradIn Tensors
 {}
   // Apply Gradient Hooks
@@ -508,6 +509,7 @@ NODE_CC_FILE_TEMPLATE = """
 #include "paddle/common/flags.h"
 #include "paddle/fluid/memory/stats.h"
 #include "paddle/phi/api/lib/data_transform.h"
+#include "paddle/phi/common/memory_utils.h"
 COMMON_DECLARE_bool(check_nan_inf);
 {}
 """
@@ -2906,6 +2908,7 @@ if (paddle::prim::PrimCommonUtils::IsEagerPrimEnabled() && !need_skip) {{
             grad_node_name,
             self.backward_api_name,
             grad_node_name,
+            self.backward_api_name,
             fill_zero_str,
             get_grad_in_args_str,
             grad_function_prepare_str,

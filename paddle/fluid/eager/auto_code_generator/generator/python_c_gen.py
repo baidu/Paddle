@@ -115,6 +115,7 @@ PyObject * eager_api_{}(PyObject *self, PyObject *args, PyObject *kwargs) {{
   try {{
     VLOG(6) << "Running Eager Final State API: {}";
 
+    phi::memory_utils::MemoryDebugger debugger("{}");
     VLOG(8) << "args count: " << (PyTuple_Size(args) / 2);
     // Get EagerTensors from args
 {}
@@ -194,6 +195,7 @@ PYTHON_C_WRAPPER_TEMPLATE = """
 #include "paddle/fluid/pybind/eager_custom_python_api.h"
 #include "paddle/fluid/pybind/eager.h"
 #include "paddle/fluid/pybind/eager_op_function.h"
+#include "paddle/phi/common/memory_utils.h"
 namespace paddle {{
 namespace pybind {{
 
@@ -518,6 +520,7 @@ class PythonCSingleFunctionGenerator(FunctionGeneratorBase):
             forward_api_name,
             pythonc_record_event_str,
             forward_api_name,
+            forward_api_name,
             get_eager_tensor_str,
             parse_attributes_str,
             set_device_str,
@@ -574,6 +577,7 @@ class PythonCSingleFunctionGenerator(FunctionGeneratorBase):
             python_c_inplace_func_str = PYTHON_C_FUNCTION_TEMPLATE.format(
                 inplaced_forward_api_name,
                 pythonc_record_event_str,
+                inplaced_forward_api_name,
                 inplaced_forward_api_name,
                 get_eager_tensor_str,
                 parse_attributes_str,

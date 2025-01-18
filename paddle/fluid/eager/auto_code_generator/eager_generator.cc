@@ -26,6 +26,7 @@
 #include "paddle/fluid/operators/custom_device_common_op_registry.h"
 #include "paddle/fluid/pybind/eager_generator.h"
 #include "paddle/fluid/pybind/pybind.h"
+#include "paddle/phi/common/memory_utils.h"
 #include "paddle/utils/string/string_helper.h"
 
 // phi
@@ -2698,6 +2699,11 @@ static std::string GenerateGradNodeCCContents(
       "  VLOG(3) << \"Running Eager Backward Node: %sGradNodeCompat\";\n";
   std::string generated_grad_function_body =
       paddle::string::Sprintf(EAGER_LOG_TEMPLATE, fwd_op_type);
+
+  const char* MEM_INFO_TEMPLATE =
+      "  phi::memory_utils::MemoryDebugger debugger(\"%s_grad\");\n";
+  generated_grad_function_body +=
+      paddle::string::Sprintf(MEM_INFO_TEMPLATE, fwd_op_type);
 
   // This is a Copy
   auto op_base_infos = bwd_info.GetOpBaseInfos();

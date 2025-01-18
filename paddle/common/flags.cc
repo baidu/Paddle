@@ -1815,4 +1815,9 @@ PHI_DEFINE_EXPORTED_int32(
     "Specify the version of FlashAttention to use, options are 2 or 3. "
     "Version 2 requires Ampere architecture or higher, "
     "while version 3 requires Hopper architecture.");
+
+PHI_DEFINE_EXPORTED_bool(
+    enable_memory_debug,
+    false,
+    "Print memory debug at begin and end of Kernel execution");
 #endif
