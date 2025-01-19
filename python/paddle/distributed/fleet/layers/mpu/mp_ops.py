@@ -480,6 +480,94 @@ def _c_softmax_with_cross_entropy(
         return loss
 
 
+def _c_softmax_with_multi_label_cross_entropy(
+    logits,
+    label,
+    smooth_weight,
+    group=None,
+    return_softmax=False,
+    ignore_index=-100,
+    sum_multi_label_loss=True,
+):
+    if group is not None and not group.is_member():
+        return
+    ring_id = 0 if group is None else group.id
+    global_rank = collective._get_global_env().rank
+    rank = global_rank if group is None else group.get_group_rank(global_rank)
+    nranks = (
+        collective._get_global_env().world_size
+        if group is None
+        else group.nranks
+    )
+
+    input_shape = list(logits.shape)
+    label_shape = list(label.shape)
+    input_dims = len(input_shape)
+    label_dims = len(label_shape)
+    if input_dims - 1 != label_dims and input_dims != label_dims:
+        raise ValueError(
+            f'Expected input_dims - 1 = label_dims or input_dims == label_dims\
+             (got input_dims{input_dims}, label_dims{label_dims})'
+        )
+    if input_dims - 1 == label_dims:
+        label = paddle.unsqueeze(label, axis=-1)
+        label_shape = list(label.shape)
+    if label_shape[-1] < 1 or label_shape[-1] > input_shape[-1] * nranks:
+        raise ValueError(
+            f'Expected label_shape[-1] >= 1 and label_shape[-1] <= input_shape[-1] * nranks\
+             (got label_shape[-1] = {label_shape[-1]}, input_shape[-1] = {input_shape[-1]})'
+        )
+
+    if in_dynamic_mode():
+        softmax, loss = _legacy_C_ops.c_softmax_with_multi_label_cross_entropy(
+            logits,
+            label,
+            smooth_weight,
+            'ring_id',
+            ring_id,
+            'rank',
+            rank,
+            'nranks',
+            nranks,
+            'ignore_index',
+            ignore_index,
+            'sum_multi_label_loss',
+            sum_multi_label_loss,
+        )
+        if not return_softmax:
+            return loss
+        else:
+            return loss, softmax
+    else:
+        attrs = {
+            'ring_id': ring_id,
+            'rank': rank,
+            'nranks': nranks,
+            'ignore_index': ignore_index,
+            'sum_multi_label_loss': sum_multi_label_loss,
+        }
+        helper = LayerHelper(
+            'c_softmax_with_multi_label_cross_entropy', **locals()
+        )
+        softmax = helper.create_variable_for_type_inference(dtype=logits.dtype)
+        loss = helper.create_variable_for_type_inference(dtype=logits.dtype)
+        helper.append_op(
+            type='c_softmax_with_multi_label_cross_entropy',
+            inputs={
+                'Logits': logits,
+                'Label': label,
+                'SmoothWeight': smooth_weight,
+            },
+            outputs={'Softmax': softmax, 'Loss': loss},
+            attrs=attrs,
+        )
+
+        if return_softmax:
+            return loss, softmax
+
+        return loss
+
+
 @inplace_apis_in_dygraph_only
 def _c_softmax_with_cross_entropy_(
     logits,

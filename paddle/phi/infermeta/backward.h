@@ -157,6 +157,19 @@ void CSoftmaxWithCrossEntropyGradInferMeta(const MetaTensor& softmax,
                                            MetaTensor* logits_grad,
                                            MetaConfig config = MetaConfig());
 
+void CSoftmaxWithMultiLabelCrossEntropyGradInferMeta(
+    const MetaTensor& softmax,
+    const MetaTensor& label,
+    const MetaTensor& smooth_weight,
+    const MetaTensor& loss_grad,
+    int64_t ignore_index,
+    bool sum_multi_label_loss,
+    int ring_id,
+    int rank,
+    int nranks,
+    MetaTensor* logits_grad,
+    MetaConfig config = MetaConfig());
+
 void CudnnLSTMGradInferMeta(
     const MetaTensor& x,
     const MetaTensor& init_h,

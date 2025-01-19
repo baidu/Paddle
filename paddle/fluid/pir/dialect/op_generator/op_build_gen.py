@@ -27,6 +27,7 @@ _INFERMETA_NEED_META_CONFIG = {
     'Conv2dTransposeInferMeta',
     'CrossEntropyWithSoftmaxInferMeta',
     'CSoftmaxWithCrossEntropyInferMeta',
+    'CSoftmaxWithMultiLabelCrossEntropyInferMeta',
     'DepthwiseConvInferMeta',
     'DistributeFpnProposalsInferMeta',
     'ElementwiseRawInferMeta',

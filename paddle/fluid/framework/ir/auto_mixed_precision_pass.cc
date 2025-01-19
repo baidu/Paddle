@@ -200,6 +200,7 @@ void AutoMixedPrecisionPass::SetDefaultBlacklist() const {
       "softmax_with_cross_entropy",
       "sigmoid_cross_entropy_with_logits",
       "c_softmax_with_cross_entropy",
+      "c_softmax_with_multi_label_cross_entropy",
       "cross_entropy",
       "cross_entropy2",
 #ifndef PADDLE_WITH_XPU

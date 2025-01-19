@@ -800,3 +800,65 @@ class ParallelCrossEntropy(paddle.nn.Layer):
             ignore_index=self.ignore_index,
         )
         return loss
+
+
+class ParallelMultiLabelCrossEntropy(paddle.nn.Layer):
+    """CrossEntropy with mp parallelized.
+    this class is used for splitting softmax cross entropy in mp group.
+
+    Args:
+        mp_group(Group): The tensor parallel group.
+        name(str, optional): Normally there is no need for user to set this parameter.
+            For detailed information, please refer to :ref:`api_guide_Name` .
+        ignore_index (long int, optional):  Specifies a target value that is ignored and
+            does not contribute to the loss. A negative value means that no label value
+            needs to be ignored. Default is -100 .
+        sum_multi_label_loss (bool, optional): Whether to sum the loss. Default is True .
+
+    Examples:
+        .. code-block:: python
+
+            >>> # doctest: +SKIP('No img to demonstrate')
+            >>> from paddle.distributed.fleet.layers.mpu import ParallelMultiLabelCrossEntropy
+            >>> loss_func = ParallelMultiLabelCrossEntropy()
+            >>> loss = loss_func(img, label, smooth_weight)
+
+    """
+
+    def __init__(
+        self,
+        mp_group=None,
+        name=None,
+        ignore_index=-100,
+        sum_multi_label_loss=True,
+    ):
+        super().__init__()
+        self.name = name
+        self.model_parallel_group = (
+            tp._HYBRID_PARALLEL_GROUP.get_model_parallel_group()
+            if mp_group is None
+            else mp_group
+        )
+        self.world_size = (
+            tp._HYBRID_PARALLEL_GROUP.get_model_parallel_world_size()
+            if mp_group is None
+            else mp_group.nranks
+        )
+        self.rank = (
+            tp._HYBRID_PARALLEL_GROUP.get_model_parallel_rank()
+            if mp_group is None
+            else mp_group.rank
+        )
+        self.ignore_index = ignore_index
+        self.sum_multi_label_loss = sum_multi_label_loss
+
+    def forward(self, input, label, smooth_weight):
+        loss = mp_ops._c_softmax_with_multi_label_cross_entropy(
+            input,
+            label,
+            smooth_weight,
+            group=self.model_parallel_group,
+            ignore_index=self.ignore_index,
+            sum_multi_label_loss=self.sum_multi_label_loss,
+        )
+        return loss

@@ -859,6 +859,16 @@
     data_type : logits
   backward: c_softmax_with_cross_entropy_grad
 
+- op: c_softmax_with_multi_label_cross_entropy
+  args: (Tensor logits, Tensor label, Tensor smooth_weight, int64_t ignore_index=-100, bool sum_multi_label_loss=true, int ring_id=0, int rank=0, int nranks=0)
+  output: Tensor(softmax), Tensor(loss)
+  infer_meta:
+    func : CSoftmaxWithMultiLabelCrossEntropyInferMeta
+  kernel:
+    func: c_softmax_with_multi_label_cross_entropy
+    data_type : logits
+  backward: c_softmax_with_multi_label_cross_entropy_grad
+
 - op: dpsgd
   args: (Tensor param, Tensor grad, Tensor learning_rate, float clip = 10.0f, float batch_size = 16.0f, float sigma = 1.0f, int seed = 0)
   output: Tensor(param_out)

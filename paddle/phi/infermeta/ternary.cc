@@ -318,6 +318,68 @@ void BoxCoderInferMeta(const MetaTensor& prior_box,
   output_box->set_dtype(target_box.dtype());
 }
 
+void CSoftmaxWithMultiLabelCrossEntropyInferMeta(
+    const MetaTensor& logits,
+    const MetaTensor& label,
+    const MetaTensor& smooth_weight,
+    int64_t ignore_index,
+    bool sum_multi_label_loss,
+    int ring_id,
+    int rank,
+    int nranks,
+    MetaTensor* softmax,
+    MetaTensor* loss,
+    MetaConfig config) {
+  auto logits_dims = logits.dims();
+  auto labels_dims = label.dims();
+  auto smooth_weight_dims = smooth_weight.dims();
+
+  auto logits_rank = logits_dims.size();
+  auto labels_rank = labels_dims.size();
+  auto axis = logits_rank - 1;
+  for (int i = 0; i < logits_rank; i++) {
+    if (i != axis) {
+      if (config.is_runtime || (logits_dims[i] > 0 && labels_dims[i] > 0)) {
+        PADDLE_ENFORCE_EQ(logits_dims[i],
+                          labels_dims[i],
+                          common::errors::InvalidArgument(
+                              "Input(Logits) and Input(Label) should in "
+                              "same shape in dimensions except axis."));
+      }
+    }
+  }
+
+  PADDLE_ENFORCE_GE(
+      labels_dims[logits_rank - 1],
+      1UL,
+      common::errors::InvalidArgument(
+          "the last dimension of Input(Label) should be greater than or equal "
+          "to 1."
+          "But received: the last dimension of Input(Label) is [%d],"
+          "the last dimension is [%d]",
+          labels_dims[logits_rank - 1],
+          logits_rank - 1));
+
+  for (int i = 0; i < labels_rank; ++i) {
+    if (config.is_runtime ||
+        (labels_dims[i] > 0 && smooth_weight_dims[i] > 0)) {
+      PADDLE_ENFORCE_EQ(labels_dims[i],
+                        smooth_weight_dims[i],
+                        common::errors::InvalidArgument(
+                            "Input(Label) and Input(SmoothWeight) should in "
+                            "same shape in dimensions"));
+    }
+  }
+
+  softmax->set_dims(logits_dims);
+  if (sum_multi_label_loss) {
+    labels_dims[axis] = 1;
+  }
+  loss->set_dims(labels_dims);
+  softmax->share_lod(logits);
+  loss->share_lod(logits);
+}
+
 void DistributedPushSparseInferMeta(
     const std::vector<const MetaTensor*>& ids,
     const std::vector<const MetaTensor*>& shows,

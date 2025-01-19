@@ -27,6 +27,7 @@ from .fleet.layers.mpu.mp_ops import (  # noqa: F401
     _c_identity,
     _c_lookup_table,
     _c_softmax_with_cross_entropy,
+    _c_softmax_with_multi_label_cross_entropy,
     _c_split,
     _Linear,
     _linear,
