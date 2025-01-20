@@ -27,7 +27,7 @@
 #include "paddle/cinn/optim/if_fold_pass.h"
 #include "paddle/cinn/optim/if_fusion_pass.h"
 #include "paddle/cinn/optim/insert_debug_log_callee.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 #include "paddle/cinn/optim/lower_function_call_bind_vars.h"
 #include "paddle/cinn/optim/lower_intrin.h"
 #include "paddle/cinn/optim/map_extern_call.h"
@@ -62,7 +62,7 @@ ir::LoweredFunc Optimize(ir::LoweredFunc fn,
 
   ReplaceConstParamToInteger(&copied->body);
   // Simplify already contains CastSimplify
-  Simplify(&copied->body);
+  Simplify(&copied->body, optim::SimplifyType::kBlock);
   EliminateInvariantLoop(&copied->body);
   VLOG(4) << "After Optimize EliminateInvariantLoop:" << copied;
   ReplaceCrossThreadReduction(copied);
@@ -98,9 +98,6 @@ ir::LoweredFunc Optimize(ir::LoweredFunc fn,
       [&](common::HygonDCUArchSYCL) { CINN_NOT_IMPLEMENTED },
       [](auto) {});
 
-  SimplifyBlocks(&copied->body);
-  VLOG(4) << "After SimplifyBlocks:" << copied;
-
   MapExternCall(&copied->body, target);
   VLOG(10) << "After Optimize MapExternCall:" << copied;
 
@@ -113,8 +110,8 @@ ir::LoweredFunc Optimize(ir::LoweredFunc fn,
            << copied;
 
   // Simplify already contains CastSimplify
-  Simplify(&copied->body);
-  VLOG(4) << "After Optimize Simplify:" << copied;
+  Simplify(&copied->body, optim::SimplifyType::kBlock);
+  VLOG(10) << "After Optimize Simplify:" << copied;
 
   BlockPassManager pass_manager;
   pass_manager.AddPass(CreateIfFusionPass());
@@ -132,7 +129,7 @@ ir::LoweredFunc Optimize(ir::LoweredFunc fn,
   VectorizeForTrans(&copied->body);
   VLOG(10) << "After Optimize vectorize" << copied;
 
-  Simplify(&copied->body);
+  Simplify(&copied->body, optim::SimplifyType::kBlock);
   VLOG(10) << "After Optimize Simplify" << copied;
 
   pass_manager.AddPass(CreateRemoveScheduleBlockPass());

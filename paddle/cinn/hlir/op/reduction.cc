@@ -27,7 +27,7 @@
 #include "paddle/cinn/hlir/pe/transform.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/schedule/ir_schedule.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 #include "paddle/cinn/runtime/flags.h"
 
 PD_DECLARE_bool(cinn_enable_map_expr);
@@ -205,7 +205,6 @@ std::shared_ptr<OpStrategy> StrategyForReduce(
         // support the length-1 for loop yet. So we simplify here. The todo
         // is that remove SimplifyForLoops below and change reduction schedule
         optim::SimplifyForLoops(&temp);
-        optim::SimplifyBlocks(&temp);
         vec_ast.emplace_back(temp);
       } else if (arg_pack[i].is_tensor()) {
         Expr temp = arg_pack[i];

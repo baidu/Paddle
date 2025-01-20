@@ -33,7 +33,6 @@
 #include "paddle/cinn/ir/ir_printer.h"
 #include "paddle/cinn/ir/schedule/ir_schedule.h"
 #include "paddle/cinn/lang/lower.h"
-#include "paddle/cinn/optim/ir_simplify.h"
 #include "paddle/cinn/utils/timer.h"
 #include "paddle/common/enforce.h"
 

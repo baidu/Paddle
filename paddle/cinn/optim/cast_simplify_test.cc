@@ -16,7 +16,7 @@
 
 #include "paddle/cinn/ir/ir_printer.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 namespace cinn::optim {
 
 TEST(CastSimplify, same_type) {

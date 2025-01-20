@@ -28,7 +28,6 @@
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/tensor.h"
 #include "paddle/cinn/ir/utils/ir_copy.h"
-#include "paddle/cinn/optim/ir_simplify.h"
 #include "paddle/common/enforce.h"
 #include "paddle/common/errors.h"
 

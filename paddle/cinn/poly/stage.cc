@@ -31,7 +31,7 @@
 #include "paddle/cinn/ir/utils/ir_nodes_collector.h"
 #include "paddle/cinn/ir/utils/ir_replace.h"
 #include "paddle/cinn/lang/compute.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 #include "paddle/cinn/optim/replace_var_with_expr.h"
 #include "paddle/cinn/poly/compute_at_transform.h"
 #include "paddle/cinn/poly/isl_utils.h"
@@ -330,7 +330,7 @@ void Stage::ChangeIndex(Stage *other) {
 // Return a - b as integer.
 int Minus(const Expr &a, const Expr &b) {
   Expr diff = ir::Sub::Make(a, b);
-  optim::Simplify(&diff);
+  optim::Simplify(&diff, optim::SimplifyType::kExpr);
   if (!diff.is_constant()) {
     LOG(ERROR) << "Range is not constant";
   }
@@ -553,7 +553,7 @@ void Stage::EditTempTensor(Stage *other, int level) {
       optim::ReplaceVarWithExpr(&i, dim_var, Expr(j.second));
     }
     i = ir::Add::Make(i, Expr(1));
-    optim::Simplify(&i);
+    optim::Simplify(&i, optim::SimplifyType::kExpr);
   }
   // Set new shape.
   VLOG(3) << "Tensor is : " << this->tensor()->name;

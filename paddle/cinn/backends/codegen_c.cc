@@ -22,7 +22,7 @@
 #include "paddle/cinn/ir/lowered_func.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/utils/ir_verify.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 #include "paddle/cinn/runtime/cpu/thread_backend.h"
 #include "paddle/cinn/runtime/intrinsic.h"
 #include "paddle/cinn/utils/string.h"
@@ -170,7 +170,7 @@ void CodeGenC::Visit(const ir::Mul *op) { IrPrinter::Visit(op); }
 void CodeGenC::Visit(const ir::Div *op) { IrPrinter::Visit(op); }
 void CodeGenC::Visit(const ir::Mod *op) {
   auto copied = op->b();
-  optim::Simplify(&copied);
+  optim::Simplify(&copied, optim::SimplifyType::kExpr);
   if (copied.is_constant()) {
     int temp = static_cast<int>(copied.get_constant());
     if ((temp & (temp - 1)) == 0) {
@@ -708,8 +708,6 @@ void CodeGenC::Visit(const ir::_LoweredFunc_ *op) {
   APPEND_TO_NEW_BODY(dealloc_output_buffer_exprs)
 
   Expr func_body = ir::Block::Make(new_body);
-
-  optim::SimplifyBlocks(&func_body);
 
   IrPrinter::Visit(func_body);
 }

@@ -25,7 +25,7 @@
 #include "paddle/cinn/common/ir_util.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/utils/ir_verify.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 #include "paddle/common/enforce.h"
 #include "paddle/common/errors.h"
 namespace cinn {
@@ -167,7 +167,6 @@ void CodeGenGpuDev::Visit(const ir::_LoweredFunc_ *op) {
 
   Expr func_body = ir::Block::Make(new_body);
 
-  optim::SimplifyBlocks(&func_body);
   // Make sure that the function's body is wrapped by a block
   if (!func_body.As<ir::Block>()) {
     func_body = ir::Block::Make({func_body});
@@ -307,7 +306,7 @@ void CodeGenGpuDev::PrintTempBufferCreation(const ir::Buffer &buffer) {
   for (int i = 0; i < buffer->shape.size(); i++) {
     buffer_size = buffer_size * buffer->shape[i];
   }
-  optim::Simplify(&buffer_size);
+  optim::Simplify(&buffer_size, optim::SimplifyType::kExpr);
   bool has_symbolic_constant = false;
   ir::ir_utils::CollectIRNodes(buffer_size, [&](const Expr *x) {
     if (x->as_var()) {
@@ -339,7 +338,7 @@ void CodeGenGpuDev::PrintTempBufferCreation(const ir::Buffer &buffer) {
     int type_bytes = buffer->dtype.bytes();
     dyn_shared_mem_offset_ =
         dyn_shared_mem_offset_ + buffer_size * Expr(type_bytes);
-    optim::Simplify(&dyn_shared_mem_offset_);
+    optim::Simplify(&dyn_shared_mem_offset_, optim::SimplifyType::kExpr);
     VLOG(6) << "dyn_shared_mem_offset_ = " << dyn_shared_mem_offset_;
   } else if (buffer->memory_type == ir::MemoryType::GPULocal) {
     // print func of static allocation

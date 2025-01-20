@@ -17,7 +17,6 @@
 #include <memory>
 
 #include "paddle/cinn/ir/ir_printer.h"
-#include "paddle/cinn/optim/ir_simplify.h"
 #include "paddle/cinn/optim/optimize.h"
 #include "paddle/common/enforce.h"
 

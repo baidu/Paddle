@@ -5,7 +5,7 @@ gather_srcs(
   SRCS
   replace_call_with_expr.cc
   replace_var_with_expr.cc
-  ir_simplify.cc
+  ir_simplify_pass.cc
   optimize.cc
   vectorize_loops.cc
   unroll_loops.cc

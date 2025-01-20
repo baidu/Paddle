@@ -435,7 +435,7 @@ Expr DyScheduleImpl::Fuse(const std::vector<Expr>& loops) {
 
   Expr fused_body = ir::ir_utils::IRCopy(for_nodes.back()->body);
   ReplaceExpr(&fused_body, loop_vars, substitute_value);
-  optim::Simplify(&fused_body);
+  optim::Simplify(&fused_body, optim::SimplifyType::kBlock);
   Expr fused_extent(int64_t(1));
   for (int i = 0; i < loops_number; ++i) {
     fused_extent = fused_extent * for_nodes[i]->extent;

@@ -26,7 +26,7 @@
 #include "paddle/cinn/ir/ir_visitor.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/utils/ir_copy.h"
-#include "paddle/cinn/optim/ir_simplify.h"
+#include "paddle/cinn/optim/ir_simplify_pass.h"
 
 namespace cinn {
 namespace optim {
@@ -40,14 +40,14 @@ Expr PlusOneWithMinMax(Expr expr) {
   if (min_n) {
     min_n->a() = min_n->a() + 1;
     min_n->b() = min_n->b() + 1;
-    Simplify(&min_n->a());
-    Simplify(&min_n->b());
+    Simplify(&min_n->a(), optim::SimplifyType::kExpr);
+    Simplify(&min_n->b(), optim::SimplifyType::kExpr);
     return expr;
   } else if (max_n) {
     max_n->a() = max_n->a() + 1;
     max_n->b() = max_n->b() + 1;
-    Simplify(&max_n->a());
-    Simplify(&max_n->b());
+    Simplify(&max_n->a(), optim::SimplifyType::kExpr);
+    Simplify(&max_n->b(), optim::SimplifyType::kExpr);
     return expr;
   }
   return expr + 1;
