@@ -14,6 +14,7 @@
 
 #include "paddle/fluid/pir/transforms/sub_graph_detector.h"
 
+#include <climits>
 #include <memory>
 
 #include <iterator>

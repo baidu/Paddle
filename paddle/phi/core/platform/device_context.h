@@ -28,6 +28,7 @@ limitations under the License. */
 #include "paddle/phi/core/device_context.h"
 #include "paddle/phi/core/memory/malloc.h"
 #include "paddle/phi/core/platform/device/gpu/gpu_types.h"
+#include "paddle/phi/core/platform/device_defs.h"
 #ifdef PADDLE_WITH_CUDA
 #include "paddle/phi/backends/dynload/cublas.h"
 #include "paddle/phi/backends/dynload/cublasLt.h"
@@ -90,26 +91,6 @@ struct GpuDevice;
 namespace paddle {
 namespace platform {
 
-enum DeviceType {
-  CPU = 0,
-  CUDA = 1,
-  XPU = 3,
-  IPU = 4,
-  CUSTOM_DEVICE = 6,
-
-  MAX_DEVICE_TYPES = 7,
-};
-
-DeviceType Place2DeviceType(const phi::Place& place);
-
-constexpr DeviceType kCPU = DeviceType::CPU;
-constexpr DeviceType kCUDA = DeviceType::CUDA;
-constexpr DeviceType kXPU = DeviceType::XPU;
-constexpr DeviceType kIPU = DeviceType::IPU;
-constexpr DeviceType kCUSTOM_DEVICE = DeviceType::CUSTOM_DEVICE;
-
-using DeviceContext = phi::DeviceContext;
-
 // Graphcore IPU
 #ifdef PADDLE_WITH_IPU
 class IPUDeviceContext
@@ -145,8 +126,6 @@ void EmplaceDeviceContexts(
     const std::vector<phi::Place>& places,
     bool disable_setting_default_stream_for_allocator,
     int stream_priority);
-
-using DeviceContextPool = phi::DeviceContextPool;
 
 }  // namespace platform
 }  // namespace paddle

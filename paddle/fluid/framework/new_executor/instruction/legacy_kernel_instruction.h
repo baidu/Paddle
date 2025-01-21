@@ -15,6 +15,7 @@
 #pragma once
 
 #include "paddle/fluid/framework/new_executor/instruction/instruction_base.h"
+#include "paddle/fluid/framework/new_executor/new_executor_defs.h"
 
 namespace pir {
 class Operation;

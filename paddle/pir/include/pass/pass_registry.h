@@ -39,6 +39,9 @@ class IR_API PassRegistry {
                       true,
                       common::errors::InvalidArgument(
                           "Pass %s has been registered.", pass_type));
+    if (Has(pass_type)) {
+      return;
+    }
     pass_map_.insert({pass_type, pass_creator});
   }
 
