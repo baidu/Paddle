@@ -66,18 +66,28 @@ class HybridParallelClipGrad:
         if sharding_flag:
             # norm of mp distributed variable
             if mp_flag:
+                if self._timers:
+                    self._timers("dygraph-clip-sd-group-dist").start()
                 # dist should reduce among sharding group、mp group、pp group
                 paddle.distributed.all_reduce(
                     global_norm_var_dist,
                     group=self._hcg.get_sharding_parallel_group(),
                 )
+                if self._timers:
+                    self._timers("dygraph-clip-sd-group-dist").stop()
             # not dist only reduce among sharding group and pp group later
+            if self._timers:
+                self._timers("dygraph-clip-sd-group-non-dist").start()
             paddle.distributed.all_reduce(
                 global_norm_var_not_dist,
                 group=self._hcg.get_sharding_parallel_group(),
             )
+            if self._timers:
+                self._timers("dygraph-clip-sd-group-non-dist").stop()
 
         # norm of mp distributed variable
+        if self._timers:
+            self._timers("dygraph-clip-check-group").start()
         if mp_flag:
             # dist should reduce among sharding group、mp group、pp group
 
@@ -97,13 +107,19 @@ class HybridParallelClipGrad:
                         global_norm_var_dist,
                         group=self._hcg.get_pipe_parallel_group(),
                     )
+        if self._timers:
+            self._timers("dygraph-clip-check-group").stop()
 
         # add all reduce to get global norm of non-distributed params_and_grads in groups of pp
+        if self._timers:
+            self._timers("dygraph-clip-pp-group").start()
         if pp_flag:
             paddle.distributed.all_reduce(
                 global_norm_var_not_dist,
                 group=self._hcg.get_pipe_parallel_group(),
             )
+        if self._timers:
+            self._timers("dygraph-clip-pp-group").stop()
 
         if self.processed_steps < g_profile_optimizer_details_steps:
             get_sync_logger().info("Finished calculating global norm.")
