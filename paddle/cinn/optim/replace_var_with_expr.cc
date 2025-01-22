@@ -118,6 +118,13 @@ struct ReplaceVarWithExprMutator : public ir::IRMutator<>,
         ir::IRMutator<>::Visit(&var->upper_bound, &var->upper_bound);
       }
     }
+
+    std::vector<Expr> iter_values = stmt->iter_values();
+    for (ir::Expr& iter_value : iter_values) {
+      ir::IRMutator<>::Visit(&iter_value, &iter_value);
+    }
+    stmt->set_iter_values(iter_values);
+
     std::vector<Expr> new_read_buffers = stmt->read_buffers();
     for (Expr& read_buffer : new_read_buffers) {
       ir::IRMutator<>::Visit(&read_buffer, &read_buffer);

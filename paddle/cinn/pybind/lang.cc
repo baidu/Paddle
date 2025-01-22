@@ -23,6 +23,7 @@
 #include "paddle/cinn/ir/schedule/ir_schedule.h"
 #include "paddle/cinn/ir/schedule/ir_schedule_util.h"
 #include "paddle/cinn/ir/tensor.h"
+#include "paddle/cinn/ir/utils/stmt_converter.h"
 #include "paddle/cinn/lang/buffer.h"
 #include "paddle/cinn/lang/builtin.h"
 #include "paddle/cinn/lang/compute.h"
@@ -134,7 +135,15 @@ void BindModule(py::module *m) {
                  [&](common::NVGPUArch) {
 #ifdef CINN_WITH_CUDA
                    ir::SetCudaAxisInfo(func);
-                   optim::OptimizeExprGPU(&(func->body));
+                   ir::stmt::BlockRef func_body_block =
+                       ir::ConvertExprBlockToStmtBlock(func->body);
+                   VLOG(6) << " Before OptimizeExprGPU in lang: \n"
+                           << func_body_block;
+                   optim::OptimizeExprGPU(func_body_block);
+                   VLOG(6) << "After OptimizeExprGPU in lang: \n"
+                           << func_body_block;
+                   func->body =
+                       ir::ConvertStmtBlockToExprBlock(func_body_block);
 #endif
                  },
                  [&](std::variant<common::HygonDCUArchHIP,
