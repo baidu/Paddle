@@ -516,6 +516,8 @@ def _pir_overlap_send_recv(program):
         2. 'p_send' operator uses 'dist_attr.execution_stream' to set stream of its own.
         3. 'p_recv' operator uses 'dist_attr.execution_stream' to set stream of its own.
     """
+    print("xxx enter _pir_overlap_send_recv no  overlap: pass")
+    # pass
     for block in program.blocks:
         for op in block.ops:
             if op.name() == "pd_op.p_send":
@@ -523,6 +525,7 @@ def _pir_overlap_send_recv(program):
                 ring_id = op.attrs()["ring_id"]
                 op.set_execution_stream(f"send_stream_{ring_id}")
                 op.set_scheduling_priority(0)
+                print("xxx send overlap : ", op)
             elif op.name() == "pd_op.p_recv":
                 op.set_bool_attr("dynamic_shape", False)
                 op.set_execution_stream("recv_stream")
@@ -646,6 +649,7 @@ def _overlap_send_recv(program):
         2. 'p_send' operator uses 'dist_attr.execution_stream' to set stream of its own.
         3. 'p_recv' operator uses 'dist_attr.execution_stream' to set stream of its own.
     """
+    print("xxx enter _overlap_send_recv ")
     for block in program.blocks:
         for op in block.ops:
             if op.type == 'p_send':
@@ -653,10 +657,12 @@ def _overlap_send_recv(program):
                 ring_id = op.attr("ring_id")
                 op.dist_attr.execution_stream = "send_stream_" + str(ring_id)
                 op.dist_attr.stream_priority = 0
+                print("xxx old send overlap : ", op)
             elif op.type == 'p_recv':
                 op._set_attr("dynamic_shape", False)
                 op.dist_attr.execution_stream = "recv_stream"
                 op.dist_attr.stream_priority = 0
+                print("xxx old recv overlap : ", op)
             else:
                 pass
 
@@ -758,6 +764,9 @@ def _program_for_fthenb_and_1f1b(program, enable_send_recv_overlap=False):
     opt_prog._roll_to_global_block()
 
     # It MUST return in this order
+    print("xxx _program_for_fthenb_and_1f1b fwd_prog: ", fwd_prog)
+    print("xxx _program_for_fthenb_and_1f1b bwd_prog: ", bwd_prog)
+    print("xxx _program_for_fthenb_and_1f1b opt_prog: ", opt_prog)
     return [fwd_prog, bwd_prog, opt_prog]
 
 
@@ -984,7 +993,18 @@ def _split_program_into_forward_backward_optimize(
                     )
             opt_ops[op_idx].erase()
             bwd_ops[op_idx].erase()
-
+    print(
+        "xxx _split_program_into_forward_backward_optimize fwd_program: ",
+        fwd_program,
+    )
+    print(
+        "xxx _split_program_into_forward_backward_optimize bwd_program: ",
+        bwd_program,
+    )
+    print(
+        "xxx _split_program_into_forward_backward_optimize opt_program: ",
+        opt_program,
+    )
     return fwd_program, bwd_program, opt_program
 
 
@@ -1195,6 +1215,8 @@ def _pir_program_for_vpp(
     program_types, programs = _split_program_for_vpp(
         program, num_model_chunks, oprole_names, split_bw=split_bw
     )
+    print("xxx _pir_program_for_vpp program_types: ", program_types)
+    print("xxx _pir_program_for_vpp programs: ", programs)
     return program_types, programs
 
 
@@ -1266,6 +1288,8 @@ def _program_for_vpp(
         prog._sync_with_cpp()
         prog._roll_to_global_block()
 
+    print("xxx _program_for_vpp type: ", list(type_to_program.keys()))
+    print("xxx _program_for_vpp program: ", list(type_to_program.values()))
     return list(type_to_program.keys()), list(type_to_program.values())
 
 
@@ -1437,7 +1461,11 @@ def _program_for_vpp_split_bwk(
     for prog in type_to_program.values():
         prog._sync_with_cpp()
         prog._roll_to_global_block()
-
+    print("xxx _program_for_vpp_split_bwk type: ", list(type_to_program.keys()))
+    print(
+        "xxx _program_for_vpp_split_bwk program: ",
+        list(type_to_program.values()),
+    )
     return list(type_to_program.keys()), list(type_to_program.values())
 
 

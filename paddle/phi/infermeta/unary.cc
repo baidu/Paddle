@@ -3408,7 +3408,6 @@ void Pool2DInferMeta(const MetaTensor& x,
 }
 
 void PSendInferMeta(const MetaTensor& x, int peer) {
-  LOG(INFO) << "SendBaseInferMeta begin";
   PADDLE_ENFORCE_GE(
       peer,
       0,
