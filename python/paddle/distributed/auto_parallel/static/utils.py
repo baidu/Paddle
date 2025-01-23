@@ -2752,7 +2752,7 @@ def split_mesh(global_mesh: ProcessMesh, sub_mesh_dim: int):
     sub_mesh_list = []
     for sub_process_ids in splitted_process_ids:
         sub_mesh_list.append(
-            ProcessMesh(sub_process_ids, global_mesh.dim_names)
+            ProcessMesh(sub_process_ids, dim_names=global_mesh.dim_names)
         )
 
     return sub_mesh_list
@@ -2796,3 +2796,32 @@ def update_pylayer_output(trival_value):
     )
     fake_value.set_type(trival_value.type())
     trival_value.replace_all_uses_with(fake_value)
+
+
+def mesh_equal_ignore_shape_one(
+    mesh1: ProcessMesh, mesh2: ProcessMesh, dim: int
+):
+    """
+    Check if two process meshes are equal, ignoring the shape value `1`
+    in the specified dimension. This is used when mesh1 is a sub-mesh
+    splitted from a global mesh, in this case, the shape of mesh1 is `1`
+    in the split dim.
+    E.g, the following two meshes are equal:
+      mesh1: shape = [1,2,2], process_ids = [0,1,2,3]
+      mesh2: shape = [2,2], process_ids = [0,1,2,3]
+    """
+    assert dim >= 0 and dim < len(mesh1.shape), "invalid dim arg"
+    if mesh1 == mesh2:
+        return True
+
+    if mesh1.process_ids != mesh2.process_ids:
+        return False
+
+    a_shape = copy.copy(mesh1.shape)
+    b_shape = copy.copy(mesh2.shape)
+
+    if a_shape[dim] != 1:
+        return False
+    a_shape.pop(dim)
+
+    return a_shape == b_shape

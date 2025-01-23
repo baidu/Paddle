@@ -16,6 +16,7 @@ from __future__ import annotations
 import copy
 import logging
 import os
+import traceback
 import warnings
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
@@ -67,8 +68,8 @@ from paddle.optimizer import Optimizer
 
 from .moe_utils import (
     _cal_local_shape,
-    _dist_reshape,
     _NdMeshAlltoAll,
+    _only_reshard_mesh_shape,
     _reshard_mesh_shape,
     _specific_alltoall_dim,
 )
@@ -548,9 +549,7 @@ def moe_global_mesh_tensor(
         global_dims = _cal_global_shape(
             local_tensor._local_shape, mesh, placements
         )
-        return paddle.jit.dy2static.py_layer.StaticPyLayer(
-            _moe_global_mesh_tensor
-        ).apply(
+        dist_tensor = paddle._C_ops.moe_global_mesh_tensor(
             local_tensor_list,
             local_mesh_list,
             local_placements,
@@ -558,6 +557,9 @@ def moe_global_mesh_tensor(
             placements,
             global_dims,
         )
+        dist_tensor.stop_gradient = local_tensor_list[0].stop_gradient
+        dist_tensor.persistable = local_tensor_list[0].persistable
+        return dist_tensor
     else:
         raise NotImplementedError(
             "dtensor_from_local_list() are only supported in dynamic and pir mode."
@@ -705,17 +707,17 @@ def moe_sub_mesh_tensors(
             global_placements,
         )
     elif paddle.framework.in_pir_mode():
-
-        return paddle.jit.dy2static.py_layer.StaticPyLayer(
-            _moe_sub_mesh_tensors
-        ).apply(
+        local_tensors = paddle._C_ops.moe_sub_mesh_tensors(
             dist_tensor,
             local_mesh_list,
             local_placements,
-            local_mesh_dim,
             global_mesh,
             global_placements,
         )
+        for local_tensor in local_tensors:
+            local_tensor.stop_gradient = dist_tensor.stop_gradient
+            local_tensor.persistable = dist_tensor.persistable
+        return local_tensors
     else:
         raise NotImplementedError(
             "moe_sub_mesh_tensors is only supported in dynamic mode."
@@ -829,6 +831,8 @@ def reshard(
             >>> print(out_d_tensor)
 
     """
+    if _only_reshard_mesh_shape(dist_tensor, mesh, placements):
+        return _reshard_mesh_shape(dist_tensor, mesh, placements)
 
     if paddle.framework.in_dynamic_mode():
         # TODO(LiYuRio): static logic here, reshard should be changed for dygraph logic
@@ -848,10 +852,6 @@ def reshard(
                 dist_tensor, mesh, placements, alltoall_dim
             )
 
-        if _reshard_mesh_shape(dist_tensor, mesh, placements):
-            return _dist_reshape(
-                dist_tensor, dist_tensor.shape, mesh, placements
-            )
         return paddle.base.core.reshard(dist_tensor, dist_attr)
     elif in_pir_mode():
         return paddle._C_ops.reshard(dist_tensor, mesh, placements)
@@ -1102,24 +1102,35 @@ class _ShardOptimizer(Optimizer):
 
     def _set_and_check_sharding_prop_from_param(self):
         global_mesh = fleet.auto.get_mesh()
-        if global_mesh:
-            self._sharding_degree = global_mesh.get_dim_size(
-                self._shard_fn._sharding_mesh_dim
-            )
-        elif self._shard_fn._mesh:
-            self._sharding_degree = self._shard_fn._mesh.get_dim_size(
-                self._shard_fn._sharding_mesh_dim
-            )
-        else:
-            raise ValueError(
-                "The global mesh or shard_fn mesh should be set for the sharding strategy."
-            )
+        if global_mesh is None:
+            global_mesh = self._shard_fn._mesh
+        assert (
+            global_mesh is not None
+        ), "The global mesh or shard_fn mesh should be set for the sharding strategy."
+        self._sharding_degree = global_mesh.get_dim_size(
+            self._shard_fn._sharding_mesh_dim
+        )
+        # if global_mesh:
+        #     self._sharding_degree = global_mesh.get_dim_size(
+        #         self._shard_fn._sharding_mesh_dim
+        #     )
+        # elif self._shard_fn._mesh:
+        #     self._sharding_degree = self._shard_fn._mesh.get_dim_size(
+        #         self._shard_fn._sharding_mesh_dim
+        #     )
+        # else:
+        #     raise ValueError(
+        #         "The global mesh or shard_fn mesh should be set for the sharding strategy."
+        #     )
 
         # Note(luchang): Now we suggest using 0 axis as sharding axis.
         self._sharding_axis = 0
 
         # check the placement on sharding axis is Replicate
         param_list = self._inner_opt._parameter_list
+        self.params_to_reshard_mesh_shape = (
+            {}
+        )  # {param.name: (src_mesh, dst_mesh)}
         for param in param_list:
             if not param.is_dist():
                 continue
@@ -1132,24 +1143,46 @@ class _ShardOptimizer(Optimizer):
                     if isinstance(placement, dist.Replicate):
                         self._sharding_axis = dim
 
+            print("sharding_axis:", self._sharding_axis)
             # check the placement on sharding axis is Replicate
             assert isinstance(
                 placements[self._sharding_axis], dist.Replicate
             ), "The placement on sharding_axis should be Replicate"
 
-            # check the sharding degree since it has already been set
-            assert (
-                mesh.dim_size(self._sharding_axis) == self._sharding_degree
-            ), "The sharding degree of all parameters must be equal currently."
+            # for the case when the param's mesh is flattened, delete it
+            # after supporting sharding a tensor dim with multiple mesh dims.
+            #
+            # when there are some params whose mesh are flattened, and are
+            # different from the global mesh, reshard their mesh shape to
+            # make them consistent with the global mesh, and reshard back
+            # after the optimize phase.
+            if _only_reshard_mesh_shape(param, global_mesh, placements):
+                self.params_to_reshard_mesh_shape[param.name] = (
+                    copy.deepcopy(mesh),
+                    global_mesh,
+                )
+            else:
+                # check the sharding degree since it has already been set
+                assert (
+                    mesh.dim_size(self._sharding_axis) == self._sharding_degree
+                ), "The sharding degree of all parameters must be equal currently."
 
     def _shard_accumulator(self, param):
-        target_name = param.name
-        if param.name in self._inner_opt._master_weights.keys():
+        target_name = param_name = param.name
+
+        # for the case when the param's mesh is flattened, delete it
+        # after supporting sharding a tensor dim with multiple mesh dims.
+        if param.name in self.params_to_reshard_mesh_shape:
+            tgt_mesh = self.params_to_reshard_mesh_shape[param.name][1]
+            tgt_placements = [param.placements[0]] * tgt_mesh.ndim
+            param = dist.reshard(param, tgt_mesh, tgt_placements)
+
+        if param_name in self._inner_opt._master_weights.keys():
             master_weight = self._inner_opt._master_weights[param.name]
             target_name = master_weight.name
             # shard the master weight
             if self._shard_fn is not None:
-                self._inner_opt._master_weights[param.name] = (
+                self._inner_opt._master_weights[param_name] = (
                     self._shard_fn.shard_master_weight(param, master_weight)
                 )
         # shard the accumulators
@@ -1201,10 +1234,29 @@ class _ShardOptimizer(Optimizer):
                     param, param.process_mesh, new_placement
                 )
                 param.get_tensor()._share_data_with(out_param.get_tensor())
+                # for the case when the param's mesh is flattened, delete it
+                # after supporting sharding a tensor dim with multiple mesh dims.
+                # reshard the mesh back after the optimize phase.
+                if param.name in self.params_to_reshard_mesh_shape:
+                    print("reset placements param:", param.name, param)
+                    ori_mesh = self.params_to_reshard_mesh_shape[param.name][0]
+                    ori_placements = [param.placements[0]] * ori_mesh.ndim
+                    out_param = dist.reshard(param, ori_mesh, ori_placements)
+                    print(
+                        "ori_mesh:", ori_mesh, "ori_placements:", ori_placements
+                    )
+                    print("out_param:", out_param)
+                    param.get_tensor()._share_data_with(out_param.get_tensor())
+                    print(
+                        "reset placements after reshard param:",
+                        param.name,
+                        param,
+                    )
 
     def _create_accumulators(self, block, parameters):
         if isinstance(parameters, dict):
             parameters = parameters.get('params')
+
         # NOTE(zhiqiu): we need to create and shard accumulators for parameters one by one,
         # to avoid OOM caused by replcated accumulators.
         for p in parameters:
@@ -1223,6 +1275,8 @@ class _ShardOptimizer(Optimizer):
 
     def apply_gradients(self, params_grads):
         new_params_grads = []
+        print("==== apply gradients in ShardOptimizer ====")
+        print(traceback.print_stack())
         if self._shard_fn is not None:
             for param, grad in params_grads:
                 new_params_grads.append(
@@ -1309,6 +1363,62 @@ class _ShardOptimizer(Optimizer):
         return self._inner_opt.state_dict()
 
     def _append_optimize_op(self, block, param_and_grad):
+        print("==== append optimize op in ShardOptimizer ====")
+        # for the case when the param's mesh is flattened, delete it
+        # after supporting sharding a tensor dim with multiple mesh dims.
+        shadow_output_op = None  # used in PIR to set a name for a param
+        if param_and_grad[0].name in self.params_to_reshard_mesh_shape:
+            param, grad = param_and_grad
+            tgt_mesh = self.params_to_reshard_mesh_shape[param.name][1]
+            tgt_placements = [param.placements[0]] * tgt_mesh.ndim
+            if isinstance(param, pir.Value):
+                # in PIR, reshard will create a new value, pass the new
+                # value to optimize op cannot update the original parameter,
+                # so use share_data and manually set the dist_attr to
+                # replace the reshard operation here.
+                new_param = paddle._C_ops.share_data(param)
+                new_dim_map, new_partial_status = to_dim_map(
+                    tgt_placements, len(param.shape)
+                )
+                new_dist_attr = (
+                    paddle.base.libpaddle.pir.create_tensor_dist_attribute(
+                        tgt_mesh, new_dim_map, new_partial_status
+                    )
+                )
+                dist_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
+                    new_param.type(), new_dist_attr
+                )
+                new_param.set_type(dist_type)
+                paddle._C_ops.set_persistable_value(
+                    new_param, param.name
+                )  # set a name
+                print(
+                    "new_param:",
+                    new_param,
+                    " first_use:",
+                    new_param.first_use().owner(),
+                )
+                shadow_output_op = new_param.first_use().owner()
+                print("shadow output op: ", shadow_output_op)
+                share_data_op = new_param.get_defining_op()
+                share_data_op.dist_attr = (
+                    paddle.base.libpaddle.pir.create_op_dist_attribute(
+                        tgt_mesh, [param.dist_attr()], [new_param.dist_attr()]
+                    )
+                )
+            else:
+                new_param = dist.reshard(
+                    param_and_grad[0], tgt_mesh, tgt_placements
+                )
+                new_param.name = param_and_grad[0].name
+                param_and_grad[0].get_tensor()._share_data_with(
+                    new_param.get_tensor()
+                )
+
+            tgt_placements = [param_and_grad[1].placements[0]] * tgt_mesh.ndim
+            new_grad = dist.reshard(param_and_grad[1], tgt_mesh, tgt_placements)
+            param_and_grad = (new_param, new_grad)
+
         if (
             in_auto_parallel_align_mode()  # In align mode, we use enable_delay_scale_loss by default
             and param_and_grad[1].is_dist()
@@ -1369,7 +1479,10 @@ class _ShardOptimizer(Optimizer):
                     grad, grad.shape, grad_mesh, [dist.Replicate()]
                 )
             param_and_grad = (param_and_grad[0], grad)
-        return self._inner_opt._append_optimize_op(block, param_and_grad)
+        ret = self._inner_opt._append_optimize_op(block, param_and_grad)
+        if shadow_output_op is not None:
+            shadow_output_op.erase()
+        return ret
 
     def __getattr__(self, item):
         if "_inner_opt" in self.__dict__:

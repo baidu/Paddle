@@ -57,8 +57,23 @@ amp_ops = ["pd_op.check_finite_and_unscale_", "pd_op.update_loss_scaling_"]
 
 def reshard_single_value(program, op, operand, attr):
     prev_var = operand.source()
+
     if prev_var.is_dist() and prev_var.dist_attr() != attr:
         operand_attr = attr.as_tensor_dist_attr()
+        if prev_var.get_defining_op().name() == "dist_op.dist_reshape":
+            # NOTE(pkuzyc): 'dist_reshape' will set the placements attribute
+            # of its output tensor, and the other ops not. In this case, their
+            # 'prev_var.dist_attr() != attr' is always true, but the operand
+            # should not be resharded if its placements attribute is equal to
+            # op's operand placements (op's operand placements is converted
+            # from dims mapping).
+            # TODO(pkuzyc): remove this part after
+            var_attr = prev_var.dist_attr()
+            if (
+                var_attr.process_mesh == operand_attr.process_mesh
+                and var_attr.placements_attr == operand_attr.placements
+            ):
+                return prev_var
         paddle.pir.set_insertion_point(op)
         with pir_op_role_guard(op.op_role):
             # fold reshard
@@ -329,21 +344,41 @@ class ReshardPasses:
                     op.erase()
                     continue
 
-                reshard_func = choose_reshard_func(src_dist_attr, dst_dist_attr)
-                assert (
-                    reshard_func is not None
-                ), f'There is no reshard function that matches src_dist_attr: {src_dist_attr} and dst_dist_attr: {dst_dist_attr}, {var.get_defining_op()}'
-
                 paddle.pir.set_insertion_point(op)
                 ref_op_role = op.op_role
 
-                with pir_op_role_guard(ref_op_role):
-                    out_value = reshard_func.reshard(
-                        src_dist_attr,
-                        dst_dist_attr,
-                        op.operand_source(0),
-                        op.result(0).type(),
+                all_to_all_dim = (
+                    dist.auto_parallel.moe_utils._specific_alltoall_dim(
+                        var,
+                        dst_dist_attr.process_mesh,
+                        dst_dist_attr.placements_attr,
                     )
+                )
+                if all_to_all_dim is not None:
+                    out_value = (
+                        dist.auto_parallel.moe_utils._pir_nd_mesh_all2all(
+                            op.operand_source(0),
+                            op.result(0).type(),
+                            dst_dist_attr.process_mesh,
+                            dst_dist_attr.placements_attr,
+                            all_to_all_dim,
+                        )
+                    )
+                else:
+                    reshard_func = choose_reshard_func(
+                        src_dist_attr, dst_dist_attr
+                    )
+                    assert (
+                        reshard_func is not None
+                    ), f'There is no reshard function that matches src_dist_attr: {src_dist_attr} and dst_dist_attr: {dst_dist_attr}, {var.get_defining_op()}'
+
+                    with pir_op_role_guard(ref_op_role):
+                        out_value = reshard_func.reshard(
+                            src_dist_attr,
+                            dst_dist_attr,
+                            op.operand_source(0),
+                            op.result(0).type(),
+                        )
 
                 if out_value is not None:
                     op.result(0).replace_all_uses_with(out_value)
@@ -376,46 +411,81 @@ class ReshardPasses:
 # dist ops with the executable share_data_ ops.
 def replace_moe_sub_mesh_tensors(op):
     cur_rank = paddle.distributed.get_rank()
-    in_value = op.operand_source(0)
-    out_value = None
-    out_idx = -1
-    for idx, val in enumerate(op.results()):
-        val_mesh = val.dist_attr().process_mesh
-        if cur_rank in val_mesh.process_ids:
-            assert (
-                out_value is None
-            ), f'{op} has more than one results on rank {cur_rank}'
-            out_value = val
-            out_idx = idx
+    if cur_rank in op.dist_attr.process_mesh.process_ids:
+        in_value = op.operand_source(0)
+        out_value = None
+        out_idx = -1
+        for idx, val in enumerate(op.results()):
+            val_mesh = val.dist_attr().process_mesh
+            if cur_rank in val_mesh.process_ids:
+                assert (
+                    out_value is None
+                ), f'{op} has more than one results on rank {cur_rank}'
+                out_value = val
+                out_idx = idx
 
-    paddle.pir.set_insertion_point(op)
-    local_value = paddle._C_ops.share_data_(in_value)
-    local_value_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
-        out_value.type(), out_value.dist_attr()
-    )
-    local_value.set_type(local_value_type)
-    out_value.replace_all_uses_with(local_value)
-
-    op_dist_attr = op.dist_attr
-    share_data_op = local_value.get_defining_op()
-    share_data_op.dist_attr = (
-        paddle.base.libpaddle.pir.create_op_dist_attribute(
-            op_dist_attr.process_mesh,
-            [op_dist_attr.operand(0).as_tensor_dist_attr()],
-            [op_dist_attr.result(out_idx).as_tensor_dist_attr()],
+        paddle.pir.set_insertion_point(op)
+        local_value = paddle._C_ops.share_data_(in_value)
+        local_value_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
+            out_value.type(), out_value.dist_attr()
         )
-    )
-    for val in op.results():
-        if not val.use_empty():
-            update_pylayer_output(val)
+        local_value.set_type(local_value_type)
+        out_value.replace_all_uses_with(local_value)
+
+        op_dist_attr = op.dist_attr
+        share_data_op = local_value.get_defining_op()
+        share_data_op.dist_attr = (
+            paddle.base.libpaddle.pir.create_op_dist_attribute(
+                op_dist_attr.process_mesh,
+                [op_dist_attr.operand(0).as_tensor_dist_attr()],
+                [op_dist_attr.result(out_idx).as_tensor_dist_attr()],
+            )
+        )
+        for val in op.results():
+            if not val.use_empty():
+                update_pylayer_output(val)
+
     assert all(val.use_empty() for val in op.results())
     op.erase()
 
 
-def remove_sub_block_unused_inputs(op):
-    inputs_size = op.operand_source.num_operands()
-    inputs = [op.operand_source(i) for i in range(inputs_size)]
-    # remove unused inputs
+def replace_moe_global_mesh_tensor(op):
+    cur_rank = paddle.distributed.get_rank()
+    if cur_rank in op.dist_attr.process_mesh.process_ids:
+        out_value = op.result(0)
+        in_value = None
+        in_idx = -1
+        for idx, val in enumerate(op.operands_source()):
+            val_mesh = val.dist_attr().process_mesh
+            if cur_rank not in val_mesh.process_ids:
+                continue
+            assert (
+                in_value is None
+            ), f'{op} has more than one inputs on rank {cur_rank}'
+            in_value = val
+            in_idx = idx
+
+        paddle.pir.set_insertion_point(op)
+        local_value = paddle._C_ops.share_data_(in_value)
+        # local_value = paddle.assign(in_value)
+        local_value_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
+            out_value.type(), out_value.dist_attr()
+        )
+        local_value.set_type(local_value_type)
+        out_value.replace_all_uses_with(local_value)
+
+        op_dist_attr = op.dist_attr
+        share_data_op = local_value.get_defining_op()
+        share_data_op.dist_attr = (
+            paddle.base.libpaddle.pir.create_op_dist_attribute(
+                op_dist_attr.process_mesh,
+                [op_dist_attr.operand(in_idx).as_tensor_dist_attr()],
+                [op_dist_attr.result(0).as_tensor_dist_attr()],
+            )
+        )
+
+    assert all(val.use_empty() for val in op.results())
+    op.erase()
 
 
 class RemovePasses:
@@ -636,44 +706,6 @@ class RemovePasses:
         RemovePasses.remove_no_need_in_startup(
             dist_startup_program, dist_main_program
         )
-
-
-def replace_moe_global_mesh_tensor(op):
-    cur_rank = paddle.distributed.get_rank()
-    out_value = op.result(0)
-    in_value = None
-    in_idx = -1
-    for idx, val in enumerate(op.operands_source()):
-        val_mesh = val.dist_attr().process_mesh
-        if cur_rank not in val_mesh.process_ids:
-            continue
-        assert (
-            in_value is None
-        ), f'{op} has more than one inputs on rank {cur_rank}'
-        in_value = val
-        in_idx = idx
-
-    paddle.pir.set_insertion_point(op)
-    local_value = paddle._C_ops.share_data_(in_value)
-    # local_value = paddle.assign(in_value)
-    local_value_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
-        out_value.type(), out_value.dist_attr()
-    )
-    local_value.set_type(local_value_type)
-    out_value.replace_all_uses_with(local_value)
-
-    op_dist_attr = op.dist_attr
-    share_data_op = local_value.get_defining_op()
-    share_data_op.dist_attr = (
-        paddle.base.libpaddle.pir.create_op_dist_attribute(
-            op_dist_attr.process_mesh,
-            [op_dist_attr.operand(in_idx).as_tensor_dist_attr()],
-            [op_dist_attr.result(0).as_tensor_dist_attr()],
-        )
-    )
-
-    assert all(val.use_empty() for val in op.results())
-    op.erase()
 
 
 # Note: this is the pass in the dense program
@@ -1498,6 +1530,7 @@ def fuse_attention_ffn_qkv_pass(
         fusion_w_shape = mm_gate.operand_source(1).shape
         fusion_w_shape[-1] += mm_up.operand_source(1).shape[-1]
         fusion_w_process_mesh = mm_gate.operand_source(1).process_mesh
+        fusion_w_placements = mm_gate.operand_source(1).placements
         # Insert fusion parameter
         with paddle.static.program_guard(main_program, startup_program):
             fused_w = paddle.pir.core.create_parameter(
@@ -1505,10 +1538,7 @@ def fuse_attention_ffn_qkv_pass(
                 shape=fusion_w_shape,
                 name=fusion_w_name,
                 process_mesh=fusion_w_process_mesh,
-                placements=[
-                    paddle.distributed.Replicate(),
-                    paddle.distributed.Shard(1),
-                ],
+                placements=fusion_w_placements,
                 initializer=paddle.nn.initializer.Constant(value=0),
             )
             name2pir_param_map[fusion_w_name] = fused_w
@@ -1531,6 +1561,7 @@ def fuse_attention_ffn_qkv_pass(
             fusion_bias_shape = add_gate.operand_source(1).shape
             fusion_bias_shape[-1] += add_up.operand_source(1).shape[-1]
             fusion_bias_process_mesh = add_gate.operand_source(1).process_mesh
+            fusion_bias_placements = add_gate.operand_source(1).placements
             # Insert fusion parameter
             with paddle.static.program_guard(main_program, startup_program):
                 fused_bias = paddle.pir.core.create_parameter(
@@ -1538,10 +1569,7 @@ def fuse_attention_ffn_qkv_pass(
                     shape=fusion_bias_shape,
                     name=fusion_bias_name,
                     process_mesh=fusion_bias_process_mesh,
-                    placements=[
-                        paddle.distributed.Replicate(),
-                        paddle.distributed.Shard(0),
-                    ],
+                    placements=fusion_bias_placements,
                     initializer=paddle.nn.initializer.Constant(value=0),
                 )
                 name2pir_param_map[fusion_bias_name] = fused_bias
@@ -1620,6 +1648,7 @@ def fuse_attention_ffn_qkv_pass(
             mm_k.operand_source(1).shape[-1] + mm_v.operand_source(1).shape[-1]
         )
         fusion_w_process_mesh = mm_q.operand_source(1).process_mesh
+        fusion_w_placements = mm_q.operand_source(1).placements
         # insert fusion parameter
         with paddle.static.program_guard(main_program, startup_program):
             fused_w = paddle.pir.core.create_parameter(
@@ -1627,10 +1656,7 @@ def fuse_attention_ffn_qkv_pass(
                 shape=fusion_w_shape,
                 name=fusion_w_name,
                 process_mesh=fusion_w_process_mesh,
-                placements=[
-                    paddle.distributed.Replicate(),
-                    paddle.distributed.Shard(1),
-                ],
+                placements=fusion_w_placements,
                 initializer=paddle.nn.initializer.Constant(value=0),
             )
             name2pir_param_map[fusion_w_name] = fused_w
@@ -1667,6 +1693,7 @@ def fuse_attention_ffn_qkv_pass(
                 + add_v.operand_source(1).shape[-1]
             )
             fusion_bias_process_mesh = add_q.operand_source(1).process_mesh
+            fusion_bias_placements = add_q.operand_source(1).placements
             # insert fusion parameter
             with paddle.static.program_guard(main_program, startup_program):
                 fused_bias = paddle.pir.core.create_parameter(
@@ -1674,10 +1701,7 @@ def fuse_attention_ffn_qkv_pass(
                     shape=fusion_bias_shape,
                     name=fusion_bias_name,
                     process_mesh=fusion_bias_process_mesh,
-                    placements=[
-                        paddle.distributed.Replicate(),
-                        paddle.distributed.Shard(0),
-                    ],
+                    placements=fusion_bias_placements,
                     initializer=paddle.nn.initializer.Constant(value=0),
                 )
                 name2pir_param_map[fusion_bias_name] = fused_bias

@@ -107,7 +107,7 @@ class DtensorToLocalOp
   //   void VerifySig();
 };
 
-class MoESubMeshTensorsOp : public pir::Op<MoESubMeshTensorsOp> {
+class MoESubMeshTensorsOp : public pir::Op<MoESubMeshTensorsOp, VjpInterface> {
  public:
   using Op::Op;
   static const char* name() { return "dist_op.moe_sub_mesh_tensors"; }

@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import numpy as np
 
 import paddle
+import paddle.distributed as dist
 import paddle.distributed.auto_parallel.static.utils as auto_utils
 from paddle import pir, static, utils
 from paddle.base.executor import _to_name_str
@@ -48,6 +49,7 @@ from paddle.static.amp.fp16_utils import _convert_float_to_bfloat16
 
 from ...utils.log_utils import get_logger
 from ..interface import CollectionNames, fetch, get_collection
+from ..placement_type import check_placements_equal
 from ..static.dist_tensor import DistributedTensor
 from ..strategy import Strategy
 from .callbacks import config_callbacks
@@ -856,6 +858,8 @@ class Engine:
             global_params_grads = []
             params_grads = []
 
+        print("==== before reshard pass ====")
+        print(dist_program)
         # TODO(hitywt) Step 3.2: Reshard Pass
         #   resolute the reshard op into special collective operation.
         #   collect the communicator created during resolution.
@@ -915,6 +919,9 @@ class Engine:
         # TODO(JZ-LIANG) Step 4.4 Dist2Dense Pass
         # NOTE All optimization pass that need dist_attr info should be called before Dist2Dense Pass.
         dense_program = dist_program.clone()
+        paddle.distributed.auto_parallel.moe_utils._replace_dist_reshape_pass(
+            dense_program
+        )
         paddle.base.libpaddle.pir.apply_dist2dense_pass(dense_program)
         remove_unuseful_comm_op_pass(dense_program)
 
@@ -993,6 +1000,8 @@ class Engine:
                     ir_program = self._job_plan.ir_program(job_type)
                     pm.run(ir_program)
 
+        print("==== startup program in parallel pir ====")
+        print(startup_program)
         remove_unuseful_comm_op_pass(dense_program)
         self._pir_dense_main_progs[mode] = dense_program
         self._pir_dist_main_progs[mode] = dist_program
@@ -1419,6 +1428,37 @@ class Engine:
                             pir.set_insertion_point_after(
                                 src_value.get_defining_op()
                             )
+                            if os.getenv("FLAGS_enable_moe_utils") == "true":
+                                # for the case like mesh=[0,1,2,3], [Replicate()] -->
+                                # mesh=[[0,1],[2,3]], [Shard(0), Replicate()]. Now this
+                                # case is only in all2all-MoE when enable ZeRO strategy.
+                                src_mesh = src_value.dist_attr().process_mesh
+                                dst_mesh = dst_dist_attr.process_mesh
+                                src_placements = (
+                                    src_value.dist_attr().placements_attr
+                                )
+                                dst_placements = dst_dist_attr.placements_attr
+                                if (
+                                    check_placements_equal(
+                                        src_placements, [dist.Replicate()]
+                                    )
+                                    and src_mesh.process_ids
+                                    == dst_mesh.process_ids
+                                    and src_mesh.shape != dst_mesh.shape
+                                ):
+                                    tmp_dist_attr = paddle.base.libpaddle.pir.create_tensor_dist_attribute(
+                                        dst_dist_attr.process_mesh,
+                                        [-1] * len(src_value.shape),
+                                        {},
+                                    )
+                                    tmp_placements = [
+                                        dist.Replicate()
+                                    ] * dst_mesh.ndim
+                                    persistable = src_value.persistable
+                                    src_value = dist.reshard(
+                                        src_value, dst_mesh, tmp_placements
+                                    )
+                                    src_value.persistable = persistable
                             reshard_var = paddle._C_ops.reshard_v2(
                                 src_value, dst_dist_attr
                             )
@@ -1431,6 +1471,11 @@ class Engine:
 
                 set_all_ops_op_role(startup_prog.global_block(), OpRole.Forward)
                 ReshardPasses.apply_reshard_pass(startup_prog)
+                # resharding mesh shape is implemented with `dist_reshape`, so we
+                # should replace the `dist_op.dist_reshape` with `pd_op.reshape`
+                dist.auto_parallel.moe_utils._replace_dist_reshape_pass(
+                    startup_prog
+                )
                 paddle.base.libpaddle.pir.apply_dist2dense_pass(startup_prog)
                 remove_unuseful_comm_op_pass(startup_prog)
 

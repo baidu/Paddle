@@ -1514,28 +1514,30 @@ std::unordered_map<std::string, std::set<std::string>> GetNoNeedBufferValues(
 
   for (auto& pair : type_to_ir_program) {
     std::shared_ptr<::pir::Program> program = pair.second;
+    bool is_no_need_buffer = true;
     // Iterate over the block_args and data_op output, and if all ops in all
     // programs using this value are of the no_need_buffer type, then insert
     // this value into the no_need_buffer set.
     for (const auto& [name, value] : program->block()->kwargs()) {
       for (auto it = value.use_begin(); it != value.use_end(); ++it) {
-        if (IsNoNeedBuffer(it->owner(), value)) {
-          no_need_buffer_vars.insert(name);
-        } else {
-          no_need_buffer_vars.erase(name);
-        }
+        is_no_need_buffer =
+            is_no_need_buffer && IsNoNeedBuffer(it->owner(), value);
+      }
+      if (is_no_need_buffer) {
+        no_need_buffer_vars.insert(name);
       }
     }
     for (auto& op : *program->block()) {
       if (op.isa<paddle::dialect::DataOp>()) {
         pir::Value value = op.result(0);
         std::string name = op.attribute<pir::StrAttribute>("name").AsString();
+        is_no_need_buffer = true;
         for (auto it = value.use_begin(); it != value.use_end(); ++it) {
-          if (IsNoNeedBuffer(it->owner(), value)) {
-            no_need_buffer_vars.insert(name);
-          } else {
-            no_need_buffer_vars.erase(name);
-          }
+          is_no_need_buffer =
+              is_no_need_buffer && IsNoNeedBuffer(it->owner(), value);
+        }
+        if (is_no_need_buffer) {
+          no_need_buffer_vars.insert(name);
         }
       }
       // Retrieve the value names of all shadow_output_op for each program.

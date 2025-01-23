@@ -828,6 +828,8 @@ void BindAutoParallel(py::module *m) {
     DistributedMapper mapper;
     return mapper.to_string();
   });
+
+  m->def("sub_mesh_dim", &phi::distributed::SubMeshDim);
 }
 
 static void parse_tensors(PyObject *obj,

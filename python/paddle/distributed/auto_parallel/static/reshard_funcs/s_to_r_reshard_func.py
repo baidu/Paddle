@@ -112,6 +112,16 @@ class SToRReshardFunction(ReshardFunction):
         num_of_process = src_dist_attr.process_mesh.size
         num_of_padding = src_value.shape[split_axis] % num_of_process
         is_balanced_split = num_of_padding == 0
+        print(
+            "is balanced split:",
+            is_balanced_split,
+            " num_of_padding:",
+            num_of_padding,
+            " src_value:",
+            src_value,
+            " src_dist_attr:",
+            src_dist_attr,
+        )
 
         if is_balanced_split:
             new_value = self.reshard_s_to_r_with_padding(
@@ -288,7 +298,8 @@ class SToRReshardFunction(ReshardFunction):
                     ],
                     split_axis,
                 )
-                split_op = tmp_split_values.get_defining_op()
+                split_op = tmp_split_values[0].get_defining_op()
+                print("split_op:", split_op)
                 split_op.dist_attr = copy_op_attr_with_new_member(
                     split_op.dist_attr, new_chunk_id=chunk_id
                 )

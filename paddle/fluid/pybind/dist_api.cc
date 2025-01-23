@@ -117,7 +117,8 @@ void BindTensorDistAttribute(py::module *m) {
 
 void BindDistType(py::module *m) {
   py::class_<DistTypeInterface, pir::Type> dist_type(*m, "DistType");
-  dist_type.def("dist_attr", &DistTypeInterface::tensor_dist_attr);
+  dist_type.def("dist_attr", &DistTypeInterface::tensor_dist_attr)
+      .def("local_type", &DistTypeInterface::local_type);
 }
 
 void BindDistOpsAPI(pybind11::module *module) {

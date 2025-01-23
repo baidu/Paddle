@@ -26,7 +26,8 @@ import paddle.distributed as dist
 from paddle import Tensor
 from paddle.autograd import PyLayer
 
-from .placement_type import check_placements_equal
+from .placement_type import check_placements_equal, to_dim_map
+from .static.reshard_funcs.base_reshard_func import choose_reshard_func
 from .static.reshard_funcs.nd_mesh_reshard_func import get_1D_sub_process_mesh
 
 if TYPE_CHECKING:
@@ -44,8 +45,12 @@ def _specific_alltoall_dim(
         return None
 
     mesh_dim = None
-    src_mesh = dist_tensor.process_mesh
-    src_placements = dist_tensor.placements
+    if paddle.in_dynamic_mode():
+        src_mesh = dist_tensor.process_mesh
+        src_placements = dist_tensor.placements
+    elif paddle.framework.in_pir_mode():
+        src_mesh = dist_tensor.process_mesh
+        src_placements = dist_tensor.dist_attr().placements_attr
 
     if src_mesh != mesh or src_mesh.ndim == 1:
         return None
@@ -127,6 +132,59 @@ def _dtensor_from_local(
         )
 
 
+def _pir_nd_mesh_all2all(src_value, dst_type, mesh, placements, dim):
+    """
+    Use all to all communication in nd_mesh reshard.
+    """
+    # create value on sub 1D mesh
+    sub_value = paddle._C_ops.share_data(src_value)
+    sub_mesh = get_1D_sub_process_mesh(mesh, dim)
+    sub_placements = [src_value.dist_attr().placements_attr[dim]]
+    sub_value_shape = dist.auto_parallel.api._cal_global_shape(
+        src_value._local_shape, sub_mesh, sub_placements
+    )
+    sub_value_type = paddle.pir.create_shaped_type(
+        sub_value.type(), sub_value_shape
+    )
+    sub_dims_mapping, partial_status = to_dim_map(
+        sub_placements, len(sub_value_shape)
+    )
+    sub_value_dist_attr = (
+        paddle.base.libpaddle.pir.create_tensor_dist_attribute(
+            sub_mesh, sub_dims_mapping, partial_status
+        )
+    )
+    sub_value_dist_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
+        sub_value_type, sub_value_dist_attr
+    )
+    sub_value.set_type(sub_value_dist_type)
+
+    # 1D mesh reshard
+    dst_placements = [placements[dim]]
+    sub_dst_dims_mapping, partial_status = to_dim_map(
+        dst_placements, len(sub_value_shape)
+    )
+    sub_dst_type = paddle.pir.create_shaped_type(
+        sub_value.type(), sub_value_shape
+    )
+    sub_dst_dist_attr = paddle.base.libpaddle.pir.create_tensor_dist_attribute(
+        sub_mesh, sub_dst_dims_mapping, partial_status
+    )
+    sub_dst_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
+        sub_dst_type, sub_dst_dist_attr
+    )
+    reshard_func = choose_reshard_func(sub_value_dist_attr, sub_dst_dist_attr)
+    out = reshard_func.reshard(
+        sub_value_dist_attr, sub_dst_dist_attr, sub_value, sub_dst_type
+    )
+
+    # set the type of the output value with global mesh
+    if out is not None:
+        out.set_type(dst_type)
+
+    return out
+
+
 class _NdMeshAlltoAll(PyLayer):
     @staticmethod
     def forward(
@@ -153,7 +211,7 @@ class _NdMeshAlltoAll(PyLayer):
             local_shape,
         )
         out = dist.reshard(out, sub_mesh, [placements[dim]])
-        local_shape = _cal_local_shape(out.shape, mesh, out.placements)
+        local_shape = _cal_local_shape(out.shape, sub_mesh, out.placements)
         out = _dtensor_from_local(
             out._local_value(), mesh, placements, local_shape
         )
@@ -300,20 +358,78 @@ def _dist_reshape(
         )
 
 
-def _reshard_mesh_shape(
+def _replace_dist_reshape_pass(dist_program):
+    for op in dist_program.global_block().ops:
+        if op.name() == "dist_op.dist_reshape":
+            paddle.pir.set_insertion_point(op)
+            in_var = op.operand_source(0)
+            out = paddle._C_ops.reshape(in_var, op.result(0).shape)
+            reshape_op = out.get_defining_op()
+            dist_type = op.result(0).type().as_dist_type()
+            out.set_type(dist_type.local_type())
+            op.result(0).replace_all_uses_with(out)
+            assert op.result(0).use_empty() is True
+            op.erase()
+
+
+def _only_reshard_mesh_shape(
     dist_tensor: Tensor, mesh: ProcessMesh, placements: list[Placement]
 ):
     if not os.getenv("FLAGS_enable_moe_utils") == "true":
         return False
 
-    src_mesh = dist_tensor.process_mesh
+    if paddle.in_dynamic_mode():
+        src_placements = dist_tensor.placements
+        src_mesh = dist_tensor.process_mesh
+    elif paddle.framework.in_pir_mode():
+        if hasattr(dist_tensor, "dist_attr"):
+            src_placements = dist_tensor.dist_attr().placements_attr
+            src_mesh = dist_tensor.dist_attr().process_mesh
+        else:
+            src_placements = dist_tensor.placements
+            src_mesh = dist_tensor.process_mesh
+    else:
+        raise NotImplementedError(
+            "_only_reshard_mesh_shape is only supported in dynamic and pir mode."
+        )
     if src_mesh == mesh or src_mesh.process_ids != mesh.process_ids:
         return False
 
     # only the mesh shapes are different,
-    # if the placements are all replicate,
+    # if the placements are all replicate or partial,
     # then we can reshard the mesh shapes
-    if not all(p.is_replicated() for p in dist_tensor.placements + placements):
+    if any(p.is_shard() for p in src_placements + placements):
         return False
 
+    if src_placements[0].is_partial():
+        for p in src_placements + placements:
+            if p != src_placements[0]:
+                return False
+
     return True
+
+
+def _reshard_mesh_shape(
+    dist_tensor: Tensor, mesh: ProcessMesh, placements: list[Placement]
+):
+    """
+    Reshard the mesh shape of the dist tensor. This is used to only modify
+    the mesh shape of the input, and its data is not changed.
+
+    E.g.
+      1. [0,1,2,3], [Replicate()]  --> [[0,1],[2,3]], [Replicate(), Replicate()]
+      2. [[0,1],[2,3]] [Partial(),Partial()]  --> [0,1,2,3], [Partial()]
+    """
+    if paddle.in_dynamic_mode():
+        src_placements = dist_tensor.placements
+        src_mesh = dist_tensor.process_mesh
+    elif paddle.framework.in_pir_mode():
+        src_placements = dist_tensor.dist_attr().placements_attr
+        src_mesh = dist_tensor.dist_attr().process_mesh
+    else:
+        raise NotImplementedError(
+            "_only_reshard_mesh_shape is only supported in dynamic and pir mode."
+        )
+
+    dst_placements = [placements[0]] * mesh.ndim
+    return _dist_reshape(dist_tensor, dist_tensor.shape, mesh, dst_placements)
