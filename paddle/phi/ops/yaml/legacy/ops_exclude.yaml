@@ -13,6 +13,7 @@
 - c_allreduce_sum
 - c_concat
 - c_identity
+- c_softmax_with_cross_entropy
 - c_split
 - cast
 - conv2d_transpose

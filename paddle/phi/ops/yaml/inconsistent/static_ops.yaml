@@ -939,19 +939,6 @@
   args : (Tensor i, Tensor x)
   output : Tensor[](out)
 
-- op: c_softmax_with_cross_entropy
-  args: (Tensor logits, Tensor label,  int64_t ignore_index=-100, int ring_id=0, int rank=0, int nranks=0)
-  output: Tensor(softmax), Tensor(loss)
-  infer_meta:
-    func : CSoftmaxWithCrossEntropyInferMeta
-    spmd_rule : CSoftmaxWithCrossEntropyInferSpmd
-    param: [logits, label, ignore_index, rank, nranks]
-  kernel:
-    func: c_softmax_with_cross_entropy
-    data_type : logits
-    param: [logits, label, ignore_index, rank, nranks]
-  backward: c_softmax_with_cross_entropy_grad
-
 - op: c_softmax_with_multi_label_cross_entropy
   args: (Tensor logits, Tensor label, Tensor smooth_weight, int64_t ignore_index=-100, bool sum_multi_label_loss=true, int ring_id=0, int rank=0, int nranks=0)
   output: Tensor(softmax), Tensor(loss)

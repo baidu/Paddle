@@ -107,19 +107,6 @@
     func : c_embedding_grad
   no_need_buffer : weight
 
-- backward_op : c_softmax_with_cross_entropy_grad
-  forward: c_softmax_with_cross_entropy (Tensor logits, Tensor label,  int64_t ignore_index=-100, int ring_id=0, int rank=0, int nranks=0) -> Tensor(softmax), Tensor(loss)
-  args: (Tensor softmax, Tensor label, Tensor loss_grad,int64_t ignore_index=-100, int ring_id=0, int rank=0, int nranks=0)
-  output: Tensor(logits_grad)
-  infer_meta :
-    func: CSoftmaxWithCrossEntropyGradInferMeta
-    spmd_rule : CSoftmaxWithCrossEntropyGradSpmd
-    param: [softmax, label, loss_grad, ignore_index, rank, nranks]
-  kernel:
-    func: c_softmax_with_cross_entropy_grad
-    data_type: loss_grad
-    param: [softmax, label, loss_grad, ignore_index, rank, nranks]
-
 - backward_op : c_softmax_with_multi_label_cross_entropy_grad
   forward: c_softmax_with_multi_label_cross_entropy (Tensor logits, Tensor label, Tensor smooth_weight, int64_t ignore_index=-100, bool sum_multi_label_loss=true, int ring_id=0, int rank=0, int nranks=0) -> Tensor(softmax), Tensor(loss)
   args: (Tensor softmax, Tensor label, Tensor smooth_weight, Tensor loss_grad, int64_t ignore_index=-100, bool sum_multi_label_loss=true, int ring_id=0, int rank=0, int nranks=0)

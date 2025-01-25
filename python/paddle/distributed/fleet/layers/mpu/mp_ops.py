@@ -432,17 +432,8 @@ def _c_softmax_with_cross_entropy(
         )
 
     if in_dynamic_mode():
-        softmax, loss = _legacy_C_ops.c_softmax_with_cross_entropy(
-            logits,
-            label,
-            'ring_id',
-            ring_id,
-            'rank',
-            rank,
-            'nranks',
-            nranks,
-            'ignore_index',
-            ignore_index,
+        softmax, loss = _C_ops.c_softmax_with_cross_entropy(
+            logits, label, ignore_index, ring_id, rank, nranks
         )
         if not return_softmax:
             return loss

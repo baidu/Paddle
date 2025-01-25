@@ -90,7 +90,6 @@ SPARSE_OPS_API_TEMPLATE = """
 {{"sparse_{name}", (PyCFunction)(void (*)(void))sparse_{name}, METH_VARARGS | METH_KEYWORDS, "C++ interface function for sparse_{name}."}},"""
 
 NEED_GEN_STATIC_ONLY_APIS = [
-    'c_softmax_with_cross_entropy',
     'c_softmax_with_multi_label_cross_entropy',
     'distributed_fused_lamb_init',
     'distributed_fused_lamb_init_',

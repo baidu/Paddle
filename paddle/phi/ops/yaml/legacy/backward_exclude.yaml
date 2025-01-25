@@ -4,6 +4,7 @@
 
 - amax_grad
 - amin_grad
+- c_softmax_with_cross_entropy_grad
 - cast_grad
 - conv2d_transpose_double_grad
 - conv2d_transpose_grad
