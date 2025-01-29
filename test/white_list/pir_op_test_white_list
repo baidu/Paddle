@@ -298,3 +298,4 @@ test_warprnnt_op
 test_where_op
 test_yolo_box_op
 test_yolov3_loss_op
+test_conv2d_op_depthwise_conv
