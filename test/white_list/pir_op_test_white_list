@@ -245,6 +245,7 @@ test_segment_ops
 test_segment_ops_static_build
 test_selu_op
 test_sgd_op
+test_sgd_op_bf16
 test_shape_mkldnn_op
 test_shape_op
 test_shard_index_op
