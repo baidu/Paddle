@@ -276,7 +276,7 @@ class QuantizationTransformPass:
                 )
 
             if user_skipped:
-                op_node.op()._set_attr("skip_quant", True)
+                op_node.op()._set_attr("skip_quant_slim", True)
                 op_node.op()._set_attr("with_quant_attr", True)
 
         def _transform_forward(graph, op):
@@ -1055,8 +1055,8 @@ class QuantizationTransformPass:
         Analyse whether the op node skips quantization.
         """
         is_skip = False
-        if op_node.op().has_attr("skip_quant") and op_node.op().attr(
-            "skip_quant"
+        if op_node.op().has_attr("skip_quant_slim") and op_node.op().attr(
+            "skip_quant_slim"
         ):
             is_skip = True
         # if the inputs of mul and matmul are not all persistable, use
@@ -2518,7 +2518,7 @@ class QuantizationTransformPassV2(QuantizationTransformPass):
             )
 
         if user_skipped:
-            op_node.op()._set_attr("skip_quant", True)
+            op_node.op()._set_attr("skip_quant_slim", True)
             op_node.op()._set_attr("with_quant_attr", True)
 
     def _transform_forward(self, graph, op):
