@@ -118,7 +118,8 @@ EmbeddingWithEltwiseAddXPUPattern::EmbeddingWithEltwiseAddXPUPattern(
                      ->AsInput();
   auto* embedding_out0 = pattern->NewNode(embedding_out0_repr())
                              ->assert_is_op_output(op_type_, "Out")
-                             ->assert_is_op_input("elementwise_add", "X");
+                             ->assert_is_op_input("elementwise_add", "X")
+                             ->assert_has_n_outputs(1);
   auto* table1 = pattern->NewNode(table1_repr())
                      ->assert_is_op_input(op_type_, "W")
                      ->AsInput();
@@ -152,7 +153,8 @@ EmbeddingWithEltwiseAddXPUPattern::EmbeddingWithEltwiseAddXPUPattern(
         pattern->NewNode(embedding_name)->assert_is_op(op_type_);
     auto* new_embedding_out = pattern->NewNode(embedding_out_name)
                                   ->assert_is_op_output(op_type_, "Out")
-                                  ->assert_is_op_input("elementwise_add", "Y");
+                                  ->assert_is_op_input("elementwise_add", "Y")
+                                  ->assert_has_n_outputs(1);
     auto* new_x = pattern->NewNode(x_name)
                       ->assert_is_op_input(op_type_, "Ids")
                       ->AsInput();
