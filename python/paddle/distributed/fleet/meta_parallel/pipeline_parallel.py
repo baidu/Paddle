@@ -23,6 +23,7 @@ from typing import Callable
 
 import paddle
 from paddle import framework
+from paddle.profiler.utils import in_profiler_mode
 
 from ..meta_optimizers.dygraph_optimizer import HybridParallelOptimizer
 from ..utils import timer_helper as timer
@@ -670,6 +671,11 @@ class PipelineParallel(MetaParallelBase):
                 )
                 + '}'
             )
+        elif in_profiler_mode():
+            if phase == '"B"':
+                paddle.base.core.nvprof_nvtx_push(name + "_" + str(step))
+            if phase == '"E"':
+                paddle.base.core.nvprof_nvtx_pop()
 
     def _flush_records(self):
         if self._profiling:
