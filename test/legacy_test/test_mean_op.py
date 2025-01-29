@@ -761,6 +761,43 @@ class TestMeanTripleGradCheck(unittest.TestCase):
             self.func(p)
 
 
+class TestMeanWithDimTensor(unittest.TestCase):
+    def setUp(self):
+        self.x_shape = [2, 3, 4, 5]
+        self.x = np.random.uniform(-1, 1, self.x_shape).astype(np.float32)
+        self.place = paddle.CPUPlace()
+
+    def test_mean_with_dim_tesnor(self):
+        old_flag = paddle.base.framework.get_flags(
+            "FLAGS_enable_pir_in_executor"
+        )["FLAGS_enable_pir_in_executor"]
+        try:
+            main_program = paddle.static.Program()
+            startup_program = paddle.static.Program()
+            with paddle.static.program_guard(main_program, startup_program):
+                x = paddle.static.data('X', self.x_shape)
+                axis = np.arange(len(self.x_shape)).tolist()
+                dim = paddle.to_tensor(axis)
+                out = paddle.mean(x, dim)
+
+            paddle.framework.set_flags({"FLAGS_enable_pir_in_executor": True})
+            exe = paddle.static.Executor(self.place)
+            exe.run(startup_program)
+            res = exe.run(
+                main_program,
+                feed={'X': self.x},
+                fetch_list=[out],
+            )
+            out_ref = np.mean(self.x)
+            for out in res:
+                np.testing.assert_allclose(out, out_ref, rtol=0.0001)
+        finally:
+            if not old_flag:
+                paddle.framework.set_flags(
+                    {"FLAGS_enable_pir_in_executor": False}
+                )
+
+
 if __name__ == "__main__":
     paddle.enable_static()
     unittest.main()

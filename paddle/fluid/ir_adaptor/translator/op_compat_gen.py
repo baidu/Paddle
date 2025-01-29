@@ -205,6 +205,16 @@ def OpNameNormalizerInitialization(
                 else:
                     op_name_mappings["sparse_" + op_name] = op_name + '_sp'
 
+    op_mutable_attributes["reduce_mean"] = set()
+    op_mutable_attributes["reduce_mean"].add("axis")
+    op_mutable_attribute_infos["reduce_mean"] = {}
+    op_mutable_attribute_infos["reduce_mean"]["axis"] = []
+
+    op_mutable_attributes["reduce_mean_grad"] = set()
+    op_mutable_attributes["reduce_mean_grad"].add("axis")
+    op_mutable_attribute_infos["reduce_mean_grad"] = {}
+    op_mutable_attribute_infos["reduce_mean_grad"]["axis"] = []
+
     op_name_normalizer_template = env.get_template("op_compat_info.cc.j2")
     with open(output_source_file, 'wt') as f:
         op_compat_definition = op_name_normalizer_template.render(
