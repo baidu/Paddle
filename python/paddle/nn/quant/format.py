@@ -472,6 +472,8 @@ class ConvertibleQuantedLayer(Layer, metaclass=abc.ABCMeta):
         quanter = getattr(self, quanter_name)
         if quanter is None:
             return None
+        elif type(quanter) == LinearQuanterDequanter:
+            return None
         quanter = LinearQuanterDequanter.from_quanter(quanter)
         setattr(self, quanter_name, quanter)
         self._sub_layers[quanter_name] = quanter

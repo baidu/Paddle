@@ -20,6 +20,7 @@ import paddle
 from paddle import nn
 
 from .wrapper import ObserveWrapper
+from ..nn.quant.format import LinearQuanterDequanter, LinearQuanter, LinearDequanter
 
 if TYPE_CHECKING:
     from paddle.nn import Layer
@@ -324,7 +325,12 @@ class QuantConfig:
         r"""
         Whether the layer should be observed by observer.
         """
-        return self._is_leaf(layer) and self._has_observer_config(layer)
+        return self._is_leaf(layer) and self._has_observer_config(layer) and self._is_not_converted_quanter(layer)
+
+    def _is_not_converted_quanter(self, layer):
+        if type(layer) == LinearDequanter or type(layer) == LinearQuanter or type(layer) == LinearQuanterDequanter:
+            return False
+        return True
 
     def _get_qat_layer(self, layer: Layer):
         q_config = self._get_config_by_layer(layer)
