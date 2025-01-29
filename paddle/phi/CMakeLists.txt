@@ -138,6 +138,7 @@ if(WITH_AVX
    AND AVX512F_FLAG
    AND WITH_MKL)
   set_source_files_properties(
+    kernels/cpu/log_softmax_kernel.cc
     kernels/fusion/cpu/fused_layer_norm_avx_kernel.cc
     kernels/fusion/cpu/self_dp_attention_kernel.cc
     kernels/fusion/cpu/rms_norm_avx_kernel.cc

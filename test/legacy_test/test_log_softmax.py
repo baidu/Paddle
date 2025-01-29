@@ -100,6 +100,11 @@ class TestLogSoftmaxShape(TestLogSoftmaxOp):
         self.shape = [12, 10]
 
 
+class TestLogSoftmaxFp32_Avx(TestLogSoftmaxOp):
+    def set_attrs(self):
+        self.dtype = 'float32'
+
+
 class TestLogSoftmaxAxis(TestLogSoftmaxOp):
     def set_attrs(self):
         self.axis = 1

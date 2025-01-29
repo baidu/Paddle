@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "paddle/phi/kernels/log_softmax_kernel.h"
+#include <immintrin.h>
+#include <omp.h>
 
 #include "paddle/phi/backends/cpu/cpu_context.h"
 #include "paddle/phi/core/kernel_registry.h"
@@ -20,6 +21,7 @@
 #include "paddle/phi/kernels/funcs/eigen/common.h"
 #include "paddle/phi/kernels/funcs/eigen/eigen_function.h"
 #include "paddle/phi/kernels/funcs/math_function.h"
+#include "paddle/phi/kernels/log_softmax_kernel.h"
 
 namespace phi {
 
@@ -35,6 +37,121 @@ struct ValueClip {
     return x < kThreshold ? kThreshold : x;
   }
 };
+
+#ifdef __AVX512F__
+static inline __m512 vexp(const __m512& _x) {
+  __m512 p16f_1 = _mm512_set1_ps(1.0f);
+  __m512 p16f_half = _mm512_set1_ps(0.5f);
+  __m512 p16f_127 = _mm512_set1_ps(127.f);
+  __m512 p16f_exp_hi = _mm512_set1_ps(88.3762626647950f);
+  __m512 p16f_exp_lo = _mm512_set1_ps(-88.3762626647949f);
+
+  __m512 p16f_cephes_LOG2EF = _mm512_set1_ps(1.44269504088896341f);
+
+  __m512 p16f_cephes_exp_p0 = _mm512_set1_ps(1.9875691500E-4f);
+  __m512 p16f_cephes_exp_p1 = _mm512_set1_ps(1.3981999507E-3f);
+  __m512 p16f_cephes_exp_p2 = _mm512_set1_ps(8.3334519073E-3f);
+  __m512 p16f_cephes_exp_p3 = _mm512_set1_ps(4.1665795894E-2f);
+  __m512 p16f_cephes_exp_p4 = _mm512_set1_ps(1.6666665459E-1f);
+  __m512 p16f_cephes_exp_p5 = _mm512_set1_ps(5.0000001201E-1f);
+
+  // Clamp x.
+  __m512 x = _mm512_max_ps(_mm512_min_ps(_x, p16f_exp_hi), p16f_exp_lo);
+
+  // Express exp(x) as exp(m*ln(2) + r), start by extracting
+  // m = floor(x/ln(2) + 0.5).
+  __m512 m = _mm512_floor_ps(_mm512_fmadd_ps(x, p16f_cephes_LOG2EF, p16f_half));
+
+  // Get r = x - m*ln(2). If no FMA instructions are available, m*ln(2) is
+  // subtracted out in two parts, m*C1+m*C2 = m*ln(2), to avoid accumulating
+  // truncation errors. Note that we don't use the "pmadd" function here to
+  // ensure that a precision-preserving FMA instruction is used.
+  __m512 p16f_nln2 = _mm512_set1_ps(-0.6931471805599453f);
+  __m512 r = _mm512_fmadd_ps(m, p16f_nln2, x);
+
+  __m512 r2 = _mm512_mul_ps(r, r);
+
+  // TODO(bukejiyu): Split into odd/even polynomials and try to exploit
+  //               instruction-level parallelism.
+  __m512 y = p16f_cephes_exp_p0;
+  y = _mm512_fmadd_ps(y, r, p16f_cephes_exp_p1);
+  y = _mm512_fmadd_ps(y, r, p16f_cephes_exp_p2);
+  y = _mm512_fmadd_ps(y, r, p16f_cephes_exp_p3);
+  y = _mm512_fmadd_ps(y, r, p16f_cephes_exp_p4);
+  y = _mm512_fmadd_ps(y, r, p16f_cephes_exp_p5);
+  y = _mm512_fmadd_ps(y, r2, r);
+  y = _mm512_add_ps(y, p16f_1);
+
+  // Build emm0 = 2^m.
+  __m512i emm0 = _mm512_cvttps_epi32(_mm512_add_ps(m, p16f_127));
+  emm0 = _mm512_slli_epi32(emm0, 23);
+
+  // Return 2^m * exp(r).
+  return _mm512_max_ps(_mm512_mul_ps(y, _mm512_castsi512_ps(emm0)), _x);
+}
+
+template <typename Context, typename T>
+struct LogSoftmaxAvxFunctor {
+  void operator()(const Context& context,
+                  const DenseTensor* x,
+                  DenseTensor* out,
+                  const int axis) {
+    const T* x_data = x->data<T>();
+    T* out_data = out->data<T>();
+    auto matrix_dim = common::flatten_to_2d(x->dims(), axis);
+    int32_t rows = static_cast<int32_t>(matrix_dim[0]);
+    int32_t cols = static_cast<int32_t>(matrix_dim[1]);
+    int32_t size = cols;
+    auto iStride = cols;
+    auto oStride = cols;
+    float max = std::numeric_limits<float>::lowest();
+#ifdef PADDLE_WITH_MKLML
+#pragma omp parallel for
+#endif
+    for (int r = 0; r < rows; ++r) {
+      __m512 vmax = _mm512_set1_ps(max);
+      const T* px = x_data + r * iStride;
+      T* py = out_data + r * oStride;
+      for (int off = 0; off < size; off += 16) {
+        int remain = size - off;
+        __mmask16 mask = (remain >= 16 ? 0xffff : (1 << remain) - 1);
+
+        __m512 vx = _mm512_maskz_loadu_ps(mask, px + off);
+        vmax = _mm512_mask_max_ps(vmax, mask, vmax, vx);
+      }
+      max = _mm512_reduce_max_ps(vmax);
+      vmax = _mm512_set1_ps(max);
+
+      // Compute vexp(vx - vmax) and sum it
+      __m512 vsum = _mm512_set1_ps(0);
+      for (int off = 0; off < size; off += 16) {
+        int remain = size - off;
+        __mmask16 mask = (remain >= 16 ? 0xffff : (1 << remain) - 1);
+
+        __m512 vx = _mm512_maskz_loadu_ps(mask, px + off);
+        vx = _mm512_mask_sub_ps(vx, mask, vx, vmax);
+        vx = vexp(vx);
+
+        vsum = _mm512_mask_add_ps(vsum, mask, vsum, vx);
+      }
+
+      float sum = _mm512_reduce_add_ps(vsum);
+      float logsum = std::log(sum);
+      __m512 vsub = _mm512_set1_ps(max + logsum);
+
+      // Compute vx - max - logsum and store
+      for (int off = 0; off < size; off += 16) {
+        int remain = size - off;
+        __mmask16 mask = (remain >= 16 ? 0xffff : (1 << remain) - 1);
+
+        __m512 vx = _mm512_maskz_loadu_ps(mask, px + off);
+        vx = _mm512_mask_sub_ps(vx, mask, vx, vsub);
+        _mm512_mask_storeu_ps(py + off, mask, vx);
+      }
+    }
+  }
+};
+#endif
 
 template <typename Context, typename T>
 struct LogSoftmaxFunctor {
@@ -116,7 +233,15 @@ void LogSoftmaxKernel(const Context& dev_ctx,
     return;
   }
   if (x.numel() != 0) {
-    LogSoftmaxFunctor<Context, T>()(dev_ctx, &x, out, canonical_axis);
+    if (std::is_same<T, float>::value && canonical_axis == rank - 1) {
+#ifdef __AVX512F__
+      LogSoftmaxAvxFunctor<Context, T>()(dev_ctx, &x, out, canonical_axis);
+#else
+      LogSoftmaxFunctor<Context, T>()(dev_ctx, &x, out, canonical_axis);
+#endif
+    } else {
+      LogSoftmaxFunctor<Context, T>()(dev_ctx, &x, out, canonical_axis);
+    }
   }
 }
 
