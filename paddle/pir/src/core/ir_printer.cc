@@ -297,6 +297,7 @@ void IrPrinter::PrintOpResult(const Operation& op) {
       [this](Value v) { this->PrintValue(v); },
       [this]() { this->os << ", "; });
   os << ")";
+  os << "(op_id: op_" << op->id() << ")";
 }
 
 std::vector<std::string> ParseFlagsToDisable(std::string Flag) {
