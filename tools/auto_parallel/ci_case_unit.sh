@@ -49,9 +49,24 @@ function case_list_unit() {
             echo "PYTHONPATH=$substring"
             export PYTHONPATH=$substring:$PYTHNPATH
         fi
-        python $case_name.py >>${log_path}/$case_name 2>&1
-        if [ $? -eq 0 ]; then
+        time_out=`awk -F, 'NR=='$i' {print $4}' testslist.csv`
+        if [ -n "$(echo $time_out | sed -n "/^[0-9]\+$/p")" ];then
+            echo "Given timeout is a valid number : $time_out"
+        else
+            echo "FAILED! Given timeout is not a valid number : $time_out"
+            exit -1
+        fi
+
+        timeout $time_out python $case_name.py >>${log_path}/$case_name 2>&1
+        exit_code=$?
+        if [ $exit_code -eq 0 ]; then
             tail -n 10 ${log_path}/$case_name
+        elif [ $exit_code -eq 124 ]; then
+            echo "TIMEOUT!"
+            exit -1
+        else
+            echo "FAIL with exit_code : $exit_code"
+            exit -1
         fi
         echo "=========== $case_name run  end ==========="
     done
