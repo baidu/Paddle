@@ -140,8 +140,9 @@ class CategoricalTest(unittest.TestCase):
             kl, np_kl, rtol=log_tolerance, atol=log_tolerance
         )
 
-        sum_dist = np.sum(self.logits_np, axis=-1, keepdims=True)
-        probability = self.logits_np / sum_dist
+        probability = np.exp(self.logits_np) / np.sum(
+            np.exp(self.logits_np), axis=-1, keepdims=True
+        )
         np_probs = self.get_numpy_selected_probs(probability)
         np_log_prob = np.log(np_probs)
 
