@@ -189,14 +189,12 @@ class ParamStorage(InternalStorage):
         # Copy the current param value
 
         with device_guard(self.dev_id, "cpu"):
-            tmp_var = self.buffer._slice(self._fill, var_end)
             if convert_gpu:
                 param_cpu = param.cpu()
                 param._clear_data()
-                tmp_var.set_value(param_cpu)
+                self.buffer._slice(self._fill, var_end).set_value(param_cpu)
             else:
-                tmp_var.set_value(param)
-            del tmp_var
+                self.buffer._slice(self._fill, var_end).set_value(param)
 
         self._fill = offset
         return p_shape
@@ -209,8 +207,11 @@ class ParamStorage(InternalStorage):
 
         # Convert the param value
         with device_guard(self.dev_id, self._device):
-            tmp_tensor = self.buffer._slice(self._fill, var_end)
-            tmp_tensor._share_buffer_to(param)
+            # TODO(gongweibao): these two lines are removed for now to avoid
+            # the bug of NPU view function, and will be added back later.
+            # tmp_tensor = self.buffer._slice(self._fill, var_end)
+            # tmp_tensor._share_buffer_to(param)
+            self.buffer._slice(self._fill, var_end)._share_buffer_to(param)
             param.get_tensor()._set_dims(p_shape)
 
         self._fill = offset
@@ -352,8 +353,15 @@ class GradStorage(InternalStorage):
 
         # Copy the current grad value to InternalStorage
         with device_guard(self.dev_id, self._device):
-            tmp_var = self.buffer._slice(self._fill, grad_end)
+            # TODO(gongweibao): it temprarily use paddle.empty to avoid the bug of
+            # View function on NPU, need to be fixed in the future
+            # tmp_var = self.buffer._slice(self._fill, grad_end)
+            tmp_var = paddle.empty(
+                [grad_end - self._fill], dtype=self.buffer.dtype
+            )
+            self.buffer._slice(self._fill, grad_end)._share_buffer_to(tmp_var)
             tmp_var.get_tensor()._set_dims(param.shape)
+
             if not use_main_grad:
                 param._copy_gradient_from(tmp_var)
             else:
