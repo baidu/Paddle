@@ -18,7 +18,9 @@
 #include <glog/logging.h>
 
 #include <atomic>
+#include <fstream>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <mutex>  //NOLINT
 #include <string>
@@ -146,6 +148,21 @@ class Operator {
   template <typename ValueType>
   inline Operator& set_attr(const std::string& attr_name,
                             const ValueType& value) {
+    static std::ofstream static_outfile;
+    static_outfile.open("/ssd2/liuchao52/Paddle/liuchao/static.txt",
+                        std::ios::out | std::ios::trunc);
+    static std::ofstream dynamic_outfile;
+    dynamic_outfile.open("/ssd2/liuchao52/Paddle/liuchao/dynamic.txt",
+                         std::ios::out | std::ios::trunc);
+
+    if (attr_name == "CINNStrategy") {
+      VLOG(-1) << "static_op: " << name;
+      static_outfile << name << ", ";
+    }
+    if (attr_name == "CINNStrategySymbolic") {
+      VLOG(-1) << "dynamic_op: " << name;
+      dynamic_outfile << name << ", ";
+    }
     UpdateAttrMap(attr_name, [this, attr_name, value](absl::any* pmap) {
       if (!pmap->has_value()) {
         OpValueType<ValueType> pm;
