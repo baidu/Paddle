@@ -77,6 +77,8 @@ if TYPE_CHECKING:
 
 __all__ = []
 
+g_pre_alloc_memory = int(os.environ.get("FLAGS_pre_alloc_memory", 0))
+
 
 def apply_ir_passes(
     main_program: Program,
@@ -408,7 +410,17 @@ class Fleet:
                 cg.set_comm_group(
                     'model', mp_rank, mp_degree, mp_ring_id, mp_group_ranks
                 )
+        self.maybe_pre_alloc_device_memory()
         return self
+
+    def maybe_pre_alloc_device_memory(self):
+        if g_pre_alloc_memory > 0:
+            logger.warning(
+                f'To avoid creating memory shards, pre-allocating a tensor whose memory capacity is {g_pre_alloc_memory} GB and then release it.'
+            )
+            memory_size = int((g_pre_alloc_memory * 1024 * 1024 * 1024) // 4)
+            x = paddle.empty([memory_size], dtype=paddle.float32)
+            del x
 
     # test allreduce perf
     def allreduce_perf(

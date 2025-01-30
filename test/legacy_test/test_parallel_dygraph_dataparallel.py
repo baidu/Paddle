@@ -128,6 +128,8 @@ def start_local_trainers(
         }
 
         proc_env["FLAGS_allocator_strategy"] = allocator_strategy
+        proc_env["FLAGS_pre_alloc_memory"] = "1"
+
         if allocator_strategy == "auto_growth":
             proc_env["FLAGS_fraction_of_gpu_memory_to_use"] = "0.1"
 
