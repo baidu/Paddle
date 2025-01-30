@@ -38,7 +38,8 @@ class TestNonZeroAPI(unittest.TestCase):
             y = paddle.nonzero(x, as_tuple=True)
             self.assertEqual(type(y), tuple)
             self.assertEqual(len(y), 2)
-            z = paddle.concat(list(y), axis=1)
+            index_list = [index.reshape([-1, 1]) for index in y]
+            z = paddle.concat(index_list, axis=1)
             exe = base.Executor(base.CPUPlace())
 
             (res,) = exe.run(
@@ -55,7 +56,8 @@ class TestNonZeroAPI(unittest.TestCase):
             y = paddle.nonzero(x, as_tuple=True)
             self.assertEqual(type(y), tuple)
             self.assertEqual(len(y), 1)
-            z = paddle.concat(list(y), axis=1)
+            index_list = [index.reshape([-1, 1]) for index in y]
+            z = paddle.concat(index_list, axis=1)
             exe = base.Executor(base.CPUPlace())
             (res,) = exe.run(
                 feed={'x': data}, fetch_list=[z], return_numpy=False
