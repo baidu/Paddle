@@ -838,7 +838,6 @@ struct PD_INFER_DECL AnalysisConfig {
   /// \return bool whether to use new executor.
   ///
   void EnableNewExecutor(bool x = true) { use_new_executor_ = x; }
-
   bool new_executor_enabled() const { return use_new_executor_; }
 
   /// \brief A boolean state telling whether to use new IR.
