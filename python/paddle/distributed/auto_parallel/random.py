@@ -14,12 +14,12 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import logging
 
 import paddle
 
 from ..utils.log_utils import get_logger
-from .process_mesh import retrieve_unique_id_for_process_mesh
 from .static.utils import _get_idx_in_axis
 
 _logger = get_logger(logging.INFO)
@@ -32,6 +32,7 @@ _basic_seed = 42
 _basic_name = ""
 
 # use Prime number as offset to avoid conflict
+_mesh_mod = 1000639
 _mesh_offset = 173
 _dim_offsets = [11, 23, 37, 73]
 
@@ -100,13 +101,13 @@ def determinate_rng(
     if name_:
         name_ += "_"
 
-    # FIXME
-    # unique_id = process_mesh.unique_id
-    unique_id = retrieve_unique_id_for_process_mesh(
-        process_mesh.shape, process_mesh.process_ids
-    )
-    sharding_expr = name_ + f'mesh:{unique_id}'
-    seed_ += _mesh_offset * (unique_id + 1)
+    process_mesh_key = f"{process_mesh.shape}{process_mesh.process_ids}"
+    process_mesh_hash = hashlib.md5(
+        process_mesh_key.encode(encoding='UTF-8')
+    ).hexdigest()
+    process_mesh_hash = int(process_mesh_hash, 16) % _mesh_mod
+    sharding_expr = name_ + f'mesh:{process_mesh_hash}'
+    seed_ += _mesh_offset * (process_mesh_hash + 1)
 
     for i in range(len(process_mesh.shape)):
         if (dims_mapping is not None and i not in dims_mapping) or (
