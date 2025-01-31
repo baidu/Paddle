@@ -127,7 +127,11 @@ class ThreadDataRegistry {
     template <typename Alias = T,
               typename = std::enable_if_t<IsAccumulatable<Alias>::value>>
     void AccumulateToAnotherThread(uint64_t tid) {
-      auto& data = tid_map_.at(tid)->GetData();
+      if (tid_map_.find(tid) == tid_map_.end()) {
+        return;
+      }
+
+      auto& data = tid_map_[tid]->GetData();
       for (auto& kv : tid_map_) {
         if (kv.first != tid) {
           auto& data_in_another_thread = kv.second->GetData();
