@@ -20,6 +20,8 @@ import sys
 from itertools import chain
 from typing import TYPE_CHECKING
 
+import paddle
+
 from ...utils import InnerError, NameGenerator
 from .guard import StringifiedExpression, stringify_pyobject, union_free_vars
 
@@ -58,6 +60,11 @@ class Tracker:
             codegen (PyCodeGen): An instance of PyCodeGen to generate instructions.
         """
         raise NotImplementedError
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        raise NotImplementedError(
+            f"{self.__class__.__name__} has no guard_tree_expr_node"
+        )
 
     # TODO(xiongkun): trace_value_from_frame is not a good name, it should be more related to guard but not tracable.
     def trace_value_from_frame(self) -> StringifiedExpression:
@@ -195,6 +202,9 @@ class LocalTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_fast(self.name)
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.LocalVarExprNode(self.name)
+
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(f"frame.f_locals['{self.name}']", [], {})
 
@@ -205,6 +215,9 @@ class LocalTracker(Tracker):
 class CellTracker(LocalTracker):
     def gen_instructions(self, codegen: PyCodeGen):
         codegen.gen_load_deref(self.name)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.LocalVarExprNode(self.name)
 
     def trace_value_from_frame(self):
         return StringifiedExpression(f"frame.f_locals['{self.name}']", [], {})
@@ -228,6 +241,9 @@ class GlobalTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_global(self.name, push_null=False)
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.GlobalVarExprNode(self.name)
+
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(f"frame.f_globals['{self.name}']", [], {})
 
@@ -249,6 +265,12 @@ class BuiltinTracker(Tracker):
 
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_global(self.name, push_null=False)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.ItemExprNode(
+            paddle.framework.core.ConstantExprNode(builtins.__dict__),
+            paddle.framework.core.ConstantExprNode(self.name),
+        )
 
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(
@@ -273,6 +295,9 @@ class ConstTracker(Tracker):
 
     def gen_instructions(self, codegen: PyCodeGen):
         codegen.gen_load_const(self.value)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.ConstantExprNode(self.value)
 
     def trace_value_from_frame(self):
         value_str, value_free_vars = stringify_pyobject(self.value)

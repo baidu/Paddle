@@ -293,6 +293,7 @@ class GuardNode : public GuardTreeNode {
   std::shared_ptr<GuardBase> guard;
   std::shared_ptr<ExprNode> expr;
   std::vector<std::shared_ptr<GuardNode>> next_guard_nodes;
+  // return_cache_index is used to record the index of the guard list
   std::optional<int> return_cache_index;
   GuardNode(std::shared_ptr<GuardBase> guard,
             std::shared_ptr<ExprNode> expr,
