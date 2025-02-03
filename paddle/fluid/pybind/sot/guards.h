@@ -326,8 +326,8 @@ class GuardTree {
  private:
   std::vector<std::shared_ptr<GuardNode>> guard_nodes_;
 };
-#endif
 
 std::string guard_tree_to_str(const GuardTree& guard_tree);
+#endif
 
 #endif
