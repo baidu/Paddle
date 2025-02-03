@@ -125,6 +125,7 @@ void BindGuard(pybind11::module *m) {
 
 void BindGuardTree(pybind11::module *m) {
 #if SOT_IS_SUPPORTED
+#if PY_3_11_PLUS
   py::class_<GuardTree, std::shared_ptr<GuardTree>>(
       *m, "GuardTree", R"DOC(GuardTree Class.)DOC")
       .def(py::init<
@@ -194,6 +195,7 @@ void BindGuardTree(pybind11::module *m) {
            py::arg("var_expr"),
            py::arg("key_expr"));
 #endif
+#endif
 }
 
 void BindSot(pybind11::module *m) {
@@ -261,7 +263,9 @@ void BindSot(pybind11::module *m) {
       },
       py::arg("py_codes"));
   BindGuard(m);
+#if PY_3_11_PLUS
   BindGuardTree(m);
+#endif
 #endif
 }
 
