@@ -158,6 +158,19 @@ def make_guard(stringified_guards: list[StringifiedExpression]) -> Guard:
         return guard
 
 
+def make_faster_guard(
+    guard_nodes: list[paddle.framework.core.GuardNode],
+) -> Guard:
+    with EventGuard("make_guard"):
+        num_guards = len(guard_nodes)
+        if not num_guards:
+            guard = lambda frame: True
+            return guard
+        guard_tree = paddle.framework.core.GuardTree([guard_nodes])
+        guard = lambda frame: guard_tree.check(frame) is not None
+        return guard
+
+
 def support_weak_ref(obj):
     if isinstance(obj, types.FunctionType):
         return True
@@ -168,6 +181,28 @@ def check_guard(
     fn: Callable[[CheckGuardInputT], list[StringifiedExpression]],
 ) -> Callable[[CheckGuardInputT], list[StringifiedExpression]]:
     def wrapper(self: CheckGuardInputT) -> list[StringifiedExpression]:
+        assert (
+            self.tracker.is_traceable()
+        ), "Cannot make guard from a non-tracable guard variable."
+
+        def guard_log():
+            frame_value_tracer = self.tracker.trace_value_from_frame()
+            print(
+                f"[Guard]: guard_fn for {self}, tracker={self.tracker.__class__.__name__}, value={frame_value_tracer.registered_expr}"
+            )
+
+        log_do(4, guard_log)
+        return fn(self)
+
+    return wrapper
+
+
+def check_faster_guard(
+    fn: Callable[[CheckGuardInputT], list[paddle.framework.core.GuardNode]],
+) -> Callable[[CheckGuardInputT], list[paddle.framework.core.GuardNode]]:
+    def wrapper(
+        self: CheckGuardInputT,
+    ) -> list[paddle.framework.core.GuardNode]:
         assert (
             self.tracker.is_traceable()
         ), "Cannot make guard from a non-tracable guard variable."
