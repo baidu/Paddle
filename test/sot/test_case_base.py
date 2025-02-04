@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import contextlib
 import copy
+import sys
 import types
 import unittest
 from functools import wraps
@@ -65,15 +66,16 @@ def test_with_faster_guard(func):
             finally:
                 FASTER_GUARD_CACHE_STATE.update(cache.dump_state())
                 cache.load_state(original_cache_state)
-        with faster_guard_guard(True), guard_tree_guard(True):
-            cache = OpcodeExecutorCache()
-            original_cache_state = cache.dump_state()
-            cache.load_state(GUARD_TREE_CACHE_STATE)
-            try:
-                func(*args, **kwargs)
-            finally:
-                GUARD_TREE_CACHE_STATE.update(cache.dump_state())
-                cache.load_state(original_cache_state)
+        if sys.version_info >= (3, 11):
+            with faster_guard_guard(True), guard_tree_guard(True):
+                cache = OpcodeExecutorCache()
+                original_cache_state = cache.dump_state()
+                cache.load_state(GUARD_TREE_CACHE_STATE)
+                try:
+                    func(*args, **kwargs)
+                finally:
+                    GUARD_TREE_CACHE_STATE.update(cache.dump_state())
+                    cache.load_state(original_cache_state)
 
     return impl
 
