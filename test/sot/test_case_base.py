@@ -27,7 +27,7 @@ from paddle.jit.sot import symbolic_translate
 from paddle.jit.sot.opcode_translator.executor.executor_cache import (
     OpcodeExecutorCache,
 )
-from paddle.jit.sot.utils import faster_guard_guard
+from paddle.jit.sot.utils import faster_guard_guard, guard_tree_guard
 
 
 @contextlib.contextmanager
@@ -44,13 +44,19 @@ FASTER_GUARD_CACHE_STATE = {
     "code_symbolic_inputs": {},
 }
 
+GUARD_TREE_CACHE_STATE = {
+    "cache": {},
+    "translate_count": 0,
+    "code_symbolic_inputs": {},
+}
+
 
 def test_with_faster_guard(func):
     @wraps(func)
     def impl(*args, **kwargs):
-        with faster_guard_guard(False):
+        with faster_guard_guard(False), guard_tree_guard(False):
             func(*args, **kwargs)
-        with faster_guard_guard(True):
+        with faster_guard_guard(True), guard_tree_guard(False):
             cache = OpcodeExecutorCache()
             original_cache_state = cache.dump_state()
             cache.load_state(FASTER_GUARD_CACHE_STATE)
@@ -58,6 +64,15 @@ def test_with_faster_guard(func):
                 func(*args, **kwargs)
             finally:
                 FASTER_GUARD_CACHE_STATE.update(cache.dump_state())
+                cache.load_state(original_cache_state)
+        with faster_guard_guard(True), guard_tree_guard(True):
+            cache = OpcodeExecutorCache()
+            original_cache_state = cache.dump_state()
+            cache.load_state(GUARD_TREE_CACHE_STATE)
+            try:
+                func(*args, **kwargs)
+            finally:
+                GUARD_TREE_CACHE_STATE.update(cache.dump_state())
                 cache.load_state(original_cache_state)
 
     return impl
