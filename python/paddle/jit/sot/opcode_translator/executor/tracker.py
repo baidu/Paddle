@@ -346,6 +346,20 @@ class BinaryOperatorTracker(Tracker):
             "BINARY_POWER": "**",
         }[self.operator]
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        assert (
+            len(self.operands) == 2
+        ), "Currently only support binary operator."
+        # TODO(zrr1999): implement BinaryExprNode
+        raise NotImplementedError("BinaryExprNode is not implemented")
+        # left_expr = self.operands[0].tracker.guard_tree_expr_node()
+        # right_expr = self.operands[1].tracker.guard_tree_expr_node()
+        # return paddle.framework.core.BinaryExprNode(
+        #     left_expr,
+        #     right_expr,
+        #     self.get_operator_symbol(),
+        # )
+
     def trace_value_from_frame(self):
         sub_exprs = [x.tracker.trace_value_from_frame() for x in self.operands]
         sub_frees = [x.free_vars for x in sub_exprs]
@@ -378,6 +392,13 @@ class GetAttrTracker(Tracker):
         self.obj.tracker.gen_instructions(codegen)
         codegen.gen_load_attr(self.attr)
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        obj_tracer = self.obj.tracker.guard_tree_expr_node()
+        return paddle.framework.core.AttributeExprNode(
+            obj_tracer,
+            self.attr,
+        )
+
     def trace_value_from_frame(self):
         obj_tracer = self.obj.tracker.trace_value_from_frame()
         if self.attr.isidentifier():
@@ -388,13 +409,6 @@ class GetAttrTracker(Tracker):
             expr,
             [obj_tracer],
             union_free_vars(obj_tracer.free_vars),
-        )
-
-    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
-        obj_tracer = self.obj.tracker.guard_tree_expr_node()
-        return paddle.framework.core.AttributeExprNode(
-            obj_tracer,
-            self.attr,
         )
 
     def __repr__(self) -> str:
@@ -431,6 +445,13 @@ class GetItemTracker(Tracker):
             codegen.gen_load_const(self.key)
         codegen.gen_subscribe()
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        container_tracer = self.container.tracker.guard_tree_expr_node()
+        return paddle.framework.core.ItemExprNode(
+            container_tracer,
+            paddle.framework.core.ConstantExprNode(self.key),
+        )
+
     def trace_value_from_frame(self):
         container_tracer = self.container.tracker.trace_value_from_frame()
         key_string, key_free_vars = stringify_pyobject(self.key)
@@ -438,14 +459,6 @@ class GetItemTracker(Tracker):
             f"{{}}[{key_string}]",
             [container_tracer],
             union_free_vars(container_tracer.free_vars, key_free_vars),
-        )
-
-    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
-        container_tracer = self.container.tracker.guard_tree_expr_node()
-        key_string, key_free_vars = stringify_pyobject(self.key)
-        return paddle.framework.core.ItemExprNode(
-            container_tracer,
-            paddle.framework.core.ConstantExprNode(key_string),
         )
 
     def __repr__(self) -> str:
@@ -472,6 +485,10 @@ class GetIterTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen):
         self.iter_source.tracker.gen_instructions(codegen)
         codegen.add_instr("GET_ITER")
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement IterExprNode
+        raise NotImplementedError("IterExprNode is not implemented")
 
     def trace_value_from_frame(self):
         iter_source_tracer = self.iter_source.tracker.trace_value_from_frame()
@@ -509,6 +526,10 @@ class CreateLayerTracker(Tracker):
                 v.reconstruct(codegen)
             codegen.gen_build_map(len(self.kwargs))
             codegen.gen_call_function_ex(has_kwargs=True)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement LayerExprNode
+        raise NotImplementedError("LayerExprNode is not implemented")
 
     def trace_value_from_frame(self):
         class_tracer = self.layer_class.tracker.trace_value_from_frame()
