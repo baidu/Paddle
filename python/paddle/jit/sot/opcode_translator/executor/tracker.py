@@ -390,6 +390,13 @@ class GetAttrTracker(Tracker):
             union_free_vars(obj_tracer.free_vars),
         )
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        obj_tracer = self.obj.tracker.guard_tree_expr_node()
+        return paddle.framework.core.AttributeExprNode(
+            obj_tracer,
+            self.attr,
+        )
+
     def __repr__(self) -> str:
         return f"GetAttrTracker(attr={self.attr})"
 
@@ -431,6 +438,14 @@ class GetItemTracker(Tracker):
             f"{{}}[{key_string}]",
             [container_tracer],
             union_free_vars(container_tracer.free_vars, key_free_vars),
+        )
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        container_tracer = self.container.tracker.guard_tree_expr_node()
+        key_string, key_free_vars = stringify_pyobject(self.key)
+        return paddle.framework.core.ItemExprNode(
+            container_tracer,
+            paddle.framework.core.ConstantExprNode(key_string),
         )
 
     def __repr__(self) -> str:
