@@ -267,9 +267,8 @@ class BuiltinTracker(Tracker):
         codegen.gen_load_global(self.name, push_null=False)
 
     def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
-        return paddle.framework.core.ItemExprNode(
-            paddle.framework.core.ConstantExprNode(builtins.__dict__),
-            paddle.framework.core.ConstantExprNode(self.name),
+        return paddle.framework.core.ConstantExprNode(
+            getattr(builtins, self.name)
         )
 
     def trace_value_from_frame(self) -> StringifiedExpression:

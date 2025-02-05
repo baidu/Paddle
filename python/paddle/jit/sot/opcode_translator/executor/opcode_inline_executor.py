@@ -127,6 +127,10 @@ class FunctionClosureTracker(Tracker):
         codegen.gen_subscribe()
         codegen.gen_load_attr("cell_contents")
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement FunctionClosureExprNode
+        raise NotImplementedError("FunctionClosureExprNode is not implemented")
+
     def trace_value_from_frame(self):
         """
         Trace the value of the function closure variable from the frame.
