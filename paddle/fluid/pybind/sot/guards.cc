@@ -135,7 +135,11 @@ PyObject* ConstantExprNode::eval(PyInterpreterFrameProxy* frame) {
 }
 
 PyObject* LocalVarExprNode::eval(PyInterpreterFrameProxy* frame) {
+#if PY_3_13_PLUS
+  return PyDict_GetItemString(frame->locals, var_name_.c_str());
+#else
   return PyDict_GetItemString(frame->frame->f_locals, var_name_.c_str());
+#endif
 }
 PyObject* GlobalVarExprNode::eval(PyInterpreterFrameProxy* frame) {
   return PyDict_GetItemString(frame->frame->f_globals, var_name_.c_str());
@@ -177,5 +181,4 @@ std::optional<int> GuardTree::check(PyInterpreterFrameProxy* frame) {
 }
 
 #endif
-
 #endif

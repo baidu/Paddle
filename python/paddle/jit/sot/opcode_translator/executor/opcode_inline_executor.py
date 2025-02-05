@@ -69,6 +69,16 @@ class FunctionGlobalTracker(Tracker):
         codegen.gen_load_const(self.name)
         codegen.gen_subscribe()
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        fn_tracer = self.fn.tracker.guard_tree_expr_node()
+        return paddle.framework.core.ItemExprNode(
+            paddle.framework.core.AttributeExprNode(
+                fn_tracer,
+                "__globals__",
+            ),
+            paddle.framework.core.ConstantExprNode(self.name),
+        )
+
     def trace_value_from_frame(self) -> StringifiedExpression:
         """
         Trace the value of the function global variable from the frame.
@@ -82,16 +92,6 @@ class FunctionGlobalTracker(Tracker):
             f"{{}}.__globals__['{self.name}']",
             [fn_tracer],
             union_free_vars(fn_tracer.free_vars),
-        )
-
-    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
-        fn_tracer = self.fn.tracker.guard_tree_expr_node()
-        return paddle.framework.core.ItemExprNode(
-            paddle.framework.core.AttributeExprNode(
-                fn_tracer,
-                "__globals__",
-            ),
-            paddle.framework.core.ConstantExprNode(self.name),
         )
 
     def __repr__(self) -> str:
