@@ -218,8 +218,8 @@ class RecvOpCost(CommOpCost):
                 dtype = var.dtype
                 shape = var.shape
             elif self.op_desc is not None:
-                dtype = self.op_desc["inputs"]["x"][0][0]
-                shape = self.op_desc["inputs"]["x"][0][1]
+                dtype = self.op_desc["inputs"]["X"][0][0]
+                shape = self.op_desc["inputs"]["X"][0][1]
 
             factor = None
             if dtype == paddle.float32 or dtype == paddle.int32:
@@ -272,8 +272,8 @@ class SendOpCost(CommOpCost):
                 dtype = var.dtype
                 shape = var.shape
             elif self.op_desc is not None:
-                dtype = self.op_desc["inputs"]["x"][0][0]
-                shape = self.op_desc["inputs"]["x"][0][1]
+                dtype = self.op_desc["inputs"]["X"][0][0]
+                shape = self.op_desc["inputs"]["X"][0][1]
 
             factor = None
             if dtype == paddle.float32 or dtype == paddle.int32:

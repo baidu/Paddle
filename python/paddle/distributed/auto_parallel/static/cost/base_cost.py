@@ -349,10 +349,7 @@ def build_comm_desc(op_type, group_ranks, dtype, shape, attrs=None):
     desc = {}
     desc["op"] = op_type
     desc["group_ranks"] = group_ranks
-    if op_type == "p_send":
-        desc["inputs"] = {"x": [(dtype, shape)]}
-    else:
-        desc["inputs"] = {"X": [(dtype, shape)]}
+    desc["inputs"] = {"X": [(dtype, shape)]}
     desc["attrs"] = attrs
     return desc
 
