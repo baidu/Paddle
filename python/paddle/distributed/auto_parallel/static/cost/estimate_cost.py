@@ -326,6 +326,8 @@ class CostEstimator:
 
                 if "memory" not in var_info[var_name][key]:
                     var = dist_op.get_serial_input(var_name)
+                    if var is None:
+                        continue
                     global_sizes = var.shape
                     dtype = var.dtype
                     sizes = DistributedTensor.get_local_sizes(
@@ -411,6 +413,8 @@ class CostEstimator:
                 )
                 has_used_var = var_name + key
                 var = dist_op.get_serial_input(var_name)
+                if var is None:
+                    continue
                 # Not used
                 if (
                     has_used_var not in has_used_vars
