@@ -356,7 +356,9 @@ PD_REGISTER_KERNEL(elementwise_pow_grad,
                    int,
                    phi::dtype::float16,
                    phi::dtype::bfloat16,
-                   int64_t) {}
+                   int64_t,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {}
 
 PD_REGISTER_KERNEL(add_grad,
                    GPU,

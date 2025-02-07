@@ -18,6 +18,7 @@ limitations under the License. */
 #include <set>
 
 #include "paddle/common/flags.h"
+#include "paddle/phi/api/lib/data_type_set.h"
 #include "paddle/phi/common/data_type.h"
 #include "paddle/phi/common/type_traits.h"
 #include "paddle/phi/core/enforce.h"
@@ -3561,6 +3562,18 @@ void PoolInferMeta(const MetaTensor& x,
   out->set_dims(common::make_ddim(output_shape));
   out->share_lod(x);
   out->set_dtype(x.dtype());
+}
+
+void PowInferMeta(const MetaTensor& x, const Scalar& y, MetaTensor* out) {
+  paddle::experimental::DataTypeSet dtype_set{x.dtype()};
+  dtype_set = dtype_set | paddle::experimental::DataTypeSet(y.dtype());
+  DataType promote_result = PromoteTypes(dtype_set);
+  if (promote_result == DataType::UNDEFINED) {
+    promote_result = x.dtype();
+  }
+  out->set_dims(x.dims());
+  out->set_dtype(promote_result);
+  out->set_layout(x.layout());
 }
 
 void PushDenseInferMeta(const std::vector<const MetaTensor*>& ids,

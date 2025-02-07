@@ -76,8 +76,13 @@ void PowKernel(const Context& dev_ctx,
       GET_DATA_SAFELY(out, "Output", "Out", "Activation"));
   auto* place = dev_ctx.eigen_device();
   phi::funcs::PowFunctor<T> functor;
-  auto attrs = functor.GetAttrs();
-  *(attrs[0].second) = factor.to<float>();
+  if (IsComplexType(x.dtype()) || IsComplexType(factor.dtype())) {
+    auto attrs = functor.GetComplexAttrs();
+    *(attrs[0].second) = factor.to<T>();
+  } else {
+    auto attrs = functor.GetAttrs();
+    *(attrs[0].second) = factor.to<float>();
+  }
   functor(*place, x_flatten, out_flatten);
 }
 

@@ -90,7 +90,7 @@ def restruct_io(op):
 
 def process_scalar(op_item, scalar_configs):
     scalar_map = {
-        'Scalar': 'float',
+        'Scalar': 'Scalar',
         'Scalar(float)': 'float',
         'Scalar(double)': 'double',
         'Scalar(int)': 'int',

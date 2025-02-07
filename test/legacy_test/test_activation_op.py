@@ -4565,15 +4565,23 @@ class TestPow(TestActivation):
         self.public_python_api = paddle.pow
         self.init_dtype()
         self.init_shape()
+        self.init_factor()
         self.if_enable_cinn()
 
         np.random.seed(1024)
         x = np.random.uniform(1, 2, self.shape).astype(self.dtype)
-        out = np.power(x, 3)
+        if self.dtype == np.complex64 or self.dtype == np.complex128:
+            x = (
+                np.random.uniform(0.1, 1, self.shape)
+                + 1j * np.random.uniform(0.1, 1, self.shape)
+            ).astype(self.dtype)
+            x = np.array([3 + 5j]).astype(np.complex64)
+
+        out = np.power(x, self.factor)
 
         self.inputs = {'X': OpTest.np_dtype_to_base_dtype(x)}
         self.outputs = {'Out': out}
-        self.attrs = {'factor': 3.0}
+        self.attrs = {'factor': self.factor}
         self.convert_input_output()
 
     def if_enable_cinn(self):
@@ -4598,6 +4606,24 @@ class TestPow(TestActivation):
             check_prim_pir=True,
             check_pir=True,
             check_pir_onednn=self.check_pir_onednn,
+        )
+
+    def init_factor(self):
+        self.factor = 3.0
+
+
+class TestPow_Complex64(TestPow):
+    def init_dtype(self):
+        self.dtype = np.complex64
+
+    def test_check_grad(self):
+        self.check_grad(
+            ['X'], 'Out', check_pir=True, check_pir_onednn=self.check_pir_onednn
+        )
+
+    def test_check_output(self):
+        self.check_output(
+            check_pir=True, check_pir_onednn=self.check_pir_onednn
         )
 
 

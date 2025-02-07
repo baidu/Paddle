@@ -977,13 +977,27 @@ compute_pow(const T a, const T b) {
 }
 #else
 template <typename T, typename MPType>
-inline HOSTDEVICE T compute_pow(const T a, const T b) {
+inline HOSTDEVICE typename std::enable_if<
+    !std::is_same<T, phi::dtype::complex<float>>::value &&
+        !std::is_same<T, phi::dtype::complex<double>>::value,
+    T>::type
+compute_pow(const T a, const T b) {
   MPType a_val = static_cast<MPType>(a);
   MPType b_val = static_cast<MPType>(b);
 #ifdef PADDLE_WITH_XPU_KP
   return static_cast<T>(pow(a_val, b_val));
 #endif
   return static_cast<T>(std::pow(a_val, b_val));
+}
+template <typename T, typename MPType>
+inline HOSTDEVICE typename std::enable_if<
+    std::is_same<T, phi::dtype::complex<float>>::value ||
+        std::is_same<T, phi::dtype::complex<double>>::value,
+    T>::type
+compute_pow(const T a, const T b) {
+  MPType a_val = static_cast<MPType>(a);
+  MPType b_val = static_cast<MPType>(b);
+  return static_cast<T>(pow(a_val, b_val));
 }
 #endif
 

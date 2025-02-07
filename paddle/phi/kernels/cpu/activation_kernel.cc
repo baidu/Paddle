@@ -15,6 +15,7 @@ limitations under the License. */
 #include "paddle/phi/kernels/activation_kernel.h"
 
 #include "paddle/phi/backends/cpu/cpu_context.h"
+#include "paddle/phi/common/type_traits.h"
 #include "paddle/phi/core/kernel_registry.h"
 #include "paddle/phi/kernels/funcs/activation_functor.h"
 #include "paddle/phi/kernels/impl/activation_impl.h"
@@ -323,5 +324,13 @@ PD_REGISTER_KERNEL(negative,
                    phi::dtype::complex<float>,
                    phi::dtype::complex<double>) {}
 PD_REGISTER_ACTIVATION_KERNEL(celu, CeluKernel)
-PD_REGISTER_KERNEL(
-    pow, CPU, ALL_LAYOUT, phi::PowKernel, float, double, int, int64_t) {}
+PD_REGISTER_KERNEL(pow,
+                   CPU,
+                   ALL_LAYOUT,
+                   phi::PowKernel,
+                   float,
+                   double,
+                   int,
+                   int64_t,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {}

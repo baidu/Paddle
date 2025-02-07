@@ -565,9 +565,21 @@ def pow(x: Tensor, y: float | Tensor, name: str | None = None) -> Tensor:
 
     """
 
+    if (
+        isinstance(y, complex)
+        and x.dtype != paddle.complex64
+        and x.dtype != paddle.complex128
+    ):
+        if x.dtype == paddle.float32 or x.dtype == paddle.float64:
+            x = paddle.complex(x, paddle.zeros_like(x))
+        else:
+            raise TypeError(
+                'when y is complex, x\'dtype must be paddle.float32 or paddle.float64 but received: %s '
+                % (x.dtype)
+            )
     # in dynamic graph mode
     if in_dynamic_or_pir_mode():
-        if isinstance(y, (int, float)):
+        if isinstance(y, (int, float, complex, paddle.base.libpaddle.Scalar)):
             return _C_ops.pow(x, y)
         elif isinstance(y, (paddle.Tensor, Variable, paddle.pir.Value)):
             return _C_ops.elementwise_pow(x, y)
@@ -577,7 +589,7 @@ def pow(x: Tensor, y: float | Tensor, name: str | None = None) -> Tensor:
             )
     else:
         # in static graph mode
-        if isinstance(y, (int, float)):
+        if isinstance(y, (int, float, complex)):
             helper = LayerHelper('pow', **locals())
             inputs = {'X': x}
             attrs = {'factor': y}

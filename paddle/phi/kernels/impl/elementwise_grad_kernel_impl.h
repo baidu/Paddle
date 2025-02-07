@@ -1371,6 +1371,9 @@ void HeavisideGradKernel(const Context& dev_ctx,
           HeavisideGradDy<T>());
 }
 
+template <typename T>
+using ComplexType = phi::dtype::complex<T>;
+
 #if defined(__CUDA_ARCH__) || defined(__HIPCC__)
 template <typename T, typename MPType>
 HOSTDEVICE typename std::enable_if<std::is_integral<T>::value, T>::type
@@ -1425,11 +1428,46 @@ struct PowGradDX {
   }
 };
 
+template <typename T>
+struct PowGradDX<ComplexType<T>> {
+  HOSTDEVICE ComplexType<T> operator()(ComplexType<T> x,
+                                       ComplexType<T> y,
+                                       ComplexType<T> out,
+                                       ComplexType<T> dout) const {
+    auto a_ = x.real;
+    auto b_ = x.imag;
+    auto c_ = y.real;
+    auto d_ = y.imag;
+    auto arctan_ = atan(b_ / a_);
+    auto square_ = a_ * a_ + b_ * b_;
+    auto e_ = exp(c_ / 2 * log(square_) - d_ * arctan_);
+    auto v_ = d_ / 2 * log(square_) + c_ * arctan_;
+
+    auto ux = e_ / square_ *
+              ((a_ * c_ + b_ * d_) * cos(v_) + (b_ * c_ - a_ * d_) * sin(v_));
+    auto uy = e_ / square_ *
+              ((b_ * c_ - a_ * d_) * cos(v_) - (b_ * d_ + a_ * c_) * sin(v_));
+
+    return dout * ComplexType<T>(ux, uy);
+  }
+};
+
 template <typename T, typename Enable = void>
 struct PowGradDY {
   using MPType = typename phi::dtype::MPTypeTrait<T>::Type;
   HOSTDEVICE T operator()(T x, T y, T out, T dout) const {
     return compute_pow_grad_dy<T, MPType>(x, y, out, dout);
+  }
+};
+
+template <typename T>
+struct PowGradDY<ComplexType<T>> {
+  using MPType = typename phi::dtype::MPTypeTrait<T>::Type;
+  HOSTDEVICE ComplexType<T> operator()(ComplexType<T> x,
+                                       ComplexType<T> y,
+                                       ComplexType<T> out,
+                                       ComplexType<T> dout) const {
+    return dout * conj(pow(x, y) * log(x));
   }
 };
 
