@@ -276,7 +276,7 @@ def get_cluster(
         # when use paddlecloud, endpoints may > devices_per_proc(user_defined)
         assert len(cur_node_endpoints) >= len(
             devices_per_proc
-        ), "current trainer_endpoints size should be greater equal than acclerators size."
+        ), "current trainer_endpoints size should be greater equal than accelerators size."
         for i in range(len(devices_per_proc)):
             trainer = Trainer()
             if device_mode == DeviceMode.GPU:
