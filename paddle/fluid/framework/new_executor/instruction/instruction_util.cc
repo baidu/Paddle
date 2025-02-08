@@ -81,6 +81,17 @@ phi::DeviceContext* ParseDeviceContext(pir::Operation* op,
   if (phi::is_gpu_place(place) || phi::is_custom_place(place)) {
     VLOG(6) << "Parse DeviceContext for " << op_name
             << ", execution stream = " << execution_stream;
+    if (execution_stream != kDefaultStream && op_name != "pd_op.p_send" &&
+        op_name != "pd_op.p_send") {
+      dev_ctx = ctx_manager
+                    .Get(std::string(kCustomStream) + "-" + execution_stream,
+                         place,
+                         stream_priority)
+                    .get()
+                    .get();
+      interpreter::SetDeviceCommContext(op, dev_ctx);
+      return dev_ctx;
+    }
 
     if (op_name.compare(paddle::dialect::MemcpyD2hOp::name()) == 0) {
       dev_ctx = ctx_manager.Get(std::string(kD2HStream), place, stream_priority)
