@@ -57,12 +57,14 @@ set(KERNEL_LIST
 list(REMOVE_DUPLICATES fluid_modules)
 # windows static library（both CPU and GPU）over the limit, so no longer create_static_lib,
 # and cc_library is dummy
-if(WIN32)
-  cc_library(paddle_inference DEPS ${fluid_modules} ${STATIC_INFERENCE_API}
+if(NOT WITH_DYNAMIC_INFER_ON)
+  if(WIN32)
+    cc_library(paddle_inference DEPS ${fluid_modules} ${STATIC_INFERENCE_API}
                                    ${utils_modules})
-else()
-  create_static_lib(paddle_inference ${phi_modules} ${fluid_modules}
+  else()
+    create_static_lib(paddle_inference ${phi_modules} ${fluid_modules}
                     ${ir_targets} ${STATIC_INFERENCE_API} ${utils_modules})
+  endif()
 endif()
 
 if(NOT APPLE)
@@ -70,7 +72,9 @@ if(NOT APPLE)
   set(LINK_FLAGS
       "-Wl,--retain-symbols-file ${CMAKE_CURRENT_SOURCE_DIR}/paddle_inference.sym"
   )
+  if(NOT WITH_DYNAMIC_INFER_ON)
   set_target_properties(paddle_inference PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+  endif()
 endif()
 # C inference API
 add_subdirectory(capi_exp)

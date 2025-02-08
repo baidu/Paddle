@@ -286,6 +286,7 @@ option(WITH_DISTRIBUTE "Compile with distributed support" OFF)
 option(WITH_BRPC_RDMA "Use brpc rdma as the rpc protocol" OFF)
 option(ON_INFER "Turn on inference optimization and inference-lib generation"
        ON)
+option(WITH_DYNAMIC_INFER_ON "Compile the shared libpaddle_inference.so only" OFF)
 option(WITH_CPP_DIST "Install PaddlePaddle C++ distribution" OFF)
 option(WITH_GFLAGS "Compile PaddlePaddle with gflags support" OFF)
 ################################ Internal Configurations #######################################
@@ -716,9 +717,9 @@ if(ON_INFER)
     STATUS "On inference mode, will take place some specific optimization.")
   include(inference_lib)
   add_definitions(-DPADDLE_ON_INFERENCE)
-  set(WITH_SHARED_IR
-      OFF
-      CACHE BOOL "Only paddle_inference.so is allowed in inference." FORCE)
+  # set(WITH_SHARED_IR
+  #     OFF
+  #     CACHE BOOL "Only paddle_inference.so is allowed in inference." FORCE)
 else()
   #TODO(luotao), combine this warning with `make inference_lib_dist` command.
   message(

@@ -235,9 +235,15 @@ function(copy_part_of_third_party TARGET DST)
   endif()
 endfunction()
 
-# inference library for only inference
-set(inference_lib_deps third_party paddle_inference paddle_inference_c
-                       paddle_inference_shared paddle_inference_c_shared)
+# inference library for only inference 
+# paddle_inference paddle_inference_c
+if(WITH_DYNAMIC_INFER_ON)
+  set(inference_lib_deps third_party paddle_inference_shared)
+else()
+  set(inference_lib_deps third_party paddle_inference paddle_inference_c
+paddle_inference_shared paddle_inference_c_shared)
+endif()
+
 add_custom_target(inference_lib_dist ALL DEPENDS ${inference_lib_deps})
 
 set(dst_dir "${PADDLE_INFERENCE_INSTALL_DIR}/third_party/threadpool")
