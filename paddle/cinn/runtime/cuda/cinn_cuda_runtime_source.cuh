@@ -131,6 +131,68 @@ __device__ inline double FN_FP64(mod)(double a, double b) {
   return res;
 }
 
+struct welford_fp32 {
+  float mean;
+  float m2;
+  int64_t count;
+
+  __device__ welford_fp32() {};
+  __device__ welford_fp32(float) : mean(0.0f), m2(0.0f), count(0) {}
+  __device__ welford_fp32(float mean, float m2, int64_t count) : mean(mean), m2(m2), count(count) {}
+
+  __device__ welford_fp32& operator=(float) {
+    mean = 0.0f;
+    m2 = 0.0f;
+    count = 0;
+    return *this;
+  }
+
+  __device__ operator float() const { return m2 / count; }
+};
+
+__device__ inline float __rcp_approx_ftz_f32(float a) {
+  float d;
+  asm("rcp.approx.ftz.f32 %0, %1;" : "=f"(d) : "f"(a));
+  return d;
+}
+
+__device__ inline welford_fp32 cinn_welford_add_fp32(welford_fp32 a, float value) {
+  float delta = value - a.mean;
+  int64_t count = a.count + 1;
+  float mean = a.mean + delta * __rcp_approx_ftz_f32(count);
+  float m2 = a.m2 + delta * (value - mean);
+  return {mean, m2, count};
+}
+
+__device__ inline welford_fp32 operator+(welford_fp32 a, welford_fp32 b) {
+  int64_t count = a.count + b.count;
+  float delta = b.mean - a.mean;
+  float mean = (a.count * a.mean + b.count * b.mean) / count;
+  float m2 = a.m2 + b.m2 + delta * delta * a.count * b.count / count;
+  return {mean, m2, count};
+}
+
+__device__ welford_fp32 __shfl_sync(unsigned mask, const welford_fp32& var, int srcLane, int width = 32) {
+  float mean = __shfl_sync(mask, var.mean, srcLane, width);
+  float m2 = __shfl_sync(mask, var.m2, srcLane, width);
+  int64_t count = __shfl_sync(mask, var.count, srcLane, width);
+  return {mean, m2, count};
+}
+
+__device__ welford_fp32 __shfl_down_sync(unsigned mask, const welford_fp32& var, unsigned delta, int width = 32) {
+  float mean = __shfl_down_sync(mask, var.mean, delta, width);
+  float m2 = __shfl_down_sync(mask, var.m2, delta, width);
+  int64_t count = __shfl_down_sync(mask, var.count, delta, width);
+  return {mean, m2, count};
+}
+
+__device__ welford_fp32 __shfl_xor_sync(unsigned mask, const welford_fp32& var, int laneMask, int width = 32) {
+  float mean = __shfl_xor_sync(mask, var.mean, laneMask, width);
+  float m2 = __shfl_xor_sync(mask, var.m2, laneMask, width);
+  int64_t count = __shfl_xor_sync(mask, var.count, laneMask, width);
+  return {mean, m2, count};
+}
+
 // *************************************************************** //
 // int32 unary and binary operator
 #define FN_INT32(func) cinn_nvgpu_##func##_int32
@@ -403,12 +465,14 @@ __device__ inline long long int cinn_min_int64(const long long int left, const l
   MACRO(sum_fp32, 0.0f, float, ##__VA_ARGS__)          \
   MACRO(prod_fp32, 1.0f, float, ##__VA_ARGS__)         \
   MACRO(max_fp32, -3.40282e+38f, float, ##__VA_ARGS__) \
-  MACRO(min_fp32, 3.40282e+38f, float, ##__VA_ARGS__)
+  MACRO(min_fp32, 3.40282e+38f, float, ##__VA_ARGS__)  \
+  MACRO(sum_welford_fp32, 0.0f, welford_fp32, ##__VA_ARGS__)
 
 __device__ inline float cinn_sum_fp32(const float left, const float right) { return left + right; }
 __device__ inline float cinn_prod_fp32(const float left, const float right) { return left * right; }
 __device__ inline float cinn_max_fp32(const float left, const float right) { return max(left, right); }
 __device__ inline float cinn_min_fp32(const float left, const float right) { return min(left, right); }
+__device__ inline welford_fp32 cinn_sum_welford_fp32(welford_fp32 left, welford_fp32 right) { return left + right; }
 
 #ifdef CINN_CUDA_BF16
 

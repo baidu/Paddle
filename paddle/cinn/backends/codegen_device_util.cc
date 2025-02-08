@@ -195,12 +195,18 @@ void detail::CollectBucketStrategyHostFunctionVisitor::ProcessLoweredFunc(
     func_node->cuda_axis_info.set_valid(true);
   }
   // process device func
-  device_module_builder.AddFunctionWithoutOptim(
-      CreateDeviceFunction(func, predicate));
+  VLOG(4) << "process device func";
+  auto copied = ir::ir_utils::IRCopy(func);
+  VLOG(4) << "copy func";
+  copied->name = GenDeviceKernelName(copied->name, predicate);
+  VLOG(4) << "generate name";
+  device_module_builder.AddFunctionWithoutOptim(copied);
   // process host func
+  VLOG(4) << "process host func";
   ir::Var kernel_ptr(GenDeviceKernelName(func_node->name, predicate),
                      type_of<std::string>());
 
+  VLOG(4) << "collect shared_mem_bytes";
   std::optional<Expr> shared_mem_bytes;
   cinn::common::DefaultDeviceTarget().arch.Match(
       [&](std::variant<common::UnknownArch, common::X86Arch, common::ARMArch>) {

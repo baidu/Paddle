@@ -67,6 +67,14 @@ StmtRef ConvertReduceBody(ir::Expr body,
       return Store(tensor, tensor(axis_exprs) && reduce_node->body, axis_exprs);
     case ir::Reduce::kAny:
       return Store(tensor, tensor(axis_exprs) || reduce_node->body, axis_exprs);
+    case ir::Reduce::kVar:
+      return Store(tensor,
+                   ir::Call::Make(tensor->type(),
+                                  "cinn_reduce_variance",
+                                  {tensor(axis_exprs), reduce_node->body},
+                                  {},
+                                  ir::CallType::Intrinsic),
+                   axis_exprs);
     default:
       CINN_NOT_IMPLEMENTED
   }

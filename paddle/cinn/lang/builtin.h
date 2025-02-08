@@ -176,6 +176,15 @@ inline Expr ReduceAny(Expr e,
   return ir::Reduce::Make(ir::Reduce::kAny, initial, e, reduce_axis);
 }
 
+inline Expr ReduceVar(Expr e,
+                      const std::vector<Var>& reduce_axis,
+                      Expr initial = Expr()) {
+  if (!initial.defined()) {
+    initial = Zero(e->type());
+  }
+  return ir::Reduce::Make(ir::Reduce::kVar, initial, e, reduce_axis);
+}
+
 Expr IsNan(Expr e);
 
 Expr Infinity(const Type& type);

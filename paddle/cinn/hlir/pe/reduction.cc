@@ -100,6 +100,8 @@ std::string Type2StrForReduce(cinn::common::Type type) {
     return "_fp64";
   } else if (type.is_bool()) {
     return "";
+  } else if (type.is_customized_type()) {
+    return "_" + type.customized_type();
   }
   std::stringstream ss;
   ss << "Reduce Not Support " << type;
@@ -308,6 +310,14 @@ Tensor ReduceAny(const Tensor& A,
                  const bool keep_dims,
                  const std::string& output_name) {
   return Reduce(A, axes, lang::ReduceAny, keep_dims, Expr(false), output_name);
+}
+
+Tensor ReduceVar(const Tensor& A,
+                 const std::vector<int>& axes,
+                 const bool keep_dims,
+                 const std::string& output_name) {
+  return Reduce(
+      A, axes, lang::ReduceVar, keep_dims, lang::Zero(A->type()), output_name);
 }
 
 std::vector<Tensor> WarpReduce(const ir::Tensor& A,
