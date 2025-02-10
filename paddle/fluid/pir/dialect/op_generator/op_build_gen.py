@@ -300,7 +300,7 @@ def GenBuildInsertFullForMutableAttribute(
   pir::Value {attr_name}_ = full_{attr_name}_op->result(0);
     """
     BUILD_SCALAR_ATTRIBUTE_TEMPLATE = """  // Generate scalar mutable attribute: {attr_name}
-  paddle::dialect::FullOp full_{attr_name}_op = builder.Build<paddle::dialect::FullOp>(std::vector<int64_t>{{1}}, {attr_name}, {phi_dtype}, phi::CPUPlace());
+  paddle::dialect::FullOp full_{attr_name}_op = builder.Build<paddle::dialect::FullOp>(std::vector<int64_t>{{}}, {attr_name}, {phi_dtype}, phi::CPUPlace());
   pir::Value {attr_name}_ = full_{attr_name}_op->result(0);
     """
     for idx in range(len(op_mutable_attribute_name_list)):

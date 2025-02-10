@@ -174,7 +174,7 @@ MUTABLE_ATTR_CAST_TEMPLATE = """
             {type} {name_} = {cast_func}({name}_obj, "{api_name}", {index});"""
 
 FULL_OP_TEMPLATE = """
-            {name} = paddle::dialect::full(std::vector<int64_t>{{1}}, {name}_tmp, phi::DataType::{phi_datatype}, phi::CPUPlace());
+            {name} = paddle::dialect::full(std::vector<int64_t>{{}}, {name}_tmp, phi::DataType::{phi_datatype}, phi::CPUPlace());
 """
 
 FULL_INT_ARRAY_OP_TEMPLATE = """
