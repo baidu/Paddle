@@ -45,6 +45,7 @@ from paddle.base.framework import (
     _get_paddle_place,
 )
 from paddle.distributed import fleet
+from paddle.distributed.collective import _init_parallel_env
 from paddle.distributed.fleet.base import role_maker
 from paddle.framework import in_dynamic_mode, in_pir_mode
 from paddle.framework.io_utils import is_belong_to_optimizer
@@ -162,34 +163,40 @@ def init_communicator(
     if rank == 0 and wait_port:
         wait_server_ready(other_endpoints)
     if core.is_compiled_with_cuda():
-        nccl_id_var = block.create_var(
-            name=base.unique_name.generate('nccl_id'),
-            persistable=True,
-            type=base.core.VarDesc.VarType.RAW,
-        )
+        use_new_comm = paddle.get_flags("FLAGS_dynamic_static_unified_comm")[
+            "FLAGS_dynamic_static_unified_comm"
+        ]
+        if use_new_comm:
+            _init_parallel_env("nccl")
+        else:
+            nccl_id_var = block.create_var(
+                name=base.unique_name.generate('nccl_id'),
+                persistable=True,
+                type=base.core.VarDesc.VarType.RAW,
+            )
 
-        block.append_op(
-            type='c_gen_nccl_id',
-            inputs={},
-            outputs={'Out': nccl_id_var},
-            attrs={
-                'rank': rank,
-                'endpoint': current_endpoint,
-                'other_endpoints': other_endpoints,
-            },
-        )
+            block.append_op(
+                type='c_gen_nccl_id',
+                inputs={},
+                outputs={'Out': nccl_id_var},
+                attrs={
+                    'rank': rank,
+                    'endpoint': current_endpoint,
+                    'other_endpoints': other_endpoints,
+                },
+            )
 
-        block.append_op(
-            type='c_comm_init',
-            inputs={'X': nccl_id_var},
-            outputs={},
-            attrs={
-                'nranks': nranks,
-                'rank': rank,
-                'ring_id': 0,
-                'endpoints': endpoints_str,
-            },
-        )
+            block.append_op(
+                type='c_comm_init',
+                inputs={'X': nccl_id_var},
+                outputs={},
+                attrs={
+                    'nranks': nranks,
+                    'rank': rank,
+                    'ring_id': 0,
+                    'endpoints': endpoints_str,
+                },
+            )
     elif core.is_compiled_with_xpu():
         bkcl_id_var = block.create_var(
             name=base.unique_name.generate('bkcl_id'),
