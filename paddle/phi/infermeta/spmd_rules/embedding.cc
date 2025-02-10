@@ -52,7 +52,7 @@ SpmdInfo EmbeddingInferSpmd(const DistMetaTensor& x,
   auto weight_shape = common::vectorize(weight.dims());
   int x_ndim = static_cast<int>(x_shape.size());
   int weight_ndim = static_cast<int>(weight_shape.size());
-  auto x_dist_attr_src = x.dist_attr();
+  const auto& x_dist_attr_src = x.dist_attr();
   auto weight_dist_attr_src = weight.dist_attr();
   std::vector<int64_t> x_dims_mapping = x_dist_attr_src.dims_mapping();
   std::vector<int64_t> weight_dims_mapping =

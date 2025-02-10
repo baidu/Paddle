@@ -30,7 +30,7 @@ void NormKernel(const Context& ctx,
                 bool is_test,
                 DenseTensor* out,
                 DenseTensor* norm) {
-  auto xdim = x.dims();
+  const auto& xdim = x.dims();
   T eps = epsilon;
   if (axis < 0) axis = xdim.size() + axis;
   int pre = 0, n = 0, post = 0;

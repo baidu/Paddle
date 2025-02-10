@@ -53,12 +53,21 @@ void ExecuteFlatten(const Context& dev_ctx,
 }
 
 template <typename T, typename Context>
+<<<<<<< HEAD
+void FlattenInferKernel(const Context& dev_ctx,
+                        const DenseTensor& x,
+                        int start_axis,
+                        int stop_axis,
+                        DenseTensor* out) {
+  const auto& x_dims = x.dims();
+=======
 void FlattenKernel(const Context& dev_ctx,
                    const DenseTensor& x,
                    int start_axis,
                    int stop_axis,
                    DenseTensor* out) {
   auto x_dims = x.dims();
+>>>>>>> 4c9bc9e3cd7680200be9f244f9a5d374345a6741
   auto out_dims = out->dims();
   ExecuteFlatten<T, Context>(dev_ctx, x, x_dims, out_dims, out);
 }

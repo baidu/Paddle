@@ -36,7 +36,7 @@ VarDesc::~VarDesc() = default;
 VarDesc::VarDesc(const proto::VarDesc &desc) : desc_(desc) {
   // Restore attrs_ for auto parallel
   for (const proto::VarDesc::Attr &attr : desc_.attrs()) {
-    std::string attr_name = attr.name();
+    const std::string& attr_name = attr.name();
     attrs_[attr_name] = GetAttrValue(attr);
   }
   need_updated_ = true;

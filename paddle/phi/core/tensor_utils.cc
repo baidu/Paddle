@@ -48,7 +48,7 @@ void Copy(const Context& dev_ctx,
     } else {
       VLOG(6) << "Src and dst are the same Tensor, in-place copy data("
               << src_ptr << ") from " << src_place << " to " << dst_place;
-      const DenseTensor src_copy = src;
+      DenseTensor src_copy = src;
       Copy(dev_ctx, src_copy, dst_place, blocking, dst);
     }
     return;

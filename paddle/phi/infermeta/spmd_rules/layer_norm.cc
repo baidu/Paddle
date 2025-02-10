@@ -37,7 +37,7 @@ SpmdInfo LayerNormInferSpmd(const DistMetaTensor& x,
   int x_ndim = static_cast<int>(x_shape.size());
   int scale_ndim = static_cast<int>(scale_shape.size());
   int bias_ndim = static_cast<int>(bias_shape.size());
-  TensorDistAttr x_dist_attr_src = x.dist_attr();
+  const TensorDistAttr& x_dist_attr_src = x.dist_attr();
   std::vector<int64_t> x_dims_mapping = x_dist_attr_src.dims_mapping();
   std::vector<int64_t> scale_dims_mapping = scale.dist_attr().dims_mapping();
   std::vector<int64_t> bias_dims_mapping = bias.dist_attr().dims_mapping();

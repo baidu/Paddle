@@ -39,7 +39,7 @@ framework::proto::OpDesc PrepareOpDesc(
     const std::string& activation,
     const std::string& output,
     float alpha) {
-  auto proto = base_desc;
+  const auto& proto = base_desc;
   framework::OpDesc desc(proto, nullptr);
   desc.SetType("fused_conv2d_add_act");
   desc.SetInput("Bias", {bias});
