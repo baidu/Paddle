@@ -209,6 +209,42 @@ class TestMultipleAccelerators(unittest.TestCase):
                 break
             time.sleep(3)
 
+    def run_mnist_ngpu(
+        self,
+        target_file_name,
+        allocator_strategy="auto_growth",
+        ngpu=4,
+    ):
+        if (
+            not base.core.is_compiled_with_cuda()
+            or base.core.get_cuda_device_count() == 0
+        ):
+            return
+
+        gpus_list = [str(i) for i in range(0, ngpu)]
+
+        selected_gpus = get_gpus(','.join(gpus_list))
+        cluster = None
+        pod = None
+
+        cluster, pod = get_cluster_from_args(selected_gpus)
+
+        procs = start_local_trainers(
+            cluster,
+            pod,
+            allocator_strategy=allocator_strategy,
+            training_script=target_file_name,
+            training_script_args=[],
+        )
+
+        while True:
+            alive = watch_local_trainers(procs, cluster.trainers_endpoints())
+
+            if not alive:
+                print(f"Local procs complete, POD info:{pod}")
+                break
+            time.sleep(3)
+
 
 class TestMultipleWithGloo(unittest.TestCase):
     def run_mnist_2cpu(self, target_file_name):

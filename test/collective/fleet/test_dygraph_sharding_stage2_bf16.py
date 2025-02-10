@@ -23,6 +23,9 @@ class TestDygraphShardingStage2(TestMultipleAccelerators):
     def test_dygraph_sharding_stage2_bf16(self):
         self.run_mnist_2accelerators('dygraph_group_sharded_stage2_bf16.py')
 
+    def test_dygraph_sharding_stage2_dp(self):
+        self.run_mnist_ngpu('dygraph_group_sharded_stage2_dp.py', ngpu=4)
+
 
 if __name__ == "__main__":
     unittest.main()
