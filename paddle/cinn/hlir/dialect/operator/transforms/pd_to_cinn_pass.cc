@@ -488,8 +488,7 @@ class ConcatOpPattern
   using pir::OpRewritePattern<paddle::dialect::ConcatOp>::OpRewritePattern;
 
   bool Match(paddle::dialect::ConcatOp op) const override {
-    std::regex pattern(R"((^|;)(concat)($|;))");
-    const bool is_denied = std::regex_search(FLAGS_deny_cinn_ops, pattern);
+    const bool is_denied = CompatibleInfo::IsDeniedForCinn(*op.operation());
     return !is_denied && PatternConstraint(op);
   }
 
