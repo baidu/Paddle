@@ -15,6 +15,7 @@
 #pragma once
 
 #include <NvInfer.h>
+#include <NvInferRuntime.h>
 #include <cuda.h>
 #include <glog/logging.h>
 
@@ -71,6 +72,13 @@ static nvinfer1::IRuntime* createInferRuntime(nvinfer1::ILogger* logger) {
   return static_cast<nvinfer1::IRuntime*>(
       dy::createInferRuntime_INTERNAL(logger, NV_TENSORRT_VERSION));
 }
+
+static nvinfer1::IRefitter* createInferRefitter(nvinfer1::ICudaEngine* engine,
+                                                nvinfer1::ILogger* logger) {
+  return static_cast<nvinfer1::IRefitter*>(
+      dy::createInferRefitter_INTERNAL(engine, logger, NV_TENSORRT_VERSION));
+}
+
 #if IS_TRT_VERSION_GE(6000)
 static nvinfer1::IPluginRegistry* GetPluginRegistry() {
   return static_cast<nvinfer1::IPluginRegistry*>(dy::getPluginRegistry());

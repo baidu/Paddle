@@ -639,6 +639,8 @@ std::string TensorRtSubgraphPass::CreateTensorRTOp(
   auto tensorrt_transformer_maskid =
       Get<std::string>("tensorrt_transformer_maskid");
   auto use_dla = Get<bool>("trt_use_dla");
+  auto refit_params_path = Get<std::string>("refit_params_path");
+  LOG(INFO) << "refit_params_path" << refit_params_path;
   auto dla_core = Get<int>("trt_dla_core");
   auto use_inspector = Get<bool>("use_inspector");
   auto inspector_serialize = Get<bool>("inspector_serialize");
@@ -767,6 +769,7 @@ std::string TensorRtSubgraphPass::CreateTensorRTOp(
   op_desc->SetAttr("use_varseqlen", use_varseqlen);
   op_desc->SetAttr("with_interleaved", with_interleaved);
   op_desc->SetAttr("use_dla", use_dla);
+  op_desc->SetAttr("refit_params_path", refit_params_path);
   op_desc->SetAttr("dla_core", dla_core);
   op_desc->SetAttr("disable_trt_plugin_fp16", disable_trt_plugin_fp16);
   op_desc->SetAttr("context_memory_sharing", context_memory_sharing);
@@ -851,6 +854,7 @@ std::string TensorRtSubgraphPass::CreateTensorRTOp(
   params.precision = precision_mode;
   params.use_varseqlen = use_varseqlen;
   params.use_dla = use_dla;
+  params.refit_params_path = refit_params_path;
   params.dla_core = dla_core;
   params.with_interleaved = with_interleaved;
   params.tensorrt_transformer_posid = tensorrt_transformer_posid;

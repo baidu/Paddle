@@ -744,6 +744,10 @@ struct PD_INFER_DECL AnalysisConfig {
   ///
   void Exp_DisableTensorRtOPs(const std::vector<std::string>& ops);
 
+  void TensorRTRefitParamsPath(const std::string& refit_params_path);
+
+  const std::string& refit_params_path() const { return refit_params_path_; }
+
   ///
   /// \brief Prevent TensorRtSubgraph running in Paddle-TRT
   /// NOTE: just experimental, not an official stable API, easy to be broken.
@@ -1146,6 +1150,7 @@ struct PD_INFER_DECL AnalysisConfig {
  protected:
   // Model paths.
   std::string model_dir_;
+  std::string refit_params_path_;
   mutable std::string prog_file_;
   mutable std::string params_file_;
 

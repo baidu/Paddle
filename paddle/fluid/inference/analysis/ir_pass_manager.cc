@@ -286,6 +286,8 @@ void IRPassManager::CreatePasses(Argument *argument,
           "trt_disabled_ops",
           new std::vector<std::string>(argument->tensorrt_disabled_ops()));
       pass->Set("trt_use_dla", new bool(argument->tensorrt_use_dla()));
+      pass->Set("refit_params_path",
+                new std::string(argument->refit_params_path()));
       pass->Set("trt_dla_core", new int(argument->tensorrt_dla_core()));
       pass->Set("optimization_level",
                 new int(argument->tensorrt_optimization_level()));

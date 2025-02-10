@@ -144,6 +144,7 @@ class TensorRTEngine {
     bool with_dynamic_shape{false};
 
     bool use_dla{false};
+
     int dla_core{0};
 
     ShapeMapType min_input_shape;
@@ -160,6 +161,7 @@ class TensorRTEngine {
     // From tensorrt_subgraph_pass, only used for OpConverter.
     //
     bool use_varseqlen{false};
+    std::string refit_params_path;
     bool with_interleaved{false};
     std::string tensorrt_transformer_posid;
     std::string tensorrt_transformer_maskid;
@@ -310,6 +312,11 @@ class TensorRTEngine {
   // if the src weight type is fp16, then return fp16 trt weight, etc.
   Weight GetTrtWeight(const std::string& name,
                       const phi::DenseTensor& weight_tensor);
+
+  bool setRefitWeights(const std::string& weight_name,
+                       const phi::DenseTensor& new_weight_tensor);
+
+  bool FinalizeRefit();
 
   float GetTensorDynamicRange(nvinfer1::ITensor* tensor) {
     return quant_dynamic_range_[tensor];
@@ -504,6 +511,7 @@ class TensorRTEngine {
 
   bool use_varseqlen() { return params_.use_varseqlen; }
   bool use_dla() { return params_.use_dla; }
+  const std::string& refit_params_path() { return params_.refit_params_path; }
   bool with_interleaved() { return params_.with_interleaved; }
   const std::string& tensorrt_transformer_posid() {
     return params_.tensorrt_transformer_posid;
@@ -591,6 +599,7 @@ class TensorRTEngine {
   infer_ptr<nvinfer1::ICudaEngine> infer_engine_;
   std::unordered_map<PredictorID, infer_ptr<nvinfer1::IExecutionContext>>
       infer_context_;
+  infer_ptr<nvinfer1::IRefitter> infer_refitter_;
   infer_ptr<nvinfer1::IHostMemory> ihost_memory_;
   std::unordered_map<nvinfer1::ITensor*, float> quant_dynamic_range_;
 
@@ -716,6 +725,16 @@ class TRTEngineManager {
       context_memorys_[predictor_id] = std::move(context_memory);
     }
     return GetAlignedMemory(context_memorys_[predictor_id]->ptr(), alignment);
+  }
+
+  std::vector<std::string> GetAllEngineNames() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::vector<std::string> engine_names;
+    engine_names.reserve(engines_.size());
+    for (auto& item : engines_) {
+      engine_names.push_back(item.first);
+    }
+    return engine_names;
   }
 
   void ReleaseContextMemory(PredictorID predictor_id) {
