@@ -1316,40 +1316,6 @@ void FeedDenseTensorKernel(const Context& dev_ctx,
 
 void RegisterCustomDeviceCommonKernel(const std::string& dev_type) {
 #ifdef PADDLE_WITH_CUSTOM_DEVICE
-  auto device_type = dev_type.c_str();
-  REGISTER_OP_CUSTOM_DEVICE_KERNEL(
-      c_concat,
-      device_type,
-      paddle::operators::CConcatOpCustomDeviceKernel<phi::CustomContext, float>,
-      paddle::operators::CConcatOpCustomDeviceKernel<phi::CustomContext,
-                                                     phi::dtype::float16>,
-      paddle::operators::CConcatOpCustomDeviceKernel<phi::CustomContext,
-                                                     phi::dtype::bfloat16>);
-  REGISTER_OP_CUSTOM_DEVICE_KERNEL(
-      c_softmax_with_cross_entropy,
-      device_type,
-      paddle::operators::CSoftmaxWithCrossEntropyOpCustomDeviceKernel<
-          phi::CustomContext,
-          float>,
-      paddle::operators::CSoftmaxWithCrossEntropyOpCustomDeviceKernel<
-          phi::CustomContext,
-          double>,
-      paddle::operators::CSoftmaxWithCrossEntropyOpCustomDeviceKernel<
-          phi::CustomContext,
-          phi::dtype::float16>) {}
-
-  REGISTER_OP_CUSTOM_DEVICE_KERNEL(
-      c_softmax_with_cross_entropy_grad,
-      device_type,
-      paddle::operators::CSoftmaxWithCrossEntropyGradCustomDeviceKernel<
-          phi::CustomContext,
-          float>,
-      paddle::operators::CSoftmaxWithCrossEntropyGradCustomDeviceKernel<
-          phi::CustomContext,
-          double>,
-      paddle::operators::CSoftmaxWithCrossEntropyGradCustomDeviceKernel<
-          phi::CustomContext,
-          phi::dtype::float16>) {}
 
 #endif
 }
