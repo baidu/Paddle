@@ -725,6 +725,10 @@ def unary_op_converter(network, paddle_op, inputs):
         "pd_op.round": [trt.UnaryOperation.ROUND],
         "pd_op.logical_not": [trt.UnaryOperation.NOT],
         "pd_op.rsqrt": [trt.UnaryOperation.SQRT, trt.UnaryOperation.RECIP],
+        "pd_op.tan": [trt.UnaryOperation.TAN],
+        "pd_op.asin": [trt.UnaryOperation.ASIN],
+        "pd_op.acos": [trt.UnaryOperation.ACOS],
+        "pd_op.atan": [trt.UnaryOperation.ATAN],
     }
 
     input_tensor = inputs[0]

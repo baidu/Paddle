@@ -380,15 +380,21 @@ class PaddleToTensorRTConverter:
             if group_op.result(out_index).use_empty():
                 # if result value is not used, it doesn't need get shape, continue
                 continue
-            min_shape = get_value_shape_range_info(
-                result_value, False, paddle.base.core.ShapeMode.kMIN
-            )
-            opt_shape = get_value_shape_range_info(
-                result_value, False, paddle.base.core.ShapeMode.kOPT
-            )
-            max_shape = get_value_shape_range_info(
-                result_value, False, paddle.base.core.ShapeMode.kMAX
-            )
+            if not is_shape_tensor(result_value):
+                if len(result_value.shape) == 0:
+                    min_shape = []
+                    opt_shape = []
+                    max_shape = []
+                else:
+                    min_shape = get_value_shape_range_info(
+                        result_value, False, paddle.base.core.ShapeMode.kMIN
+                    )
+                    opt_shape = get_value_shape_range_info(
+                        result_value, False, paddle.base.core.ShapeMode.kOPT
+                    )
+                    max_shape = get_value_shape_range_info(
+                        result_value, False, paddle.base.core.ShapeMode.kMAX
+                    )
             min_value = []
             opt_value = []
             max_value = []

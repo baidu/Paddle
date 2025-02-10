@@ -393,7 +393,7 @@ def floor_divide_converter(network, paddle_op, inputs):
 
 
 @converter_registry.register("pd_op.log", trt_version="8.x")
-def sqrt_converter(network, paddle_op, inputs):
+def log_converter(network, paddle_op, inputs):
     input_tensor = trt_cast(network, inputs[0], trt.float32)
     layer = network.add_unary(input_tensor, trt.UnaryOperation.LOG)
     return layer.get_output(0)

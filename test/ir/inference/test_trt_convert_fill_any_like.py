@@ -50,7 +50,7 @@ class TrtConvertExpandV2Test(TrtLayerAutoScanTest):
                 elif self.dtype == 5:
                     return np.random.random([1, 1, 4, 6]).astype(np.float32)
                 elif self.dtype == 6:
-                    return np.random.random([1, 1, 4, 6]).astype(np.float64)
+                    return np.random.random([1, 1, 4, 6]).astype(np.float32)
                 else:
                     return np.random.random([1, 1, 4, 6]).astype(np.int32)
             elif self.dims == 3:
@@ -107,50 +107,46 @@ class TrtConvertExpandV2Test(TrtLayerAutoScanTest):
 
                     yield program_config
 
+    def generate_dynamic_shape(self, attrs):
+        if self.dims == 4:
+            self.dynamic_shape.min_input_shape = {
+                "fill_any_like_input": [1, 1, 4, 6]
+            }
+            self.dynamic_shape.max_input_shape = {
+                "fill_any_like_input": [10, 1, 4, 6]
+            }
+            self.dynamic_shape.opt_input_shape = {
+                "fill_any_like_input": [1, 1, 4, 6]
+            }
+        elif self.dims == 3:
+            self.dynamic_shape.min_input_shape = {
+                "fill_any_like_input": [1, 8, 6]
+            }
+            self.dynamic_shape.max_input_shape = {
+                "fill_any_like_input": [4, 8, 6]
+            }
+            self.dynamic_shape.opt_input_shape = {
+                "fill_any_like_input": [1, 8, 6]
+            }
+        elif self.dims == 2:
+            self.dynamic_shape.min_input_shape = {
+                "fill_any_like_input": [1, 48]
+            }
+            self.dynamic_shape.max_input_shape = {
+                "fill_any_like_input": [4, 48]
+            }
+            self.dynamic_shape.opt_input_shape = {
+                "fill_any_like_input": [1, 48]
+            }
+        elif self.dims == 1:
+            self.dynamic_shape.min_input_shape = {"fill_any_like_input": [48]}
+            self.dynamic_shape.max_input_shape = {"fill_any_like_input": [48]}
+            self.dynamic_shape.opt_input_shape = {"fill_any_like_input": [48]}
+        return self.dynamic_shape
+
     def sample_predictor_configs(
-        self, program_config
+        self, program_config, run_pir=False
     ) -> tuple[paddle_infer.Config, list[int], int]:
-        def generate_dynamic_shape(attrs):
-            if self.dims == 4:
-                self.dynamic_shape.min_input_shape = {
-                    "fill_any_like_input": [1, 1, 4, 6]
-                }
-                self.dynamic_shape.max_input_shape = {
-                    "fill_any_like_input": [10, 1, 4, 6]
-                }
-                self.dynamic_shape.opt_input_shape = {
-                    "fill_any_like_input": [1, 1, 4, 6]
-                }
-            elif self.dims == 3:
-                self.dynamic_shape.min_input_shape = {
-                    "fill_any_like_input": [1, 8, 6]
-                }
-                self.dynamic_shape.max_input_shape = {
-                    "fill_any_like_input": [4, 8, 6]
-                }
-                self.dynamic_shape.opt_input_shape = {
-                    "fill_any_like_input": [1, 8, 6]
-                }
-            elif self.dims == 2:
-                self.dynamic_shape.min_input_shape = {
-                    "fill_any_like_input": [1, 48]
-                }
-                self.dynamic_shape.max_input_shape = {
-                    "fill_any_like_input": [4, 48]
-                }
-                self.dynamic_shape.opt_input_shape = {
-                    "fill_any_like_input": [1, 48]
-                }
-            elif self.dims == 1:
-                self.dynamic_shape.min_input_shape = {
-                    "fill_any_like_input": [48]
-                }
-                self.dynamic_shape.max_input_shape = {
-                    "fill_any_like_input": [48]
-                }
-                self.dynamic_shape.opt_input_shape = {
-                    "fill_any_like_input": [48]
-                }
 
         def clear_dynamic_shape():
             self.dynamic_shape.min_input_shape = {}
@@ -178,7 +174,7 @@ class TrtConvertExpandV2Test(TrtLayerAutoScanTest):
         ), 1e-5
 
         # for dynamic_shape
-        generate_dynamic_shape(attrs)
+        self.generate_dynamic_shape(attrs)
         self.trt_param.precision = paddle_infer.PrecisionType.Float32
         yield self.create_inference_config(), generate_trt_nodes_num(
             attrs, True
@@ -193,7 +189,7 @@ class TrtConvertExpandV2Test(TrtLayerAutoScanTest):
 
     def test(self):
         self.add_skip_trt_case()
-        self.run_test()
+        self.run_test(run_pir=True)
 
 
 if __name__ == "__main__":

@@ -64,7 +64,7 @@ class TrtConvertSumTest(TrtLayerAutoScanTest):
 
                 yield program_config
 
-    def generate_dynamic_shape(self):
+    def generate_dynamic_shape(self, attrs):
         if self.dims == 4:
             self.dynamic_shape.min_input_shape = {"input1": [1, 3, 24, 24]}
             self.dynamic_shape.max_input_shape = {"input1": [4, 3, 48, 48]}
@@ -112,9 +112,13 @@ class TrtConvertSumTest(TrtLayerAutoScanTest):
             yield self.create_inference_config(), generate_trt_nodes_num(
                 False
             ), 1e-3
+        attrs = [
+            program_config.ops[i].attrs for i in range(len(program_config.ops))
+        ]
+        self.generate_dynamic_shape(attrs)
 
         # for dynamic_shape
-        self.generate_dynamic_shape()
+        self.generate_dynamic_shape(attrs)
         self.trt_param.precision = paddle_infer.PrecisionType.Float32
         program_config.set_input_type(np.float32)
         yield self.create_inference_config(), generate_trt_nodes_num(True), 1e-5

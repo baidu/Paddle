@@ -256,7 +256,7 @@ class AutoScanTest(unittest.TestCase):
         ir_optim: bool | None = None,
     ):
         config = paddle_infer.Config()
-        config.switch_ir_debug(True)
+        config.switch_ir_debug()
         config.set_optim_cache_dir(self.cache_dir)
         config.disable_glog_info()
         if ir_optim is not None:
@@ -834,6 +834,7 @@ class TrtLayerAutoScanTest(AutoScanTest):
                 main_program_desc, util_program = create_fake_model(
                     prog_config, run_pir=True
                 )
+
                 # transform program from old ir to new ir
                 startup_program = pir.translate_to_pir(util_program.desc)
                 pir_main_program = pir.translate_to_pir(main_program_desc)
@@ -841,6 +842,7 @@ class TrtLayerAutoScanTest(AutoScanTest):
                     with paddle.static.program_guard(
                         pir_main_program, startup_program
                     ):
+
                         feed_dict = {}
                         feed_data = prog_config.get_feed_data()
                         for key, value in feed_data.items():
@@ -923,7 +925,7 @@ class TrtLayerAutoScanTest(AutoScanTest):
                                 prog_config.ops[i].attrs
                                 for i in range(len(prog_config.ops))
                             ]
-                            dynamic_shape = self.generate_dynamic_shape()
+                            dynamic_shape = self.generate_dynamic_shape(attrs)
 
                             main_program_desc, util_program = create_fake_model(
                                 prog_config,

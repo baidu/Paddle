@@ -108,6 +108,7 @@ DEFINE_GENERAL_PATTERN(Cosh, paddle::dialect::CoshOp)
 DEFINE_GENERAL_PATTERN(Asinh, paddle::dialect::AsinhOp)
 DEFINE_GENERAL_PATTERN(Acosh, paddle::dialect::AcoshOp)
 DEFINE_GENERAL_PATTERN(Atanh, paddle::dialect::AtanhOp)
+DEFINE_GENERAL_PATTERN(Tanh, paddle::dialect::TanhOp)
 DEFINE_GENERAL_PATTERN(Ceil, paddle::dialect::CeilOp)
 DEFINE_GENERAL_PATTERN(Rsqrt, paddle::dialect::RsqrtOp)
 DEFINE_GENERAL_PATTERN(Reciprocal, paddle::dialect::ReciprocalOp)
@@ -117,6 +118,10 @@ DEFINE_GENERAL_PATTERN(Sign, paddle::dialect::SignOp)
 DEFINE_GENERAL_PATTERN(Round, paddle::dialect::RoundOp)
 DEFINE_GENERAL_PATTERN(Numel, paddle::dialect::NumelOp)
 DEFINE_GENERAL_PATTERN(Pool3d, paddle::dialect::Pool3dOp)
+DEFINE_GENERAL_PATTERN(Tan, paddle::dialect::TanOp)
+DEFINE_GENERAL_PATTERN(Asin, paddle::dialect::AsinOp)
+DEFINE_GENERAL_PATTERN(Acos, paddle::dialect::AcosOp)
+DEFINE_GENERAL_PATTERN(Atan, paddle::dialect::AtanOp)
 DEFINE_GENERAL_PATTERN(ShuffleChannel, paddle::dialect::ShuffleChannelOp)
 
 #undef DEFINE_GENERAL_PATTERN
@@ -287,7 +292,6 @@ class ActOpPattern : public pir::OpRewritePattern<OpType> {
     return true;
   }
 };
-using TanhOpPattern = ActOpPattern<paddle::dialect::TanhOp>;
 using CeluOpPattern = ActOpPattern<paddle::dialect::CeluOp>;
 using TanhShrinkOpPattern = ActOpPattern<paddle::dialect::TanhShrinkOp>;
 
@@ -2522,6 +2526,11 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ADD_PATTERN(Round)
     ADD_PATTERN(Numel)
     ADD_PATTERN(Pool3d)
+    ADD_PATTERN(Tanh)
+    ADD_PATTERN(Tan)
+    ADD_PATTERN(Asin)
+    ADD_PATTERN(Acos)
+    ADD_PATTERN(Atan)
     ADD_PATTERN(ShuffleChannel)
 #if IS_TRT_VERSION_GE(8600)
     ADD_PATTERN(Layer_norm)
@@ -2600,7 +2609,6 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<EqualOpPattern>(context));
     ps.Add(std::make_unique<NotEqualOpPattern>(context));
     ps.Add(std::make_unique<LogicalXorOpPattern>(context));
-    ps.Add(std::make_unique<TanhOpPattern>(context));
     ps.Add(std::make_unique<CeluOpPattern>(context));
     ps.Add(std::make_unique<OneHotOpPattern>(context));
     ps.Add(std::make_unique<TemporalShiftOpPattern>(context));

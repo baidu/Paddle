@@ -37,6 +37,10 @@ from paddle.tensorrt.register import converter_registry
 @converter_registry.register("pd_op.acosh", trt_version="trt_version_ge=8.0")
 @converter_registry.register("pd_op.atanh", trt_version="trt_version_ge=8.0")
 @converter_registry.register("pd_op.ceil", trt_version="trt_version_ge=8.0")
+@converter_registry.register("pd_op.tan", trt_version="trt_version_ge=8.0")
+@converter_registry.register("pd_op.asin", trt_version="trt_version_ge=8.0")
+@converter_registry.register("pd_op.acos", trt_version="trt_version_ge=8.0")
+@converter_registry.register("pd_op.atan", trt_version="trt_version_ge=8.0")
 @converter_registry.register(
     "pd_op.reciprocal", trt_version="trt_version_ge=8.0"
 )
