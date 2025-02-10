@@ -730,7 +730,7 @@ class DygraphShardingOptimizerV2:
     def register_reduce_overlap_hook(self, use_comm):
         # Register backward hooks for each parameter in the buffer
         for buffer in self._comm_buffer_list:
-            for param in buffer._params:
+            for param in buffer.params:
                 # Directly register the hook function with necessary parameters
                 param._register_backward_hook(
                     self._create_backward_hook(buffer, param, use_comm)
@@ -741,6 +741,11 @@ class DygraphShardingOptimizerV2:
 
         @paddle.autograd.no_grad()
         def fused_allreduce(*_):
+            # Ensure the gradient variable exists
+            grad = param._grad_ivar()
+            if grad is None:
+                grad = paddle.zeros_like(param)
+                param._set_grad_ivar(grad)
             # Directly add gradient to the buffer
             buffer.add_grad(param, use_comm=use_comm)
 
@@ -819,13 +824,10 @@ class DygraphShardingOptimizerV2:
                 else:
                     p.main_grad._clear()
                     p.main_grad = None
-            elif not hasattr(p, "main_grad"):
-                if self.tensor_fusion:
-                    if set_to_zero:
+            else:
+                if set_to_zero:
+                    if p.grad is not None:
                         p.grad.zero_()
-                    else:
-                        p.grad._clear()
-                        p.grad = None
                 else:
                     p.clear_gradient(set_to_zero)
 
@@ -946,7 +948,7 @@ class DygraphShardingOptimizerV2:
 
     def _create_slice_param(self, param):
         # not initialized yet
-        slice_param = EagerParamBase(shape=[1], dtype=param.dtype)
+        slice_param = EagerParamBase(shape=param.shape, dtype=param.dtype)
         slice_param.name = param.name
 
         def copy_attr(attr_name):
@@ -958,6 +960,9 @@ class DygraphShardingOptimizerV2:
         copy_attr("do_model_average")
         copy_attr("need_clip")
         copy_attr("no_sync")
+        copy_attr("regularizer")
+        copy_attr("trainable")
+        copy_attr("stop_gradient")
 
         self._slice_params[param.name] = slice_param
         return slice_param
