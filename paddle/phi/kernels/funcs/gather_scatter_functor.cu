@@ -210,13 +210,13 @@ __global__ void GatherScatterGPUKernel(tensor_t* self_data,
                                        bool include_self,
                                        const func_t& reduce_op,
                                        int* shared_mem) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  const int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  const int stride = blockDim.x * gridDim.x;
   if (tid >= numel) return;
   if (include_self == false) {
-    if (tid == 0) {
-      for (int i = 0; i < numel_data; i++) {
-        shared_mem[i] = numel + 1;  // thread_ids
-      }
+    // Flush the output buffer to zero, if not include self.
+    for(int i = tid; i < numel_data; i += stride){
+      self_data[tid] = 0;
     }
     __syncthreads();
   }
@@ -282,19 +282,8 @@ __global__ void GatherScatterGPUKernel(tensor_t* self_data,
     replace_index_src = k + index * outer_dim_size_src +
                         i * outer_dim_size_src * src_select_dim_size;
   }
-  bool is_op_done = false;
-  if (include_self == false) {
-    phi::CudaAtomicMin(shared_mem + replace_index_self, tid);
-    __syncthreads();
-    if (tid == shared_mem[replace_index_self]) {
-      self_data[replace_index_self] = src_data[replace_index_src];
-      is_op_done = true;
-    }
-    __syncthreads();
-  }
-  if (!is_op_done)
-    reduce_op(static_cast<tensor_t*>(self_data + replace_index_self),
-              static_cast<tensor_t*>(src_data + replace_index_src));
+  reduce_op(static_cast<tensor_t*>(self_data + replace_index_self),
+            static_cast<tensor_t*>(src_data + replace_index_src));
 }
 
 template <typename tensor_t,
