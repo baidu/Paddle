@@ -307,6 +307,15 @@ std::shared_ptr<ProcessGroup::Task> ProcessGroupNCCL::AllToAll(
   CheckTensorContiguous(in_tensor);
   CheckTensorContiguous(*out_tensor);
 
+for (size_t i = 0; i < in_size_each_rank.size(); ++i) {
+  std::cout << in_size_each_rank[i] << std::endl;
+}
+
+std::cout << "heihei" << std::endl;
+for (size_t i = 0; i < out_size_each_rank.size(); ++i) {
+  std::cout << out_size_each_rank[i] << std::endl;
+}
+
   const phi::DDim& out_dim = out_tensor->dims();
   const phi::DDim& in_dim = in_tensor.dims();
   CheckSizeOnEachRank(out_dim, out_size_each_rank, size_);
@@ -362,6 +371,10 @@ std::shared_ptr<ProcessGroup::Task> ProcessGroupNCCL::AllToAll(
             comm_context->Recv(&output_partial, out_numel, i, stream);
           }
           out_offset += out_numel;
+
+          std::cout << "i" << i << std::endl;
+          std::cout << "in_numel: " << in_numel << std::endl;
+          std::cout << "out_numel: " << out_numel << std::endl;
         }
         GroupEnd();
       },
