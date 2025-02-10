@@ -1626,21 +1626,41 @@ class SyncBatchNorm(_BatchNormBase):
 
         # train mode: use mini-batch stats, eval mode: use global stats
         # use_global_stats only support False in sync_batch_norm
+        train_mode = self.training and not (
+            hasattr(self, "_use_global_stats") and self._use_global_stats
+        )
+
         if in_dynamic_or_pir_mode():
-            sync_batch_norm_out, _, _, _, _, _ = _C_ops.sync_batch_norm_(
-                x,
-                self._mean,
-                self._variance,
-                self.weight,
-                self.bias,
-                not self.training,
-                self._momentum,
-                self._epsilon,
-                self._data_format,
-                False,
-                False,
-            )
-            return sync_batch_norm_out
+            if train_mode:
+                sync_batch_norm_out, _, _, _, _, _ = _C_ops.sync_batch_norm_(
+                    x,
+                    self._mean,
+                    self._variance,
+                    self.weight,
+                    self.bias,
+                    not self.training,
+                    self._momentum,
+                    self._epsilon,
+                    self._data_format,
+                    False,
+                    False,
+                )
+                return sync_batch_norm_out
+            else:
+                batch_norm_out, _, _, _, _, _ = _C_ops.batch_norm(
+                    x,
+                    self._mean,
+                    self._variance,
+                    self.weight,
+                    self.bias,
+                    not self.training,
+                    self._momentum,
+                    self._epsilon,
+                    self._data_format,
+                    True,
+                    False,
+                )
+                return batch_norm_out
 
         check_variable_and_dtype(
             x,
@@ -1655,7 +1675,7 @@ class SyncBatchNorm(_BatchNormBase):
             "is_test": not self.training,
             "data_layout": self._data_format,
             "fuse_with_relu": False,
-            "use_global_stats": False,
+            "use_global_stats": not train_mode,
             "trainable_statistics": False,
         }
 
@@ -1685,9 +1705,17 @@ class SyncBatchNorm(_BatchNormBase):
             "SavedVariance": [saved_variance],
         }
 
-        self._helper.append_op(
-            type="sync_batch_norm", inputs=inputs, outputs=outputs, attrs=attrs
-        )
+        if train_mode:
+            self._helper.append_op(
+                type="sync_batch_norm",
+                inputs=inputs,
+                outputs=outputs,
+                attrs=attrs,
+            )
+        else:
+            self._helper.append_op(
+                type="batch_norm", inputs=inputs, outputs=outputs, attrs=attrs
+            )
         return sync_batch_norm_out
 
     @classmethod
@@ -1748,6 +1776,10 @@ class SyncBatchNorm(_BatchNormBase):
                 with no_grad():
                     layer_output.weight = layer.weight
                     layer_output.bias = layer.bias
+
+            if hasattr(layer, '_use_global_stats'):
+                layer_output._use_global_stats = layer._use_global_stats
+
             layer_output._mean = layer._mean
             layer_output._variance = layer._variance
 
