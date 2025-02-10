@@ -49,8 +49,7 @@ DimExpr DimExpr::operator/(const DimExpr& other) const {
     std::int64_t dem = other.dyn_cast<std::int64_t>();
     return num / dem;
   }
-  const DimExpr& reciprocal = Reciprocal<DimExpr>(other);
-  DimExpr div_expr = Mul<DimExpr>{List<DimExpr>{*this, reciprocal}};
+  DimExpr div_expr = Div<DimExpr>{*this, other};
   return SimplifyDimExpr(div_expr);
 }
 
@@ -63,11 +62,6 @@ bool DimExprEqual(const std::string& lhs, const std::string& rhs) {
 }
 
 bool DimExprEqual(const Negative<DimExpr>& lhs, const Negative<DimExpr>& rhs) {
-  return lhs->data == rhs->data;
-}
-
-bool DimExprEqual(const Reciprocal<DimExpr>& lhs,
-                  const Reciprocal<DimExpr>& rhs) {
   return lhs->data == rhs->data;
 }
 
@@ -90,6 +84,10 @@ bool DimExprEqual(const Add<DimExpr>& lhs, const Add<DimExpr>& rhs) {
 
 bool DimExprEqual(const Mul<DimExpr>& lhs, const Mul<DimExpr>& rhs) {
   return DimExprEqual<Mul>(lhs, rhs);
+}
+
+bool DimExprEqual(const Div<DimExpr>& lhs, const Div<DimExpr>& rhs) {
+  return lhs->lhs == rhs->lhs && lhs->rhs == rhs->rhs;
 }
 
 bool DimExprEqual(const Max<DimExpr>& lhs, const Max<DimExpr>& rhs) {
@@ -149,14 +147,15 @@ std::string ToString(const DimExpr& dim_expr) {
       [](const Negative<DimExpr>& dim_expr) {
         return "-" + ToString(dim_expr->data);
       },
-      [](const Reciprocal<DimExpr>& dim_expr) {
-        return "1 / (" + ToString(dim_expr->data) + ")";
-      },
       [](const Add<DimExpr>& dim_expr) {
         return "Add(" + ListDimExprToString(dim_expr.operands, ", ") + ")";
       },
       [](const Mul<DimExpr>& dim_expr) {
         return "Mul(" + ListDimExprToString(dim_expr.operands, ", ") + ")";
+      },
+      [](const Div<DimExpr>& dim_expr) {
+        return "Div(" + ToString(dim_expr->lhs) + ", " +
+               ToString(dim_expr->rhs) + ")";
       },
       [](const Max<DimExpr>& dim_expr) {
         return "Max(" + ListDimExprToString(dim_expr.operands, ", ") + ")";
@@ -202,10 +201,6 @@ std::size_t GetHashValueImpl(const Negative<DimExpr>& dim_expr) {
   return -GetHashValue(dim_expr->data);
 }
 
-std::size_t GetHashValueImpl(const Reciprocal<DimExpr>& dim_expr) {
-  return pir::detail::hash_combine(1, -GetHashValue(dim_expr->data));
-}
-
 std::size_t GetHashValueImpl(const List<DimExpr>& exprs) {
   std::size_t ret = 0;
   for (const auto& expr : *exprs) {
@@ -222,16 +217,21 @@ std::size_t GetHashValueImpl(const Mul<DimExpr>& dim_expr) {
   return pir::detail::hash_combine(2, GetHashValueImpl(dim_expr.operands));
 }
 
-std::size_t GetHashValueImpl(const Max<DimExpr>& dim_expr) {
-  return pir::detail::hash_combine(3, GetHashValueImpl(dim_expr.operands));
+std::size_t GetHashValueImpl(const Div<DimExpr>& dim_expr) {
+  return pir::detail::hash_combine(
+      3, GetHashValueImpl(List<DimExpr>{dim_expr->lhs, dim_expr->rhs}));
 }
 
-std::size_t GetHashValueImpl(const Min<DimExpr>& dim_expr) {
+std::size_t GetHashValueImpl(const Max<DimExpr>& dim_expr) {
   return pir::detail::hash_combine(4, GetHashValueImpl(dim_expr.operands));
 }
 
-std::size_t GetHashValueImpl(const Broadcast<DimExpr>& dim_expr) {
+std::size_t GetHashValueImpl(const Min<DimExpr>& dim_expr) {
   return pir::detail::hash_combine(5, GetHashValueImpl(dim_expr.operands));
+}
+
+std::size_t GetHashValueImpl(const Broadcast<DimExpr>& dim_expr) {
+  return pir::detail::hash_combine(6, GetHashValueImpl(dim_expr.operands));
 }
 
 }  // namespace

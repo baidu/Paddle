@@ -66,16 +66,16 @@ struct MatchTrait<DimExpr, ::symbol::Negative<T0>> final
     : public UnaryDimExprMatchTrait<::symbol::Negative, T0> {};
 
 template <typename T0>
-struct MatchTrait<DimExpr, ::symbol::Reciprocal<T0>> final
-    : public UnaryDimExprMatchTrait<::symbol::Reciprocal, T0> {};
-
-template <typename T0>
 struct MatchTrait<DimExpr, ::symbol::Add<T0>> final
     : public ListDimExprMatchTrait<::symbol::Add, T0> {};
 
 template <typename T0>
 struct MatchTrait<DimExpr, ::symbol::Mul<T0>> final
     : public ListDimExprMatchTrait<::symbol::Mul, T0> {};
+
+template <typename T0>
+struct MatchTrait<DimExpr, ::symbol::Div<T0>> final
+    : public ListDimExprMatchTrait<::symbol::Div, T0> {};
 
 template <typename T0>
 struct MatchTrait<DimExpr, ::symbol::Broadcast<T0>> final
