@@ -167,6 +167,14 @@ std::string OpType2String(OpType op_type) {
   return "unnamed_op";
 }
 
+__global__ void helloFromGPU(void *tmp_ptr, int n) {
+  int tidx = threadIdx.x + blockDim.x * threadIdx.y;
+  for (int i = tidx; i < n; i += blockDim.x * gridDim.x) {
+    int *tmp = reinterpret_cast<int *>(tmp_ptr);
+    tmp[i] = 0;
+  }
+}
+
 int ProfileToGetBestConfig(
     const std::vector<std::function<cutlass::Status(GemmEpilogueAllParams)>>
         &all_func,
@@ -179,6 +187,11 @@ int ProfileToGetBestConfig(
   constexpr int REPEAT = 10;
   float min_time = 100000.f;
   int min_time_index = -1;
+
+  void *tmp_ptr;
+  size_t flush_bytes = 1024 * 1024 * 80;
+  CUDA_CHECK(cudaMalloc(&tmp_ptr, flush_bytes));
+
   for (int i = 0; i < all_func.size(); i++) {
     cutlass::Status status;
     auto func = all_func[i];
@@ -193,20 +206,36 @@ int ProfileToGetBestConfig(
     }
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    cudaEvent_t beg, end;
-    CUDA_CHECK(cudaEventCreate(&beg));
-    CUDA_CHECK(cudaEventCreate(&end));
-    CUDA_CHECK(cudaEventRecord(beg));
-    for (int ii = 0; ii < REPEAT; ii++) {
-      status = func(params);
-    }
-    CUDA_CHECK(cudaEventRecord(end));
-    CUDA_CHECK(cudaEventSynchronize(end));
-    float elapsed_time;
-    CUDA_CHECK(cudaEventElapsedTime(&elapsed_time, beg, end));
+    cudaEvent_t beg[REPEAT];
+    cudaEvent_t end[REPEAT];
+    float elapsed_times[REPEAT];
 
-    if (elapsed_time < min_time && status == cutlass::Status::kSuccess) {
-      min_time = elapsed_time;
+    for (int ii = 0; ii < REPEAT; ii++) {
+      CUDA_CHECK(cudaEventCreate(beg + ii));
+      CUDA_CHECK(cudaEventCreate(end + ii));
+      CUDA_CHECK(cudaEventRecord(beg[ii]));
+
+      // helloFromGPU<<<1000, 128>>>(tmp_ptr, 10 * 1024 * 1024);
+
+      // flush l2 cache
+      CUDA_CHECK(cudaMemset(tmp_ptr, 0, flush_bytes));
+
+      status = func(params);
+
+      CUDA_CHECK(cudaEventRecord(end[ii]));
+      CUDA_CHECK(cudaEventSynchronize(end[ii]));
+
+      CUDA_CHECK(cudaEventElapsedTime(elapsed_times + ii, beg[ii], end[ii]));
+    }
+
+    float avg_elapsed_time = 0.f;
+
+    for (int ii = 0; ii < REPEAT; ++ii) {
+      avg_elapsed_time += elapsed_times[ii];
+    }
+
+    if (avg_elapsed_time < min_time && status == cutlass::Status::kSuccess) {
+      min_time = avg_elapsed_time;
       min_time_index = i;
 
       if (params.data_type == GemmEpilogueDataType::fp16) {
@@ -215,21 +244,21 @@ int ProfileToGetBestConfig(
                   << " has max diff "
                   << gemm_epilogue_diff_gpu<half>(params, op_type)
                   << " compared with baseline,"
-                  << "cost_time: " << elapsed_time << "ms." << std::endl;
+                  << "cost_time: " << avg_elapsed_time << "ms." << std::endl;
       } else if (params.data_type == GemmEpilogueDataType::bf16) {
         // debug code
         std::cout << "bf16_" << OpType2String(op_type) << ": tactic " << i
                   << " has max diff "
                   << gemm_epilogue_diff_gpu<__nv_bfloat16>(params, op_type)
                   << " compared with baseline,"
-                  << "cost_time: " << elapsed_time << "ms." << std::endl;
+                  << "cost_time: " << avg_elapsed_time << "ms." << std::endl;
       } else if (params.data_type == GemmEpilogueDataType::fp32) {
         // debug code
         std::cout << "fp32_" << OpType2String(op_type) << ": tactic " << i
                   << " has max diff "
                   << gemm_epilogue_diff_gpu<float>(params, op_type)
                   << " compared with baseline,"
-                  << "cost_time: " << elapsed_time << "ms." << std::endl;
+                  << "cost_time: " << avg_elapsed_time << "ms." << std::endl;
       }
     }
   }
@@ -238,6 +267,9 @@ int ProfileToGetBestConfig(
     std::cout << "Can't find any cutlass config for " << OpType2String(op_type)
               << std::endl;
   }
+
+  cudaFree(tmp_ptr);
+
   return min_time_index;
 }
 
