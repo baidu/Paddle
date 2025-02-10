@@ -261,6 +261,11 @@ def GroupShardedScaler(scaler):
                         else:
                             param_grads_fp32.append(tgt_grad)
         else:
+            # inf found when step == 1
+            if optimizer.offload and len(optimizer._optim._parameter_list) > 1:
+                params_list = [optimizer.offload_params.buffer]
+                optimizer._optim._parameter_list = params_list
+                optimizer._optim._param_groups = params_list
             for param in optimizer._optim._parameter_list:
                 tgt_grad = None
                 if hasattr(param, "main_grad") and param.main_grad is not None:
