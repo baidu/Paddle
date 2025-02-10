@@ -463,6 +463,91 @@ class Conv2dTransposeOpPattern
   }
 };
 
+class Conv3dTransposeOpPattern
+    : public pir::OpRewritePattern<paddle::dialect::Conv3dTransposeOp> {
+ public:
+  using pir::OpRewritePattern<
+      paddle::dialect::Conv3dTransposeOp>::OpRewritePattern;
+
+  bool MatchAndRewrite(paddle::dialect::Conv3dTransposeOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op->attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+    auto paddings_attr = op->attribute<pir::ArrayAttribute>("paddings");
+    std::vector<int32_t> paddings;
+    for (const auto &attr : paddings_attr.AsVector()) {
+      paddings.push_back(attr.dyn_cast<pir::Int32Attribute>().data());
+    }
+    if (paddings.size() > 3) {
+      VLOG(3) << "In conv3d_transpose, paddings size must be less than or "
+                 "equal to 3";
+      return false;
+    }
+    if (!op->HasAttribute("dilations")) {
+      VLOG(3) << "In conv3d_transpose, dilations attribute does not exist";
+      return false;
+    } else {
+      auto dilation_attr = op->attribute<pir::ArrayAttribute>("dilations");
+      std::vector<int32_t> dilations;
+      for (const auto &attr : dilation_attr.AsVector()) {
+        dilations.push_back(attr.dyn_cast<pir::Int32Attribute>().data());
+      }
+      if (dilations[0] != 1 || dilations[1] != 1 || dilations[2] != 1) {
+        VLOG(3) << "In conv3d_transpose, Dilations must be (1, 1, 1) for "
+                   "tensorRT, but given ("
+                << dilations[0] << ", " << dilations[1] << ", " << dilations[2]
+                << ")";
+        return false;
+      }
+    }
+    pir::Value filter = op.operand_source(1);
+    auto filter_type =
+        filter.type().dyn_cast<paddle::dialect::DenseTensorType>();
+    auto filter_shape = filter_type.dims();
+    if (filter_shape.size() != 5) {
+      VLOG(3) << "The conv3d filter's dims size should be 5";
+      return false;
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
+
+class Conv3dOpPattern
+    : public pir::OpRewritePattern<paddle::dialect::Conv3dOp> {
+ public:
+  using pir::OpRewritePattern<paddle::dialect::Conv3dOp>::OpRewritePattern;
+
+  bool MatchAndRewrite(paddle::dialect::Conv3dOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op->attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+    auto paddings_attr = op->attribute<pir::ArrayAttribute>("paddings");
+    std::vector<int32_t> paddings;
+    for (const auto &attr : paddings_attr.AsVector()) {
+      paddings.push_back(attr.dyn_cast<pir::Int32Attribute>().data());
+    }
+    if (paddings.size() > 3) {
+      VLOG(3) << "In conv3d, paddings size must be less than or equal to 3";
+      return false;
+    }
+    pir::Value filter = op.operand_source(1);
+    auto filter_type =
+        filter.type().dyn_cast<paddle::dialect::DenseTensorType>();
+    auto filter_shape = filter_type.dims();
+    if (filter_shape.size() != 5) {
+      VLOG(3) << "The conv3d filter's dims size should be 5";
+      return false;
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
+
 class DepthwiseConv2dTransposeOpPattern
     : public pir::OpRewritePattern<
           paddle::dialect::DepthwiseConv2dTransposeOp> {
@@ -2605,6 +2690,8 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<OneHotOpPattern>(context));
     ps.Add(std::make_unique<TemporalShiftOpPattern>(context));
     ps.Add(std::make_unique<InstanceNormOpPattern>(context));
+    ps.Add(std::make_unique<Conv3dOpPattern>(context));
+    ps.Add(std::make_unique<Conv3dTransposeOpPattern>(context));
     ps.Add(std::make_unique<EinsumOpPattern>(context));
     ps.Add(std::make_unique<PNormOpPattern>(context));
     ps.Add(std::make_unique<AffineChannelOpPattern>(context));

@@ -277,6 +277,8 @@ def weight_to_tensor(network, paddle_value, trt_tensor, use_op_name):
         "pd_op.depthwise_conv2d",
         "pd_op.conv2d",
         "pd_op.conv2d_transpose",
+        "pd_op.conv3d",
+        "pd_op.conv3d_transpose",
         "pd_op.batch_norm",
         "pd_op.batch_norm_",
         "pd_op.layer_norm",
