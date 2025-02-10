@@ -465,7 +465,8 @@ void CustomKernelInstruction::UpdateOutputMeta(
     auto out_meta = phi::DenseTensorUtils::GetMutableMeta(out_in_scope);
     out_meta->dims = phi::make_ddim(output_shapes[i]);
     out_meta->dtype = output_dtypes[i];
-    out_meta->strides = out_meta->calc_strides(out_meta->dims);
+    // need not calc_strides right now, stride is not used in static graph
+    // out_meta->strides = out_meta->calc_strides(out_meta->dims);
   }
 }
 
