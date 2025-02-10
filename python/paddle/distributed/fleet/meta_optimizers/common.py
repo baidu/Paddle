@@ -14,6 +14,7 @@
 
 
 import paddle
+from paddle.distributed.collective import _init_parallel_env
 from paddle.framework import core
 from paddle.utils import unique_name
 
@@ -146,30 +147,36 @@ class CollectiveHelper:
             type=core.VarDesc.VarType.RAW,
         )
         if core.is_compiled_with_cuda():
-            block.append_op(
-                type='c_gen_nccl_id',
-                inputs={},
-                outputs={'Out': comm_id_var},
-                attrs={
-                    'rank': rank,
-                    'endpoint': current_endpoint,
-                    'other_endpoints': other_endpoints,
-                    'ring_id': ring_id,
-                    OP_ROLE_KEY: OpRole.Forward,
-                },
-            )
-            block.append_op(
-                type='c_comm_init',
-                inputs={'X': comm_id_var},
-                outputs={},
-                attrs={
-                    'nranks': nranks,
-                    'rank': rank,
-                    'ring_id': ring_id,
-                    'endpoints': endpoints_str,
-                    OP_ROLE_KEY: OpRole.Forward,
-                },
-            )
+            use_new_comm = paddle.get_flags(
+                "FLAGS_dynamic_static_unified_comm"
+            )["FLAGS_dynamic_static_unified_comm"]
+            if use_new_comm:
+                _init_parallel_env("nccl")
+            else:
+                block.append_op(
+                    type='c_gen_nccl_id',
+                    inputs={},
+                    outputs={'Out': comm_id_var},
+                    attrs={
+                        'rank': rank,
+                        'endpoint': current_endpoint,
+                        'other_endpoints': other_endpoints,
+                        'ring_id': ring_id,
+                        OP_ROLE_KEY: OpRole.Forward,
+                    },
+                )
+                block.append_op(
+                    type='c_comm_init',
+                    inputs={'X': comm_id_var},
+                    outputs={},
+                    attrs={
+                        'nranks': nranks,
+                        'rank': rank,
+                        'ring_id': ring_id,
+                        'endpoints': endpoints_str,
+                        OP_ROLE_KEY: OpRole.Forward,
+                    },
+                )
         elif core.is_compiled_with_xpu():
             block.append_op(
                 type='c_gen_bkcl_id',
