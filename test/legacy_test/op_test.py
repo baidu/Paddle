@@ -1414,7 +1414,7 @@ class OpTest(unittest.TestCase):
                         raise ValueError(
                             "output of python api should be Value or list of Value or tuple of Value"
                         )
-
+                    
                 # executor run
                 executor = Executor(place)
                 outs = executor.run(
@@ -1709,7 +1709,11 @@ class OpTest(unittest.TestCase):
                         raise ValueError(
                             "output of python api should be Value or list of Value or tuple of Value"
                         )
-
+                    
+                # run the program with shape_optimation_pass
+                pm = paddle.base.pir.PassManager()
+                paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
+                
                 # executor run
                 executor = Executor(place)
                 outs = executor.run(program, feed=feed, fetch_list=[fetch_list])
