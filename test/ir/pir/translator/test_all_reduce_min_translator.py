@@ -30,7 +30,10 @@ class TestAllReduceMinOpTranslatorWithNewComm(
         x = paddle.ones(shape=(100, 2, 3), dtype='float32')
         y = paddle.ones(shape=(100, 2, 3), dtype='float32')
         attrs = {
+            'ring_id': 0,
             'reduce_type': 5,
+            'use_calc_stream': False,
+            'use_model_parallel': False,
         }
         helper = LayerHelper(self.op_type)
         helper.append_op(

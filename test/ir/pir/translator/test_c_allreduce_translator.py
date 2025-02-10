@@ -22,21 +22,19 @@ from paddle.base.layer_helper import LayerHelper
 paddle.pir_utils._switch_to_old_ir_()
 
 
-class TestAllReduceMinOpTranslatorWithNewComm(
-    test_op_translator.TestOpTranslator
-):
+class TestCAllReduceMinOpTranslator(test_op_translator.TestOpTranslator):
     def append_op(self):
-        self.op_type = "all_reduce"
+        self.op_type = "c_allreduce_min"
         x = paddle.ones(shape=(100, 2, 3), dtype='float32')
         y = paddle.ones(shape=(100, 2, 3), dtype='float32')
         attrs = {
-            'reduce_type': 5,
+            'reduce_type': 0,
         }
         helper = LayerHelper(self.op_type)
         helper.append_op(
             type=self.op_type,
-            inputs={"x": x},
-            outputs={"out": y},
+            inputs={"X": x},
+            outputs={"Out": y},
             attrs=attrs,
         )
 

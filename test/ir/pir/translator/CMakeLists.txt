@@ -5,9 +5,11 @@ file(
 string(REPLACE ".py" "" TEST_INTERP_CASES "${TEST_INTERP_CASES}")
 
 set(DISTRIBUTED_OP_TRANSLATOR_TEST test_all_reduce_translator)
+set(DISTRIBUTED_OP_TRANSLATOR_TEST test_c_allreduce_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_barrier_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_c_reduce_min_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_c_allreduce_min_translator)
+list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_all_reduce_min_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_c_allreduce_prod_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_c_reduce_max_translator)
 list(APPEND DISTRIBUTED_OP_TRANSLATOR_TEST test_c_reduce_prod_translator)
