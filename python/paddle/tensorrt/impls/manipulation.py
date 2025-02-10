@@ -26,6 +26,7 @@ from paddle.tensorrt.converter_utils import (
     get_shape_tensor_element,
     has_dynamic_shape,
     resize_to_1d,
+    trt_cast,
     trt_concat,
     trt_expand,
     trt_floor_div,
@@ -957,6 +958,91 @@ def roll_converter(network, paddle_op, inputs):
                 input=layer.get_output(0), indices=concat_input_tensor, axis=axi
             )
 
+    return layer.get_output(0)
+
+
+@converter_registry.register("pd_op.index_put", trt_version="8.x")
+def index_put_converter(network, paddle_op, inputs):
+    input_tensor = inputs[0]
+
+    indices_op = paddle_op.operands()[1].source().get_defining_op()
+    value_op = paddle_op.operands()[2].source().get_defining_op()
+
+    if indices_op.name() == "pd_op.full_int_array":
+        indices = indices_op.attrs()["value"]
+        indices_tensor = add_1D_constant_layer(network, indices)
+    else:
+        indices_tensor = inputs[1]
+
+    if value_op.name() == "pd_op.full_int_array":
+        value = value_op.attrs()["value"]
+        value_tensor = add_1D_constant_layer(network, value)
+    else:
+        value_tensor = inputs[2]
+
+    input_shape_tensor = trt_shape(network, input_tensor)
+    input_shape = input_tensor.shape
+    rank = len(input_shape)
+    indices_shape = indices_tensor.shape
+    indices_dims = len(indices_shape)
+
+    # indices
+    indices_shape_vec = []
+    start_tensor_vec = []
+    stride_tensor_vec = []
+    for i in range(rank):
+        indices_one = indices_shape[i] if i < len(indices_dims) else 1
+        indices_shape_vec.append(add_1D_constant_layer(indices_one))
+        start_tensor_vec.append(add_1D_constant_layer(0))
+        stride_tensor_vec.append(add_1D_constant_layer(1))
+    indices_tensor_temp = trt_reshape(
+        network, indices_tensor, trt_concat(network, indices_shape_vec)
+    )
+    start_tensor = trt_concat(network, start_tensor_vec)
+    stride_tensor = trt_concat(network, stride_tensor_vec)
+
+    # slice
+    stride = [1] * rank
+    indices_slice_layer = network.add_slice(
+        trt_cast(network, indices_tensor_temp, trt.float32),
+        stride,
+        stride,
+        stride,
+    )
+    indices_slice_layer.set_input(1, start_tensor)
+    indices_slice_layer.set_input(2, input_shape_tensor)
+    indices_slice_layer.set_input(3, stride_tensor)
+    indices_slice_layer.mode = trt.SampleMode.CLAMP
+    bool_indices_tensor = trt_cast(
+        network, indices_slice_layer.get_output(0), trt.bool
+    )
+
+    # nonzero
+    nonzero_layer = network.add_non_zero(bool_indices_tensor)
+    indices_tensor = nonzero_layer.get_output(0)
+    permutation = trt.Permutation([1, 0])
+    trans_layer = network.add_shuffle(indices_tensor)
+    trans_layer.first_transpose = permutation
+    indices_tensor = trans_layer.get_output(0)
+    indices_new_shape_tensor = trt_shape(network, indices_tensor)
+    indices_count_tensor = get_shape_tensor_element(
+        network, indices_new_shape_tensor, 0
+    )
+
+    # value
+    value_stride = [1]
+    value_slice_layer = network.add_slice(
+        value_tensor, value_stride, value_stride, value_stride
+    )
+    value_slice_layer.set_input(1, add_1D_constant_layer(network, 0))
+    value_slice_layer.set_input(2, indices_count_tensor)
+    value_slice_layer.set_input(3, add_1D_constant_layer(network, 1))
+    value_slice_layer.mode = trt.SampleMode.CLAMP
+    value_tensor = value_slice_layer.get_output(0)
+
+    layer = network.add_scatter(
+        input_tensor, indices_tensor, value_tensor, trt.ScatterMode.ND
+    )
     return layer.get_output(0)
 
 

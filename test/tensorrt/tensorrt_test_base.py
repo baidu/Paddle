@@ -93,6 +93,28 @@ class TensorRTBaseTest(unittest.TestCase):
                         )
                         new_list_args.append(input_data)
                     api_args[feed_name] = new_list_args
+                elif isinstance(self.api_args[feed_name], tuple):
+                    new_tuple_args = []
+                    for index, elem in enumerate(self.api_args[feed_name]):
+                        if (
+                            feed_name in self.min_shape.keys()
+                            and feed_name in self.max_shape.keys()
+                        ):
+                            input_shape_without_dynamic_dim = elem.shape[1:]
+                            input_shape = [-1]
+                            input_shape.extend(input_shape_without_dynamic_dim)
+                        else:
+                            input_shape = elem.shape
+
+                        input_dtype = elem.dtype
+
+                        input_data = paddle.static.data(
+                            name=f"{feed_name}{index}",
+                            shape=input_shape,
+                            dtype=input_dtype,
+                        )
+                        new_tuple_args.append(input_data)
+                    api_args[feed_name] = tuple(new_tuple_args)
                 else:
                     empty_min_max_shape = (
                         self.min_shape is None
@@ -150,6 +172,9 @@ class TensorRTBaseTest(unittest.TestCase):
                     feed_name
                 ].items():
                     feed_data[sub_arg_name] = sub_arg_value
+            elif isinstance(self.api_args[feed_name], tuple):
+                for index, elem in enumerate(self.api_args[feed_name]):
+                    feed_data[f"{feed_name}{index}"] = elem
             else:
                 feed_data[feed_name] = self.api_args[feed_name]
         ret = exe.run(main_program, feed=feed_data, fetch_list=fetch_list)
@@ -229,6 +254,23 @@ class TensorRTBaseTest(unittest.TestCase):
                             ).astype(
                                 self.api_args[feed_name][sub_feed_name].dtype
                             )
+                elif isinstance(self.api_args[feed_name], tuple):
+                    # shape_tensor is tuple
+                    for index, elem in enumerate(self.api_args[feed_name]):
+                        sub_feed_name = f"{feed_name}{index}"
+                        if (
+                            feed_name not in self.min_shape.keys()
+                            and feed_name not in self.max_shape.keys()
+                        ):
+                            min_shape_data[sub_feed_name] = elem
+                            max_shape_data[sub_feed_name] = elem
+                        else:
+                            min_shape_data[sub_feed_name] = np.random.randn(
+                                *self.min_shape[feed_name][index]
+                            ).astype(elem.dtype)
+                            max_shape_data[sub_feed_name] = np.random.randn(
+                                *self.max_shape[feed_name][index]
+                            ).astype(elem.dtype)
                 else:
                     # shape_tensor is list
                     if (

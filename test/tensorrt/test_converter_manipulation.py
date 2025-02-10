@@ -743,6 +743,60 @@ class TestSqueezeCase1TRTPattern(TensorRTBaseTest):
         self.check_trt_result()
 
 
+class TestIndexPutCase1TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = paddle.index_put
+        self.api_args = {
+            "x": np.random.random([3, 3]).astype("float32"),
+            "indices": (np.array([0, 1, 2]), np.array([1, 2, 1])),
+            "value": np.ones(3).astype("float32"),
+        }
+        self.program_config = {"feed_list": ["x", "indices", "value"]}
+        self.min_shape = {"x": [1, 3]}
+        self.opt_shape = {"x": [2, 3]}
+        self.max_shape = {"x": [5, 3]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+    def test_fp16_result(self):
+        self.check_trt_result(precision_mode="fp16")
+
+
+class TestIndexPutCase2TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = paddle.index_put
+        self.api_args = {
+            "x": np.random.random([3, 3]).astype("int64"),
+            "indices": (np.array([0, 1, 2]), np.array([1, 2, 1])),
+            "value": np.ones(3).astype("int64"),
+        }
+        self.program_config = {"feed_list": ["x", "indices", "value"]}
+        self.min_shape = {"x": [1, 3]}
+        self.opt_shape = {"x": [2, 3]}
+        self.max_shape = {"x": [5, 3]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+
+class TestIndexPutCase3TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = paddle.index_put
+        self.api_args = {
+            "x": np.random.random([3, 3]).astype("float32"),
+            "indices": (np.array([0, 1, 2]), np.array([1, 2, 1])),
+            "value": np.ones(3).astype("float32"),
+        }
+        self.program_config = {"feed_list": ["x", "indices", "value"]}
+        self.min_shape = {"x": [1, 3]}
+        self.opt_shape = {"x": [2, 3]}
+        self.max_shape = {"x": [5, 3]}
+
+    def test_trt_result(self):
+        self.check_marker(expected_result=False)
+
+
 class TestNumelTRTCase1Pattern(TensorRTBaseTest):
     def setUp(self):
         self.python_api = paddle.numel
