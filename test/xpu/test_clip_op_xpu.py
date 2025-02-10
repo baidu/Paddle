@@ -271,5 +271,127 @@ for stype in support_types:
         continue
     create_test_class(globals(), XPUTestClipOp, stype)
 
+
+class XPUTestClipTensorOp(XPUOpTestWrapper):
+    def __init__(self):
+        self.op_name = 'clip_tensor'
+        self.use_dynamic_create_class = False
+
+    class ClipTensorOp(XPUOpTest):
+        def setUp(self):
+            self.python_api = paddle.clip
+            self.inputs = {}
+            self.init_dtype()
+            self.set_xpu()
+            self.op_type = "clip_tensor"
+            self.place = paddle.XPUPlace(0)
+            self.init_data()
+            self.set_inputs()
+            if self.dtype == np.uint16:
+                self.outputs = {
+                    'out': convert_float_to_uint16(
+                        np.clip(
+                            convert_uint16_to_float(self.inputs['x']),
+                            convert_uint16_to_float(self.inputs['min']),
+                            convert_uint16_to_float(self.inputs['max']),
+                        )
+                    )
+                }
+            else:
+                self.outputs = {
+                    'out': np.clip(
+                        self.inputs['x'],
+                        self.inputs['min'],
+                        self.inputs['max'],
+                    )
+                }
+
+        def set_xpu(self):
+            self.__class__.use_xpu = True
+            self.__class__.no_need_check_grad = False
+            self.__class__.op_type = self.dtype
+
+        def init_data(self):
+            self.shape = (10, 1, 10)
+            self.min_value = 0.8
+            self.max_value = 0.3
+
+        def set_inputs(self):
+            self.inputs['x'] = np.random.random(self.shape).astype("float32")
+            self.inputs['min'] = np.full(self.shape, self.min_value).astype(
+                'float32'
+            )
+            self.inputs['max'] = np.full(self.shape, self.max_value).astype(
+                'float32'
+            )
+
+            self.min_v = self.inputs['min']
+            self.max_v = self.inputs['max']
+
+            self.max_relative_error = 0.006
+            self.inputs['x'][
+                np.abs(self.inputs['x'] - self.min_v) < self.max_relative_error
+            ] = 0.5
+            self.inputs['x'][
+                np.abs(self.inputs['x'] - self.max_v) < self.max_relative_error
+            ] = 0.5
+            if self.dtype == np.uint16:
+                self.inputs['x'] = convert_float_to_uint16(self.inputs['x'])
+                self.inputs['min'] = convert_float_to_uint16(self.inputs['min'])
+                self.inputs['max'] = convert_float_to_uint16(self.inputs['max'])
+            else:
+                self.inputs['x'] = self.inputs['x'].astype(self.dtype)
+                self.inputs['min'] = self.inputs['min'].astype(self.dtype)
+                self.inputs['max'] = self.inputs['max'].astype(self.dtype)
+
+        def init_dtype(self):
+            self.dtype = self.in_type
+
+        def test_check_output(self):
+            paddle.enable_static()
+            self.check_output_with_place(self.place)
+            paddle.disable_static()
+
+        def test_check_grad(self):
+            if hasattr(self, "no_need_check_grad") and self.no_need_check_grad:
+                return
+            if core.is_compiled_with_xpu():
+                paddle.enable_static()
+                self.check_grad_with_place(self.place, ['x'], 'out')
+                paddle.disable_static()
+
+    class TestClipTensorOp1(ClipTensorOp):
+        def init_data(self):
+            self.shape = (8, 6, 8)
+            self.max_value = 0.7
+            self.min_value = 0.0
+
+    class TestClipTensorOp2(ClipTensorOp):
+        def init_data(self):
+            self.shape = (8, 8, 6)
+            self.max_value = 1.0
+            self.min_value = 0.0
+
+    class TestClipTensorOp3(ClipTensorOp):
+        def init_data(self):
+            self.shape = (4, 8, 6)
+            self.max_value = 0.7
+            self.min_value = 0.2
+
+
+    class TestClipTensorOp4(ClipTensorOp):
+        def init_data(self):
+            self.shape = (4, 8, 6)
+            self.max_value = 0.5
+            self.min_value = 0.5
+
+
+support_types = get_xpu_op_support_types('clip_tensor')
+for stype in support_types:
+    # TODO: disable int32 and int64 test temporarily, as xdnn not support corresponding resuce_mean
+    if stype in ["int32", "int64"]:
+        continue
+    create_test_class(globals(), XPUTestClipTensorOp, stype)
+
 if __name__ == '__main__':
     unittest.main()

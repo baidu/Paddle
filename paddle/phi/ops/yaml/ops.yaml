@@ -932,6 +932,18 @@
   interfaces : paddle::dialect::InferSymbolicShapeInterface
   traits : paddle::dialect::ForwardOnlyTrait
 
+- op : clip_tensor
+  args : (Tensor x, Tensor min, Tensor max)
+  output : Tensor(out)
+  infer_meta :
+    func : UnchangedInferMeta
+    param : [x]
+  kernel :
+    func : clip_tensor
+    data_type : x
+  inplace : (x -> out)
+  backward : clip_tensor_grad
+
 - op : coalesce_tensor
   args : (Tensor[] input, DataType dtype, bool copy_data = false, bool set_constant = false, bool persist_output = false, float constant = 0.0, bool use_align = true, int align_size = -1, int size_of_dtype = -1, int64_t[] concated_shapes = {}, int64_t[] concated_ranks = {})
   output : Tensor[](output){input.size()}, Tensor(fused_output)

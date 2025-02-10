@@ -17,6 +17,7 @@ NO_FP64_CHECK_GRAD_OP_LIST = [
     'instance_norm',
     'affine_grid',
     'clip',
+    'clip_tensor',
     'conv2d',
     'conv2d_transpose',
     'conv3d',
