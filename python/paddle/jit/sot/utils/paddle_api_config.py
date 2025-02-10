@@ -126,7 +126,14 @@ break_graph_tensor_method = {
     # TODO: Browse all possible functions and make prior judgments.
 }
 
-not_supported_paddle_layer = {paddle.nn.RNN}
+not_supported_paddle_layer = {
+    paddle.nn.RNN,
+    paddle.nn.LayerNorm,
+    paddle.nn.Softmax,
+    paddle.nn.Linear,
+    paddle.nn.Dropout,
+    paddle.nn.AlphaDropout,
+}
 
 
 def is_not_supported_paddle_layer(layer_class):
