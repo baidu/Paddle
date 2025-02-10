@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
     "only test when CUDA is available",
 )
 class TestSparseConvImplicitGemm(unittest.TestCase):
-    def test_SubmConv2D_igemm_forward(self):
+    def test_SubmConv2D_igemm(self):
         indices = [[0, 0, 0, 0], [0, 0, 1, 2], [1, 3, 2, 3]]
         values = [[1], [2], [3], [4]]
         indices = paddle.to_tensor(indices, dtype='int32')
@@ -42,6 +42,7 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
         sparse_input = paddle.sparse.sparse_coo_tensor(
             indices, values, dense_shape, False
         )
+        sparse_input.stop_gradient = False
 
         subm_conv2d = paddle.sparse.nn.SubmConv2D(
             1,
@@ -60,6 +61,7 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             default_initializer=paddle.nn.initializer.Constant(value=1.0),
         )
 
+        # check the forward
         sparse_out = subm_conv2d(sparse_input)
         # the output shape of subm_conv is same as input shape
         np.testing.assert_array_equal(indices, sparse_out.indices().numpy())
@@ -67,7 +69,27 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             correct_out_values, sparse_out.values().numpy()
         )
 
-    def test_SubmConv3D_igemm_forward(self):
+        # check x_grad
+        x_grad = paddle.grad(sparse_out, sparse_input)[0]
+        correct_x_grad_values = [[2], [2], [4], [2]]
+        np.testing.assert_array_equal(indices, x_grad.indices().numpy())
+        np.testing.assert_array_equal(
+            correct_x_grad_values, x_grad.values().numpy()
+        )
+
+        # check weight_grad
+        loss = sparse_out.to_dense().mean()
+        loss.backward()
+        correct_weight_grad_values = [
+            [[[0.33333334]], [[0.0]], [[0.16666667]]],
+            [[[0.0]], [[0.8333334]], [[0.0]]],
+            [[[0.25]], [[0.0]], [[0.5833334]]],
+        ]
+        np.testing.assert_allclose(
+            correct_weight_grad_values, subm_conv2d.weight.grad.numpy()
+        )
+
+    def test_SubmConv3D_igemm(self):
         indices = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 2], [1, 3, 2, 3]]
         values = [[1], [2], [3], [4]]
         indices = paddle.to_tensor(indices, dtype='int32')
@@ -77,6 +99,7 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
         sparse_input = paddle.sparse.sparse_coo_tensor(
             indices, values, dense_shape, False
         )
+        sparse_input.stop_gradient = False
 
         subm_conv3d = paddle.sparse.nn.SubmConv3D(
             1,
@@ -95,6 +118,7 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             default_initializer=paddle.nn.initializer.Constant(value=1.0),
         )
 
+        # check the forward
         sparse_out = subm_conv3d(sparse_input)
         # the output shape of subm_conv is same as input shape
         np.testing.assert_array_equal(indices, sparse_out.indices().numpy())
@@ -102,7 +126,29 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             correct_out_values, sparse_out.values().numpy()
         )
 
-    def test_submconv2d_igemm_forward(self):
+        # check x_grad
+        x_grad = paddle.grad(sparse_out, sparse_input)[0]
+        correct_x_grad_values = [[2], [2], [4], [2]]
+        np.testing.assert_array_equal(indices, x_grad.indices().numpy())
+        np.testing.assert_array_equal(
+            correct_x_grad_values, x_grad.values().numpy()
+        )
+
+        # check weight_grad
+        loss = sparse_out.to_dense().mean()
+        loss.backward()
+        correct_weight_grad_values = [
+            [
+                [[[0.33333334]], [[0.0]], [[0.16666667]]],
+                [[[0.0]], [[0.8333334]], [[0.0]]],
+                [[[0.25]], [[0.0]], [[0.5833334]]],
+            ]
+        ]
+        np.testing.assert_allclose(
+            correct_weight_grad_values, subm_conv3d.weight.grad.numpy()
+        )
+
+    def test_submconv2d_igemm(self):
         indices = [[0, 0, 0, 0], [0, 0, 1, 2], [1, 3, 2, 3]]
         values = [[1], [2], [3], [4]]
         indices = paddle.to_tensor(indices, dtype='int32')
@@ -112,9 +158,12 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
         sparse_input = paddle.sparse.sparse_coo_tensor(
             indices, values, dense_shape, False
         )
+        sparse_input.stop_gradient = False
 
         weight = paddle.ones((3, 3, 1, 1), dtype='float32')
+        weight.stop_gradient = False
         bias = paddle.ones((1), dtype='float32')
+        bias.stop_gradient = False
         sparse_out = paddle.sparse.nn.functional.subm_conv2d_igemm(
             sparse_input,
             weight,
@@ -127,11 +176,34 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             key='subm_conv_2d',
         )
 
+        # check the forward
         # the output shape of subm_conv is same as input shape
         np.testing.assert_array_equal(indices, sparse_out.indices().numpy())
         np.testing.assert_array_equal(
             correct_out_values, sparse_out.values().numpy()
         )
+
+        # check x_grad
+        x_grad = paddle.grad(sparse_out, sparse_input)[0]
+        correct_x_grad_values = [[2], [2], [4], [2]]
+        np.testing.assert_array_equal(indices, x_grad.indices().numpy())
+        np.testing.assert_array_equal(
+            correct_x_grad_values, x_grad.values().numpy()
+        )
+
+        # check weight_grad
+        loss = sparse_out.to_dense().mean()
+        loss.backward()
+        correct_weight_grad_values = [
+            [[[0.33333334]], [[0.0]], [[0.16666667]]],
+            [[[0.0]], [[0.8333334]], [[0.0]]],
+            [[[0.25]], [[0.0]], [[0.5833334]]],
+        ]
+        np.testing.assert_allclose(
+            correct_weight_grad_values, weight.grad.numpy()
+        )
+        correct_bias_grad_values = [0.33333334]
+        np.testing.assert_allclose(correct_bias_grad_values, bias.grad.numpy())
 
     def test_submconv3d_igemm_forward(self):
         indices = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 2], [1, 3, 2, 3]]
@@ -143,9 +215,12 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
         sparse_input = paddle.sparse.sparse_coo_tensor(
             indices, values, dense_shape, False
         )
+        sparse_input.stop_gradient = False
 
         weight = paddle.ones((1, 3, 3, 1, 1), dtype='float32')
+        weight.stop_gradient = False
         bias = paddle.ones((1), dtype='float32')
+        bias.stop_gradient = False
         sparse_out = paddle.sparse.nn.functional.subm_conv3d_igemm(
             sparse_input,
             weight,
@@ -158,11 +233,36 @@ class TestSparseConvImplicitGemm(unittest.TestCase):
             key='subm_conv_3d',
         )
 
+        # check the forward
         # the output shape of subm_conv is same as input shape
         np.testing.assert_array_equal(indices, sparse_out.indices().numpy())
         np.testing.assert_array_equal(
             correct_out_values, sparse_out.values().numpy()
         )
+
+        # check x_grad
+        x_grad = paddle.grad(sparse_out, sparse_input)[0]
+        correct_x_grad_values = [[2], [2], [4], [2]]
+        np.testing.assert_array_equal(indices, x_grad.indices().numpy())
+        np.testing.assert_array_equal(
+            correct_x_grad_values, x_grad.values().numpy()
+        )
+
+        # check weight_grad
+        loss = sparse_out.to_dense().mean()
+        loss.backward()
+        correct_weight_grad_values = [
+            [
+                [[[0.33333334]], [[0.0]], [[0.16666667]]],
+                [[[0.0]], [[0.8333334]], [[0.0]]],
+                [[[0.25]], [[0.0]], [[0.5833334]]],
+            ]
+        ]
+        np.testing.assert_allclose(
+            correct_weight_grad_values, weight.grad.numpy()
+        )
+        correct_bias_grad_values = [0.33333334]
+        np.testing.assert_allclose(correct_bias_grad_values, bias.grad.numpy())
 
     def test_multi_input(self):
         indices_1 = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 2], [1, 3, 2, 3]]

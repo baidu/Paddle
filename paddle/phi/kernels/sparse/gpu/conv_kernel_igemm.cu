@@ -153,13 +153,13 @@ void Conv3dImplicitGemmGPUKernel(const GPUContext& dev_ctx,
       dev_ctx, kernel, perm, &kernel_transpose);
 
 #ifdef PADDLE_WITH_CUDA
-  conv_forward_implicit_gemm_cuda(dev_ctx,
-                                  x.values(),
-                                  kernel_transpose,
-                                  *(out_kmap_cache_ptr->out_in_map),
-                                  out->nnz(),
-                                  out_channels,
-                                  *(out->mutable_values()));
+  conv_forward_implicit_gemm_cuda<IntT>(dev_ctx,
+                                        x.values(),
+                                        kernel_transpose,
+                                        *(out_kmap_cache_ptr->out_in_map),
+                                        out->nnz(),
+                                        out_channels,
+                                        *(out->mutable_values()));
 #else
   PADDLE_THROW(common::errors::Unimplemented(
       "conv_forward_implicit_gemm_cuda is only supported on CUDA."));

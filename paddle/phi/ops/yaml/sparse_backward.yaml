@@ -124,6 +124,16 @@
            cast_csr_grad {sparse_csr, sparse_csr -> sparse_csr}
     data_type : out_grad
 
+- backward_op : conv3d_gemm_grad
+  forward : conv3d_implicit_gemm (Tensor x, Tensor kernel, int[] paddings, int[] dilations, int[] strides, int groups, bool subm, str key) -> Tensor(out)
+  args : (Tensor x, Tensor kernel, Tensor out, Tensor out_grad, int[] paddings, int[] dilations, int[] strides, int groups, bool subm, str key)
+  output : Tensor(x_grad), Tensor(kernel_grad)
+  infer_meta :
+    func : GeneralBinaryGradInferMeta
+    param : [x, kernel]
+  kernel :
+    func : conv3d_grad_implicit_gemm{sparse_coo, dense, sparse_coo, sparse_coo -> sparse_coo, dense}
+
 - backward_op : conv3d_grad
   forward : conv3d (Tensor x, Tensor kernel, int[] paddings, int[] dilations, int[] strides, int groups, bool subm, str key) -> Tensor(out), Tensor(rulebook), Tensor(counter)
   args : (Tensor x, Tensor kernel, Tensor out, Tensor rulebook, Tensor counter, Tensor out_grad, int[] paddings, int[] dilations, int[] strides, int groups, bool subm, str key)

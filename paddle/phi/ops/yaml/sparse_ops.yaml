@@ -130,6 +130,7 @@
   kernel :
     func : conv3d_implicit_gemm{sparse_coo, dense -> sparse_coo}
     layout : x
+  backward : conv3d_gemm_grad
 
 - op : divide
   args : (Tensor x, Tensor y)
