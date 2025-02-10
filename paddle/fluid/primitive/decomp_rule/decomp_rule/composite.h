@@ -1264,7 +1264,9 @@ Tensor elu_decomp(const Tensor& x, const float alpha) {
     zero = full<T>(x_cast.shape(), 0, x_cast.type(), x_cast.place());
     tmp_res = alpha * (exp<T>(x_cast) - 1);
   }
-  auto ans = where<T>(x_cast > zero, x_cast, tmp_res);
+  auto cond = cast<T>(x_cast > zero, x_cast.dtype());
+  auto ans =
+      cond * x_cast + (full_scalar<T>(1.0, x_cast.dtype()) - cond) * tmp_res;
   return ConvertToOrig<T>(ans, x.dtype());
 }
 
