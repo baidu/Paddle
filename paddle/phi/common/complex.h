@@ -24,6 +24,9 @@
 #ifdef PADDLE_WITH_CUDA
 #include <cuComplex.h>
 #include <thrust/complex.h>
+#ifdef PADDLE_WITH_CCCL
+#include <cuda/std/complex>
+#endif  // PADDLE_WITH_CCCL
 #endif  // PADDLE_WITH_CUDA
 
 #ifdef PADDLE_WITH_HIP
