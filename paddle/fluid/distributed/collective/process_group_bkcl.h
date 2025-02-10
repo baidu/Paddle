@@ -15,6 +15,7 @@
 #pragma once
 
 #include <chrono>
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -52,18 +53,23 @@ class ProcessGroupBKCL : public ProcessGroupWithStream {
              bool use_calc_stream);
     virtual ~BKCLTask();
 
+    using CommFunc = std::function<void()>;
     // TODO(zhangxiaoci): XPU do not support event query for now
     bool IsCompleted() override;
     bool Wait(std::chrono::milliseconds timeout = kWaitTimeout) override;
     void Synchronize() override;
+    void RegisterDelayedCommFunc(const CommFunc& func);
 
     void SynchronizeStreams();
 
    public:
     bool barrier_{false};
     std::shared_ptr<XPUEventManager> comm_event_;  // event on comm stream
+    std::vector<CommFunc> delayed_funcs_;
 
    private:
+    bool HasDelayedCommFunc() const { return !delayed_funcs_.empty(); }
+    void StartDelayedCommFunc();
     Place place_;
   };
 
