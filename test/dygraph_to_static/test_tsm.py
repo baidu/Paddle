@@ -48,7 +48,7 @@ def parse_args():
         help='default use gpu.',
     )
     args = parser.parse_args(
-        ['--config', __file__.rpartition('/')[0] + '/tsm.yaml']
+        ['--config', os.path.join(os.path.dirname(__file__), 'tsm.yaml')]
     )
     return args
 

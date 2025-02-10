@@ -45,7 +45,6 @@ test_dir = legacy_test_dir.parent  # test
 sys.path.append(str(legacy_test_dir.absolute()))
 sys.path.append(str(test_dir.absolute()))
 
-from utils import pir_executor_guard, static_guard
 from white_list import (
     check_shape_white_list,
     compile_vs_runtime_white_list,
@@ -56,6 +55,7 @@ from white_list import (
 )
 
 import paddle
+from legacy_test.utils import pir_executor_guard, static_guard
 from paddle import base
 from paddle.autograd.ir_backward import grad as ir_grad
 from paddle.base import Scope, core, unique_name

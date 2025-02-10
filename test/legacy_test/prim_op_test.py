@@ -17,11 +17,11 @@ import struct
 from collections import defaultdict
 from functools import partial
 
-import config
 import numpy as np
-from utils import dygraph_guard, static_guard
 
 import paddle
+from legacy_test import config
+from legacy_test.utils import dygraph_guard, static_guard
 from paddle.autograd.backward_utils import ValueSet
 from paddle.autograd.ir_backward import grad as ir_grad
 from paddle.base import Scope, core

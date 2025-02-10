@@ -26,10 +26,10 @@ from typing import cast
 
 import numpy as np
 from prim_op_test import OpTestUtils, _as_list, convert_uint16_to_float, flatten
-from utils import dygraph_guard
 
 import paddle
 import paddle.distributed as dist
+from legacy_test.utils import dygraph_guard
 
 IMPORT_PACKAGE_TEMPLATE = """
 
