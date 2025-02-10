@@ -35,7 +35,8 @@ __global__ void AccuracyCudaKernel(const int N,
                                    const int64_t* labeldata,
                                    int* correct_data,
                                    T* accuracy,
-                                   int* total_data) {
+                                   int* total_data,
+                                   gpuStream_t stream) {
   using MT = typename phi::dtype::MPTypeTrait<T>::Type;
   int count = 0;
   __shared__ int total[BlockSize];
@@ -54,7 +55,8 @@ __global__ void AccuracyCudaKernel(const int N,
 
 // reduce the count with init value 0, and output accuracy.
 #ifdef PADDLE_WITH_CUDA
-  int result = thrust::reduce(thrust::device, total, total + BlockSize, 0);
+  int result =
+      thrust::reduce(thrust::cuda::par.on(stream), total, total + BlockSize, 0);
 #else
   // HIP thrust::reduce not support __device__
   for (int s = BlockSize / 2; s > 0; s >>= 1) {
@@ -128,7 +130,8 @@ void AccuracyKernel(const Context& dev_ctx,
                                                   label_data,
                                                   correct_data,
                                                   accuracy_data,
-                                                  total_data);
+                                                  total_data,
+                                                  stream);
 }
 }  // namespace phi
 

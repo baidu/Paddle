@@ -159,14 +159,20 @@ static void GetModebySort(const phi::GPUContext& dev_ctx,
   thrust::device_ptr<T> out_tensor_ptr(out_tensor);
   thrust::device_ptr<int64_t> indices_tensor_ptr(indices_tensor);
 
+#ifdef PADDLE_WITH_CUDA
+  const auto& exec_policy = thrust::cuda::par.on(dev_ctx.stream());
+#else
+  const auto& exec_policy = thrust::hip::par.on(dev_ctx.stream());
+#endif
+
   for (int64_t i = 0; i < num_rows; ++i) {
     T* begin = input_tmp_data + num_cols * i;
     T* end = input_tmp_data + num_cols * (i + 1);
     thrust::device_vector<int64_t> indices_data(num_cols);
     thrust::sequence(
-        thrust::device, indices_data.begin(), indices_data.begin() + num_cols);
-    thrust::sort_by_key(thrust::device, begin, end, indices_data.begin());
-    int unique = 1 + thrust::inner_product(thrust::device,
+        exec_policy, indices_data.begin(), indices_data.begin() + num_cols);
+    thrust::sort_by_key(exec_policy, begin, end, indices_data.begin());
+    int unique = 1 + thrust::inner_product(exec_policy,
                                            begin,
                                            end - 1,
                                            begin + 1,
@@ -175,17 +181,17 @@ static void GetModebySort(const phi::GPUContext& dev_ctx,
                                            thrust::not_equal_to<T>());
     thrust::device_vector<T> keys_data(unique);
     thrust::device_vector<int64_t> cnts_data(unique);
-    thrust::reduce_by_key(thrust::device,
+    thrust::reduce_by_key(exec_policy,
                           begin,
                           end,
                           thrust::constant_iterator<int>(1),
                           keys_data.begin(),
                           cnts_data.begin());
     auto it = thrust::max_element(
-        thrust::device, cnts_data.begin(), cnts_data.begin() + unique);
+        exec_policy, cnts_data.begin(), cnts_data.begin() + unique);
     T mode = keys_data[it - cnts_data.begin()];
     int64_t counts = cnts_data[it - cnts_data.begin()];
-    auto pos = thrust::find(thrust::device, begin, end, mode);
+    auto pos = thrust::find(exec_policy, begin, end, mode);
     int64_t index = indices_data[pos - begin + counts - 1];
     out_tensor_ptr[i] = static_cast<T>(mode);
     indices_tensor_ptr[i] = static_cast<int64_t>(index);
