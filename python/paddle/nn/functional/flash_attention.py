@@ -280,7 +280,7 @@ def _select_sdp(head_dim: int) -> str:
 
     # not use sdp_kernel
     if g_enable_flash is None:
-        if "gpu" not in place:
+        if "gpu" not in place and "mlu" not in place:
             return "math"
         else:
             return _select_sdp_cuda(head_dim)
