@@ -1,0 +1,24 @@
+name: Check PR Template self hosted
+
+on:
+  pull_request:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [test]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Ubuntu24.04
+      uses: actions/setup-python@v3
+      with:
+        docker-image:: "ubuntu:latest"
+    - name: Install dependencies
+      run: |
+        python --version
+        pwd
+        ls
