@@ -649,9 +649,9 @@ class SingleProcessMultiThread(GradAllReduce):
             ring_id = (ring_id + 1) % self.nrings
             block._insert_op(
                 global_offset,
-                type='c_allreduce_xsum',
-                inputs={'X': input_grads},
-                outputs={'Out': input_grads},
+                type='all_reduce',
+                inputs={'x': input_grads},
+                outputs={'out': input_grads},
                 attrs={'ring_id': ring_id, self.op_role_key: OpRole.Backward},
             )
             global_offset += 1
