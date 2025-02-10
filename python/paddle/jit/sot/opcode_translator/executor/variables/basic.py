@@ -797,7 +797,6 @@ class SymbolicVariable(VariableBase):
             if var.tracker.is_traceable():
                 tracker_expr = var.tracker.trace_value_from_frame().inlined_expr
                 symbolic_inputs[tracker_expr] = None
-                return
             for input_var in var.tracker.inputs:
                 disable_symbolic(input_var)
 
@@ -891,18 +890,11 @@ class SymbolicVariable(VariableBase):
 
     @check_guard
     def make_stringified_guard(self) -> list[StringifiedExpression]:
-        assert ENV_SOT_ALLOW_DYNAMIC_SHAPE.get()
-        from ..executor_cache import OpcodeExecutorCache
-
-        frame_value_tracer = self.tracker.trace_value_from_frame()
-        symbolic_inputs = OpcodeExecutorCache().get_symbolic_inputs(
-            self.graph.pycode_gen._origin_code
-        )
-
-        assert frame_value_tracer.inlined_expr in symbolic_inputs
-
         if self.need_guard_value:
             return super().make_stringified_guard()
+
+        assert ENV_SOT_ALLOW_DYNAMIC_SHAPE.get()
+        frame_value_tracer = self.tracker.trace_value_from_frame()
         return [
             FasterStringifiedExpression(
                 f"id(type({{}})) == {id(self.get_py_type())}",

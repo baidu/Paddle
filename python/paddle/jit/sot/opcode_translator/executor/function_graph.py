@@ -650,13 +650,10 @@ class FunctionGraph:
                 metas = convert_to_meta(args)
                 kwmetas = convert_to_meta(kwargs)
                 return args, kwargs, infer_meta_fn(func, *metas, **kwmetas)
-            except (NotSupportedTensorArgumentError, TypeError) as e:
+            except NotSupportedTensorArgumentError as e:
                 bound_arguments = inspect.signature(func).bind(*args, **kwargs)
                 bound_arguments.apply_defaults()
-                if (
-                    isinstance(e, NotSupportedTensorArgumentError)
-                    and e.name in bound_arguments.arguments
-                ):
+                if e.name in bound_arguments.arguments:
                     original_var = bound_arguments.arguments[e.name]
                     flatten_vars = original_var.flatten_inner_vars()
                     if not any(

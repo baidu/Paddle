@@ -129,23 +129,42 @@ class SymbolicOperationTracker(Tracker):
         self.method_name = method_name
 
     def gen_instructions(self, codegen: PyCodeGen):
-        raise InnerError("SymbolicOperationTracker has no instructions")
+        obj = self.inputs[0]
+        obj.tracker.gen_instructions(codegen)
+        codegen.gen_load_method(self.method_name)
+        for input in self.inputs[1:]:
+            input.tracker.gen_instructions(codegen)
+        codegen.gen_call_method(len(self.inputs) - 1)
 
     def trace_value_from_frame(self):
-        raise InnerError(
-            "SymbolicOperationTracker can't trace value from frame"
+        # TODO(zrr1999): use operator instead of magic method
+        obj_tracer = self.inputs[0].tracker.trace_value_from_frame()
+        args_placeholders = ", ".join(["{}"] * (len(self.inputs) - 1))
+        expr = f"{{}}.{self.method_name}({args_placeholders})"
+
+        return StringifiedExpression(
+            expr,
+            [
+                obj_tracer,
+                *[
+                    input.tracker.trace_value_from_frame()
+                    for input in self.inputs[1:]
+                ],
+            ],
+            union_free_vars(
+                obj_tracer.free_vars,
+                *[
+                    input.tracker.trace_value_from_frame().free_vars
+                    for input in self.inputs[1:]
+                ],
+            ),
         )
 
     def __repr__(self) -> str:
         return f"SymbolicOperationTracker(num_inputs={len(self.inputs)})"
 
-    def is_traceable(self):
-        # TODO(zrr1999): to implement gen_instructions and trace_value_from_frame
-        return False
-
     def need_guard(self) -> bool:
-        # TODO(zrr1999): to implement gen_instructions and trace_value_from_frame
-        return False
+        return self.is_traceable() and self.inputs[0].tracker.need_guard()
 
 
 class DanglingTracker(Tracker):

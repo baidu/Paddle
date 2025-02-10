@@ -41,6 +41,7 @@ from ...tensor.creation import zeros
 
 # TODO: define the common functions to build a neural network
 from ...tensor.manipulation import squeeze, unsqueeze
+from ...utils.layers_utils import NotSupportedTensorArgumentError
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -1922,6 +1923,19 @@ def pad(
             return out
 
         if in_pir_mode():
+            if isinstance(paddings, paddle.pir.Value):
+                raise NotSupportedTensorArgumentError(
+                    "`pad` must be list of int, but received Tensor.",
+                    "pad",
+                )
+            if isinstance(paddings, list) and any(
+                not isinstance(i, int) for i in pad
+            ):
+                raise NotSupportedTensorArgumentError(
+                    f"`pad` must be list of int, but received list of {type(pad[0])}.",
+                    "pad",
+                )
+
             if isinstance(pad_value, paddle.pir.Value):
                 return _C_ops.pad(x, paddings, pad_value)
             else:
@@ -2035,6 +2049,16 @@ def pad(
     if in_dynamic_or_pir_mode():
         if isinstance(pad, Variable):
             pad = pad.tolist()
+        if isinstance(pad, paddle.pir.Value):
+            raise NotSupportedTensorArgumentError(
+                "`pad` must be list of int, but received Tensor.",
+                "pad",
+            )
+        if isinstance(pad, list) and any(not isinstance(i, int) for i in pad):
+            raise NotSupportedTensorArgumentError(
+                f"`pad` must be list of int, but received list of {type(pad[0])}.",
+                "pad",
+            )
         out = _C_ops.pad3d(x, pad, mode, value, data_format)
     else:
         attrs = {'mode': mode, 'value': value, 'data_format': data_format}
