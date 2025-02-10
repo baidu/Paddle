@@ -1,4 +1,4 @@
-#   Copyright (c) 2018 PaddlePaddle Authors. All Rights Reserved.
+#   Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -486,6 +486,445 @@ class TestClipOpFp16(unittest.TestCase):
 class TestInplaceClipAPI(TestClipAPI):
     def _executed_api(self, x, min=None, max=None):
         return x.clip_(min, max)
+
+
+class TestClipTensorAPI(unittest.TestCase):
+    def initCase(self):
+        self.x_shape = [10, 10, 1]
+        self.min_shape = [10]
+        self.max_shape = [10]
+        self.dtype = 'float32'
+
+    def setUp(self):
+        self.initCase()
+        self.place = (
+            base.CUDAPlace(0)
+            if base.core.is_compiled_with_cuda()
+            else base.CPUPlace()
+        )
+        self.x = np.random.random(self.x_shape).astype(self.dtype)
+        if self.min_shape is None:
+            self.min = None
+        else:
+            self.min = np.random.random(self.min_shape).astype(self.dtype)
+        if self.max_shape is None:
+            self.max = None
+        else:
+            self.max = np.random.random(self.max_shape).astype(self.dtype)
+        self.out_np = self.x.clip(self.min, self.max)
+
+    def check_dygraph_api(self):
+        if self.dtype == 'float16':
+            return
+        paddle.disable_static(self.place)
+        x_pd = paddle.to_tensor(self.x)
+        if self.min is None:
+            min = None
+        else:
+            min = paddle.to_tensor(self.min)
+        if self.max is None:
+            max = None
+        else:
+            max = paddle.to_tensor(self.max)
+        out_pd = paddle.clip(x_pd, min, max)
+        np.testing.assert_allclose(self.out_np, out_pd.numpy())
+        paddle.enable_static()
+
+    def check_static_api(self):
+        if self.dtype == 'float16':
+            return
+        paddle.enable_static()
+        main_program = paddle.static.Program()
+        startup_program = paddle.static.Program()
+        exe = paddle.static.Executor(self.place)
+        with paddle.static.program_guard(main_program, startup_program):
+            x_pd = paddle.static.data(
+                name='x', shape=self.x_shape, dtype=self.dtype
+            )
+            if self.min is not None:
+                min_pd = paddle.static.data(
+                    name='min', shape=self.min_shape, dtype=self.dtype
+                )
+            else:
+                min_pd = None
+            if self.max is not None:
+                max_pd = paddle.static.data(
+                    name='max', shape=self.max_shape, dtype=self.dtype
+                )
+            else:
+                max_pd = None
+            out_pd = paddle.clip(x_pd, min_pd, max_pd)
+        res = exe.run(
+            main_program,
+            feed={'x': self.x, 'min': self.min, 'max': self.max},
+            fetch_list=[out_pd],
+        )
+        np.testing.assert_allclose(self.out_np, res[0])
+        paddle.disable_static()
+
+    def check_inplace_api(self):
+        if self.dtype == 'float16':
+            return
+        paddle.disable_static(self.place)
+        x_pd = paddle.rand(self.x_shape, dtype=self.dtype)
+        min_pd = paddle.rand([self.x_shape[0]], dtype=self.dtype)
+        max_pd = paddle.rand([self.x_shape[0]], dtype=self.dtype)
+        out_np = x_pd.numpy().clip(min_pd.numpy(), max_pd.numpy())
+        x_pd.clip_(min_pd, max_pd)
+        np.testing.assert_allclose(out_np, x_pd.numpy())
+        paddle.enable_static()
+
+    def test_fp16_api(self):
+        if base.core.is_compiled_with_cuda():
+            if self.dtype == 'float16':
+                paddle.enable_static()
+                main_program = paddle.static.Program()
+                startup_program = paddle.static.Program()
+                exe = paddle.static.Executor(self.place)
+                with paddle.static.program_guard(main_program, startup_program):
+                    x_pd = paddle.static.data(
+                        name='x', shape=self.x_shape, dtype=self.dtype
+                    )
+                    if self.min is not None:
+                        min_pd = paddle.static.data(
+                            name='min', shape=self.min_shape, dtype=self.dtype
+                        )
+                    else:
+                        min_pd = None
+                    if self.max is not None:
+                        max_pd = paddle.static.data(
+                            name='max', shape=self.max_shape, dtype=self.dtype
+                        )
+                    else:
+                        max_pd = None
+                    out_pd = paddle.clip(x_pd, min_pd, max_pd)
+                res = exe.run(
+                    main_program,
+                    feed={
+                        'x': self.x,
+                        'min': self.min,
+                        'max': self.max,
+                    },
+                    fetch_list=[out_pd],
+                )
+                paddle.disable_static()
+
+
+class TestClipTensorCase4(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = [10]
+        self.dtype = 'float64'
+
+
+class TestClipTensorCase5(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = [10]
+        self.dtype = 'float32'
+
+
+class TestClipTensorCase6(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = [10]
+        self.dtype = 'float16'
+
+
+class TestClipTensorCase7(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = None
+        self.max_shape = [10]
+        self.dtype = 'float64'
+
+
+class TestClipTensorCase8(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = None
+        self.max_shape = [10]
+        self.dtype = 'float32'
+
+
+class TestClipTensorCase9(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = None
+        self.max_shape = [10]
+        self.dtype = 'float16'
+
+
+class TestClipTensorCase10(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = None
+        self.dtype = 'float64'
+
+
+class TestClipTensorCase11(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = None
+        self.dtype = 'float32'
+
+
+class TestClipTensorCase12(TestClipTensorAPI):
+    def initCase(self):
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = None
+        self.dtype = 'float16'
+
+
+class TestClipTensorCase13(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int32'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = [10]
+
+
+class TestClipTensorCase14(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int64'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = [10]
+
+
+class TestClipTensorCase15(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int32'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = None
+        self.max_shape = [10]
+
+
+class TestClipTensorCase16(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int64'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = None
+        self.max_shape = [10]
+
+
+class TestClipTensorCase17(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int32'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = None
+
+
+class TestClipTensorCase18(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'int64'
+        self.x_shape = [10, 1, 10]
+        self.min_shape = [10]
+        self.max_shape = None
+
+
+class TestClipTensorCase19(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'float32'
+        self.x_shape = [10]
+        self.min_shape = [10, 1, 10]
+        self.max_shape = [10]
+
+
+class TestClipTensorCase20(TestClipTensorAPI):
+    def initCase(self):
+        self.dtype = 'float32'
+        self.x_shape = [10]
+        self.min_shape = [10]
+        self.max_shape = [10, 1, 10]
+
+
+class TestClipTensorOp(OpTest):
+    def setUp(self):
+        self.max_relative_error = 0.006
+        self.op_type = "clip_tensor"
+        self.python_api = paddle.clip
+
+        self.inputs = {}
+        self.initTestCase()
+        input = np.random.random(self.shape).astype(self.dtype)
+        min_v = np.full(self.shape, self.min_value).astype(self.dtype)
+        max_v = np.full(self.shape, self.max_value).astype(self.dtype)
+
+        input[np.abs(input - min_v) < self.max_relative_error] = 0.5
+        input[np.abs(input - max_v) < self.max_relative_error] = 0.5
+
+        self.inputs['min'] = min_v
+        self.inputs['max'] = max_v
+        self.inputs['x'] = input
+        self.outputs = {'out': np.clip(input, min_v, max_v)}
+
+    def test_check_output(self):
+        paddle.enable_static()
+        self.check_output(check_pir=True)
+
+    def test_check_grad_normal(self):
+        paddle.enable_static()
+        self.check_grad(['x'], 'out', check_pir=True)
+
+    def initTestCase(self):
+        self.dtype = np.float32
+        self.shape = (8, 5, 6)
+        self.min_value = 0.8
+        self.max_value = 0.3
+
+
+class TestClipTensorOpCase1(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float32
+        self.shape = (5, 6, 8)
+        self.max_value = 0.7
+        self.min_value = 0.0
+
+
+class TestClipTensorOpCase2(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float32
+        self.shape = (8, 5, 6)
+        self.max_value = 1.0
+        self.min_value = 0.0
+
+
+class TestClipTensorOpCase3(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float32
+        self.shape = (4, 8, 6)
+        self.max_value = 0.7
+        self.min_value = 0.2
+
+
+class TestClipTensorOpFP16Case1(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float16
+        self.shape = (5, 6, 8)
+        self.max_value = 0.7
+        self.min_value = 0.0
+
+
+class TestClipTensorOpFP16Case2(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float16
+        self.shape = (8, 5, 6)
+        self.max_value = 1.0
+        self.min_value = 0.0
+
+
+class TestClipTensorOpFP16Case3(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float16
+        self.shape = (5, 8, 6)
+        self.max_value = 0.7
+        self.min_value = 0.2
+
+
+class TestClipTensorOpFP64Case1(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float64
+        self.shape = (8, 6, 5)
+        self.max_value = 0.7
+        self.min_value = 0.0
+
+
+class TestClipTensorOpFP64Case2(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float64
+        self.shape = (8, 5, 6)
+        self.max_value = 1.0
+        self.min_value = 0.0
+
+
+class TestClipTensorOpFP64Case3(TestClipTensorOp):
+    def initTestCase(self):
+        self.dtype = np.float64
+        self.shape = (4, 8, 6)
+        self.max_value = 0.7
+        self.min_value = 0.2
+
+
+@unittest.skipIf(
+    not core.is_compiled_with_cuda()
+    or not core.is_bfloat16_supported(core.CUDAPlace(0)),
+    "core is not compiled with CUDA and not support the bfloat16",
+)
+class TestClipTensorBF16Op(OpTest):
+    def setUp(self):
+        self.max_relative_error = 0.006
+        self.op_type = "clip_tensor"
+        self.python_api = paddle.clip
+        self.inputs = {}
+        self.initTestCase()
+
+        self.inputs['x'] = np.random.random(self.shape).astype(np.float32)
+        self.inputs['min'] = np.full(self.shape, self.min_value).astype(
+            np.float32
+        )
+        self.inputs['max'] = np.full(self.shape, self.max_value).astype(
+            np.float32
+        )
+        min_v = self.inputs['min']
+        max_v = self.inputs['max']
+
+        self.inputs['x'][
+            np.abs(self.inputs['x'] - min_v) < self.max_relative_error
+        ] = 0.5
+        self.inputs['x'][
+            np.abs(self.inputs['x'] - max_v) < self.max_relative_error
+        ] = 0.5
+
+        self.inputs['x'] = convert_float_to_uint16(self.inputs['x'])
+        self.inputs['min'] = convert_float_to_uint16(self.inputs['min'])
+        self.inputs['max'] = convert_float_to_uint16(self.inputs['max'])
+        out = np.clip(self.inputs['x'], min_v, max_v)
+
+        self.outputs = {'out': convert_float_to_uint16(out)}
+
+    def test_check_output(self):
+        place = paddle.CUDAPlace(0)
+        paddle.enable_static()
+        self.check_output_with_place(place)
+
+    def test_check_grad_normal(self):
+        place = paddle.CUDAPlace(0)
+        paddle.enable_static()
+        self.check_grad_with_place(place, ['x'], 'out')
+
+    def initTestCase(self):
+        self.shape = (8, 5, 6)
+        self.min_value = 0.8
+        self.max_value = 0.3
+
+
+class TestClipTensorOBF16Case1(TestClipTensorBF16Op):
+    def initTestCase(self):
+        self.shape = (8, 6, 5)
+        self.max_value = 0.7
+        self.min_value = 0.0
+
+
+class TestClipTensorOpBF16Case2(TestClipTensorBF16Op):
+    def initTestCase(self):
+        self.shape = (5, 8, 6)
+        self.max_value = 1.0
+        self.min_value = 0.0
+
+
+class TestClipTensorOpBF16Case3(TestClipTensorBF16Op):
+    def initTestCase(self):
+        self.shape = (4, 8, 7)
+        self.max_value = 0.7
+        self.min_value = 0.2
 
 
 if __name__ == '__main__':
