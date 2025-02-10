@@ -53,6 +53,10 @@ limitations under the License. */
 #include "paddle/fluid/distributed/collective/process_group_bkcl.h"
 #endif
 
+#if defined(PADDLE_WITH_UCC)
+#include "paddle/fluid/distributed/collective/process_group_ucc.h"
+#endif
+
 #include "paddle/phi/kernels/sync_batch_norm_kernel.h"
 
 namespace paddle::pybind {
@@ -1424,6 +1428,26 @@ void BindDistributed(py::module *m) {
           .def_static("group_end",
                       distributed::ProcessGroupBKCL::GroupEnd,
                       py::call_guard<py::gil_scoped_release>());
+#endif
+
+#if defined(PADDLE_WITH_UCC)
+  auto processGroupUCC =
+      py::class_<distributed::ProcessGroupUCC,
+                 std::shared_ptr<distributed::ProcessGroupUCC>>(
+          *m, "ProcessGroupUCC", ProcessGroup)
+          .def_static("create",
+                      distributed::ProcessGroupUCC::CreateProcessGroupUCC,
+                      py::arg("store"),
+                      py::arg("rank"),
+                      py::arg("world_size"),
+                      py::arg("group_id") = 0,
+                      py::call_guard<py::gil_scoped_release>());
+  //   .def_static("group_start",
+  //               distributed::ProcessGroupBKCL::GroupStart,
+  //               py::call_guard<py::gil_scoped_release>())
+  //   .def_static("group_end",
+  //               distributed::ProcessGroupBKCL::GroupEnd,
+  //               py::call_guard<py::gil_scoped_release>());
 #endif
 
   py::class_<distributed::ProcessGroup::Task,

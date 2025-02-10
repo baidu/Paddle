@@ -108,6 +108,10 @@ if(WITH_XPU)
   endif()
 endif()
 
+if(WITH_UCC)
+  list(APPEND PHI_DEPS ucclib)
+endif()
+
 if(WITH_DGC)
   list(APPEND PHI_DEPS dgc)
 endif()

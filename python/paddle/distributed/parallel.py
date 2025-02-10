@@ -932,7 +932,7 @@ def _start_kv_server(port, http_server_d, size):
 def _is_cpuonly(backend):
     check_backend(backend)
     if (
-        backend in ['auto', 'nccl', 'bkcl', 'heter']
+        backend in ['auto', 'nccl', 'bkcl', 'heter', 'ucc']
         and (core.is_compiled_with_cuda() or core.is_compiled_with_xpu())
     ) or backend == 'xccl':
         # passes 'auto' and can use cuda or xpu, use the default logics. so return False
@@ -1134,7 +1134,7 @@ def init_parallel_env() -> Group:
         default_store = core.create_or_get_global_tcp_store()
         _set_default_store(default_store)
 
-        if backend in ["nccl", 'xccl', 'bkcl']:
+        if backend in ["nccl", 'xccl', 'bkcl', 'ucc']:
             core.CommContextManager.set_device_id(parallel_env.device_id)
 
         pg = _new_process_group_impl(

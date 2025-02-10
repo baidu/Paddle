@@ -46,7 +46,7 @@ from .fleet.layers.mpu.mp_ops import (  # noqa: F401
 )
 
 if TYPE_CHECKING:
-    _BackendList: TypeAlias = Literal["gloo", "nccl", "xccl", "bkcl"]
+    _BackendList: TypeAlias = Literal["gloo", "nccl", "xccl", "bkcl", "ucc"]
 __all__ = []
 
 _global_env = None
@@ -75,7 +75,7 @@ _group_map_backend = {}
 # Name of the default group for init_parallel_env
 _default_group_name = "_default_pg"
 
-_valid_backend_list = ['nccl', 'gloo', 'heter', 'xccl', 'bkcl']
+_valid_backend_list = ['nccl', 'gloo', 'heter', 'xccl', 'bkcl', 'ucc']
 _default_store = None  # the default tcp store
 _default_backend = None
 _default_timeout = datetime.timedelta(seconds=1800)
@@ -178,6 +178,8 @@ def _new_process_group_impl(
         )
     elif backend == "bkcl":
         pg = core.ProcessGroupBKCL.create(store, rank, world_size, group_id)
+    elif backend == "ucc":
+        pg = core.ProcessGroupUCC.create(store, rank, world_size, group_id)
     return pg
 
 
