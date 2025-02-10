@@ -131,7 +131,7 @@ class TestLbfgs(unittest.TestCase):
             # minimum = (a, a^2)
             x, y = position[0], position[1]
             c = (a - x) ** 2 + b * (y - x**2) ** 2
-            # the return cant be np array[1], or in jacobin will cause flat error
+            # the return can't be np array[1], or in jacobin will cause flat error
             return c[0]
 
         x0 = np.random.random(size=[2]).astype('float32')

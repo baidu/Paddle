@@ -149,7 +149,7 @@ void SingleThreadPrediction(paddle_infer::Predictor *predictor,
 
 void CompareRecord(std::map<std::string, Record> *truth_output_data,
                    std::map<std::string, Record> *infer_output_data,
-                   float epislon = 1e-5) {
+                   float epsilon = 1e-5) {
   for (const auto &[key, value] : *infer_output_data) {
     auto truth_record = (*truth_output_data)[key];
     VLOG(1) << "output name: " << key;
@@ -159,7 +159,7 @@ void CompareRecord(std::map<std::string, Record> *truth_output_data,
       VLOG(1) << "compare: " << value.data.data()[i] << ",\t"
               << truth_record.data.data()[i];
       ASSERT_LT(fabs(value.data.data()[i] - truth_record.data.data()[i]),
-                epislon);
+                epsilon);
     }
   }
 }

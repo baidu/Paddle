@@ -562,7 +562,7 @@ function(cc_test_old TARGET_NAME)
     cmake_parse_arguments(cc_test "${options}" "${oneValueArgs}"
                           "${multiValueArgs}" ${ARGN})
     cc_test_build(${TARGET_NAME} SRCS ${cc_test_SRCS} DEPS ${cc_test_DEPS})
-    # we donot test hcom op, because it need complex configuration
+    # we do not test hcom op, because it need complex configuration
     # with more than one machine
     cc_test_run(${TARGET_NAME} COMMAND ${TARGET_NAME} ARGS ${cc_test_ARGS})
   elseif(WITH_TESTING AND NOT TEST ${TARGET_NAME})

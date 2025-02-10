@@ -389,7 +389,7 @@ void SetFakeImageInput(std::vector<std::vector<PaddleTensor>> *inputs,
                        std::string model_filename = "model",
                        std::string params_filename = "params",
                        const std::vector<std::string> *feed_names = nullptr,
-                       const int continuous_inuput_index = 0) {
+                       const int continuous_input_index = 0) {
   // Set fake_image_data
   PADDLE_ENFORCE_EQ(FLAGS_test_all_data,
                     0,
@@ -442,7 +442,7 @@ void SetFakeImageInput(std::vector<std::vector<PaddleTensor>> *inputs,
     // fill input data, for profile easily, do not use random data here.
     for (size_t j = 0; j < len; ++j) {
       *(input_data + j) =
-          static_cast<float>((j + continuous_inuput_index) % len) / len;
+          static_cast<float>((j + continuous_input_index) % len) / len;
     }
   }
   (*inputs).emplace_back(input_slots);

@@ -27,7 +27,7 @@ import paddle
             np.random.randn(4, 3, 2),  # x
             np.random.randint(-3, 3, size=(16,)),  # index
             1,  # axis
-            np.random.randint(0, 3, size=(4, 16, 2)),  # valie
+            np.random.randint(0, 3, size=(4, 16, 2)),  # value
             np.random.rand(4, 3, 2),  # cotangent
             np.float32,  # dtype
         ),

@@ -64,10 +64,10 @@ std::shared_ptr<Predictor> InitPredictor() {
   // only kHalf supported
   config.EnableTensorRtEngine(
       1 << 30, 1, 5, Config::Precision::kInt8, false, false);
-  // erinie varlen must be used with dynamic shape
+  // ernie varlen must be used with dynamic shape
   config.SetTRTDynamicShapeInfo(
       min_input_shape, max_input_shape, opt_input_shape);
-  // erinie varlen must be used with oss
+  // ernie varlen must be used with oss
   config.EnableVarseqlen();
   paddle_infer::experimental::InternalUtils::SetTransformerPosid(&config,
                                                                  input_name2);
