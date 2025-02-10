@@ -3279,7 +3279,7 @@ struct CudaReluGradFunctor : public BaseActivationFunctor<T> {
 
   // dx = dout * (out > 0)
   __device__ __forceinline__ T operator()(const T dout, const T out) const {
-    return out > zero ? dout : zero;
+    return out <= zero ? zero : dout;
   }
 
   static constexpr ActBwdOpFwdDeps FwdDeps() {

@@ -2811,8 +2811,11 @@ class TestRelu_NanInput(TestActivation):
         x[np.abs(x) < 0.005] = 0.02
         x[-1] = float('nan')
         tensor_x = paddle.to_tensor(x)
+        tensor_x.stop_gradient = False
         out = paddle.nn.functional.relu(tensor_x)
         self.outputs_paddle = out
+        grad = paddle.grad([out], [tensor_x])[0]
+        self.grad_paddle = grad
 
     def test_check_output(self):
         self.assertTrue(
@@ -2820,7 +2823,7 @@ class TestRelu_NanInput(TestActivation):
         )
 
     def test_check_grad(self):
-        pass
+        self.assertTrue((self.grad_paddle[-1] == 1.0).any().numpy())
 
 
 class TestReluAPI(unittest.TestCase):
