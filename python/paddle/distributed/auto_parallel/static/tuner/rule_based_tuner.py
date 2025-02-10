@@ -1411,7 +1411,7 @@ class RuleBasedTuner:
                 ] = dist_context
             else:
                 self._logger.info(
-                    f"No pattern has be matched under {parallelism} parallelism whe sub program is {sub_fwd_program}."
+                    f"No pattern has be matched under {parallelism} parallelism when sub program is {sub_fwd_program}."
                 )
 
     def complete_sub_fwd_programs(self, process_mesh):
