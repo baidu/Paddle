@@ -104,8 +104,6 @@ def fused_bias_dropout_residual_layer_norm(
     dropout_rate,
     ln_epsilon,
 ):
-    x = paddle.to_tensor(x)
-    residual = paddle.to_tensor(residual)
     bias = paddle.create_parameter(
         shape=bias_shape, dtype='float32', name="bias"
     )
@@ -138,10 +136,10 @@ class TestFusedBiasDropoutResidualLayerNormTRTPattern(TensorRTBaseTest):
             "dropout_rate": 0.0,
             "ln_epsilon": 1e-5,
         }
-        self.program_config = {"feed_list": []}
-        self.min_shape = {}
-        self.opt_shape = {}
-        self.max_shape = {}
+        self.program_config = {"feed_list": ["x", "residual"]}
+        self.min_shape = {"x": [2, 4, 128]}
+        self.opt_shape = {"x": [4, 4, 128]}
+        self.max_shape = {"x": [8, 4, 128]}
 
     def test_fp16_trt_result(self):
         self.check_trt_result(rtol=1e-2, atol=1e-2, precision_mode="fp16")
@@ -159,10 +157,10 @@ class TestFusedBiasDropoutResidualLayerNormCase1TRTPattern(TensorRTBaseTest):
             "dropout_rate": 0.0,
             "ln_epsilon": 1e-5,
         }
-        self.program_config = {"feed_list": []}
-        self.min_shape = {}
-        self.opt_shape = {}
-        self.max_shape = {}
+        self.program_config = {"feed_list": ["x", "residual"]}
+        self.min_shape = {"x": [2, 4, 128]}
+        self.opt_shape = {"x": [4, 4, 128]}
+        self.max_shape = {"x": [8, 4, 128]}
 
     def test_fp32_trt_result(self):
         self.check_trt_result()
@@ -170,8 +168,6 @@ class TestFusedBiasDropoutResidualLayerNormCase1TRTPattern(TensorRTBaseTest):
 
 class TestFusedBiasDropoutResidualLayerNormErrorTRTPattern(TensorRTBaseTest):
     def setUp(self):
-        paddle.seed(42)
-        np.random.seed(42)
         self.python_api = fused_bias_dropout_residual_layer_norm
         self.api_args = {
             "x": np.random.rand(2, 4, 128).astype("float32"),
@@ -182,10 +178,10 @@ class TestFusedBiasDropoutResidualLayerNormErrorTRTPattern(TensorRTBaseTest):
             "dropout_rate": 1.0,
             "ln_epsilon": 1e-5,
         }
-        self.program_config = {"feed_list": []}
-        self.min_shape = {}
-        self.opt_shape = {}
-        self.max_shape = {}
+        self.program_config = {"feed_list": ["x", "residual"]}
+        self.min_shape = {"x": [2, 4, 128]}
+        self.opt_shape = {"x": [4, 4, 128]}
+        self.max_shape = {"x": [8, 4, 128]}
 
     def test_trt_result(self):
         self.check_marker(expected_result=False)
