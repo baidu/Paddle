@@ -705,7 +705,7 @@ function(prune_pybind_h)
   list(APPEND op_list "fusion_seqconv_eltadd_relu")
   list(APPEND op_list "fusion_seqpool_cvm_concat")
   list(APPEND op_list "fusion_gru")
-  list(APPEND op_list "fusion_seqexpand_concat_fc")
+  # list(APPEND op_list "fusion_seqexpand_concat_fc")
   list(APPEND op_list "fusion_repeated_fc_relu")
   list(APPEND op_list "fusion_squared_mat_sub")
 
