@@ -45,9 +45,11 @@ void SYCLBackendAPI::Init(Arch arch) {
         backend = ::sycl::backend::ext_oneapi_hip;
       });
   // look for matched devices
-  for (auto device : devices) {
-    if (device.get_backend() == backend) {
-      this->devices.push_back(device);
+  if (this->devices.size() < 8) {
+    for (auto device : devices) {
+      if (device.get_backend() == backend) {
+        this->devices.push_back(device);
+      }
     }
   }
   if (this->devices.size() == 0) {

@@ -35,6 +35,11 @@
 #include "paddle/cinn/backends/hip/compiler_hip.h"
 #include "paddle/cinn/runtime/hip/hip_module.h"
 #endif
+#ifdef CINN_WITH_SYCL
+#include "paddle/cinn/backends/sycl/codegen_sycl_dev.h"
+#include "paddle/cinn/backends/sycl/compiler_sycl.h"
+#include "paddle/cinn/runtime/sycl/sycl_module.h"
+#endif
 #include "paddle/cinn/adt/adt.h"
 
 PD_DECLARE_string(cinn_source_code_save_path);
@@ -288,7 +293,19 @@ std::string Compiler::GetSourceCode(const ir::Module& module) {
         CINN_NOT_IMPLEMENTED
 #endif
       },
-      [&](common::HygonDCUArchSYCL) -> std::string { CINN_NOT_IMPLEMENTED });
+      [&](common::HygonDCUArchSYCL) -> std::string {
+#ifdef CINN_WITH_SYCL
+        auto _host_module_device_module_ =
+            SplitDeviceAndHostModule(module);  // NOLINT
+        auto& host_module = std::get<0>(_host_module_device_module_);
+        auto& device_module = std::get<1>(_host_module_device_module_);
+        sycl::CodeGenSyclDevice codegen(target_);
+        auto source_code = codegen.Compile(device_module);
+        return source_code;
+#else
+        CINN_NOT_IMPLEMENTED
+#endif
+      });
 }
 
 void Compiler::BuildDefault(const Module& module) {
@@ -393,7 +410,38 @@ void Compiler::RegisterHipModuleSymbol() {
 #endif
 }
 
-void Compiler::RegisterSyclModuleSymbol() { CINN_NOT_IMPLEMENTED }
+void Compiler::RegisterSyclModuleSymbol() {
+#ifdef CINN_WITH_SYCL
+  syclrtc::Compiler compiler;
+  std::string source_code =
+      sycl::CodeGenSyclDevice::GetSourceHeader() + device_fn_code_;
+  std::string hsaco = compiler(source_code);
+  PADDLE_ENFORCE_EQ(
+      !hsaco.empty(),
+      true,
+      ::common::errors::Fatal("Compile hsaco failed from source code:\n%s",
+                              source_code));
+  using runtime::sycl::SYCLModule;
+  sycl_module_.reset(new SYCLModule(source_code, hsaco, SYCLModule::Kind::so));
+  // get device id
+  using cinn::runtime::BackendAPI;
+  int device_id = BackendAPI::get_backend(target_)->get_device();
+  // register kernel
+  RuntimeSymbols symbols;
+  for (const auto& kernel_fn_name : device_fn_name_) {
+    auto fn_kernel = sycl_module_->GetFunction(kernel_fn_name);
+    PADDLE_ENFORCE_NOT_NULL(
+        fn_kernel,
+        ::common::errors::Fatal("HIP GetFunction Error: get valid kernel."));
+    fn_ptr_.push_back(reinterpret_cast<void*>(fn_kernel));
+    symbols.RegisterVar(kernel_fn_name + "_ptr_",
+                        reinterpret_cast<void*>(fn_kernel));
+  }
+  engine_->RegisterModuleRuntimeSymbols(std::move(symbols));
+#else
+  CINN_NOT_IMPLEMENTED
+#endif
+}
 
 void Compiler::CompileCudaModule(const Module& module,
                                  const std::string& code) {
@@ -473,7 +521,39 @@ void Compiler::CompileHipModule(const Module& module, const std::string& code) {
 
 void Compiler::CompileSyclModule(const Module& module,
                                  const std::string& code) {
+#ifdef CINN_WITH_SYCL
+  auto _host_module_device_module_ =
+      SplitDeviceAndHostModule(module);  // NOLINT
+  auto& host_module = std::get<0>(_host_module_device_module_);
+  auto& device_module = std::get<1>(_host_module_device_module_);
+  VLOG(3) << "[SYCL] host module:\n" << host_module;
+  VLOG(3) << "[SYCL] device module:\n" << device_module;
+  std::string source_code;
+  if (!FLAGS_cinn_debug_custom_code_path.empty()) {
+    std::string file_path = FLAGS_cinn_debug_custom_code_path;
+    source_code = GetFileContent(file_path);
+  } else if (code.empty()) {
+    sycl::CodeGenSyclDevice codegen(target_);
+    source_code = codegen.Compile(device_module);
+  } else {
+    source_code = code;
+  }
+  PADDLE_ENFORCE_EQ(
+      !source_code.empty(),
+      true,
+      ::common::errors::Fatal(
+          "Compile SYCL code failed from device module:\n%s", device_module));
+  VLOG(3) << "[SYCL]:\n" << source_code;
+  SourceCodePrint::GetInstance()->write(source_code);
+  device_fn_code_ += source_code;
+  for (auto& fn : device_module.functions()) {
+    std::string kernel_fn_name = fn->name;
+    device_fn_name_.emplace_back(kernel_fn_name);
+  }
+  engine_->Link<CodeGenGpuHost>(host_module);
+#else
   CINN_NOT_IMPLEMENTED
+#endif
 }
 
 void Compiler::CompileX86Module(const Module& module) {

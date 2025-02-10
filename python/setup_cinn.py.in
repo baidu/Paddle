@@ -156,6 +156,9 @@ if '${WITH_GPU}' == 'ON':
 if '${WITH_ROCM}' == 'ON':
     cinnlibs.append('${CMAKE_BINARY_DIR}/dist/cinn/include/paddle/cinn/runtime/hip/cinn_hip_runtime_source.h')
 
+if '${CINN_WITH_SYCL}' == 'ON':
+    cinnlibs.append('${CMAKE_BINARY_DIR}/dist/cinn/include/paddle/cinn/runtime/sycl/cinn_sycl_runtime_source.h')
+
 for lib in cinnlibs:
     shutil.copy(lib, libs_path)
     libname = os.path.basename(lib)

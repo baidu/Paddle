@@ -116,13 +116,14 @@ class CodeGenGpuDev : public CodeGenC {
    */
   virtual void PrintFunctionDeclaration(const ir::_LoweredFunc_* op);
 
+  std::unordered_set<std::string> vectorized_tensor_names_;
+
  private:
   Target target_;
   bool use_rtc_{false};
   // names of vectorized tensors from `Let` statements where dtypes of the
   // tensors are customized_type with customized_type::k_builtin_vector_t
   // prefix
-  std::unordered_set<std::string> vectorized_tensor_names_;
 
   ir::Expr dyn_shared_mem_offset_{-1};
   std::vector<ir::Buffer> dynamic_alloc_buffers_;
