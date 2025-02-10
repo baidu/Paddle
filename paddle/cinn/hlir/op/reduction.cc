@@ -420,7 +420,7 @@ STRATEGY_FOR_REDUCE(reduce_prod,
                     ReduceProd,
                     pe::TwoStepBlockReduceProd,
                     pe::BlockShuffleReduceProd,
-                    pe::ReduceProd);
+                    pe::ReduceVar);
 STRATEGY_FOR_REDUCE(reduce_max,
                     ReduceMax,
                     pe::TwoStepBlockReduceMax,
@@ -451,7 +451,7 @@ STRATEGY_FOR_REDUCE_SYMBOLIC(reduce_prod,
                              ReduceProd,
                              pe::TwoStepBlockReduceProd,
                              pe::BlockShuffleReduceProd,
-                             pe::ReduceProd);
+                             pe::ReduceVar);
 STRATEGY_FOR_REDUCE_SYMBOLIC(reduce_max,
                              ReduceMax,
                              pe::TwoStepBlockReduceMax,
