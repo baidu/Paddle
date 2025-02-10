@@ -33,6 +33,7 @@
 #include "paddle/fluid/ir_adaptor/translator/program_translator.h"
 #include "paddle/fluid/ir_adaptor/translator/type_translator.h"
 #include "paddle/fluid/ir_adaptor/translator/utils.h"
+#include "paddle/fluid/pir/dialect/operator/interface/infermeta.h"
 #include "paddle/fluid/pir/dialect/operator/interface/op_yaml_info.h"
 #include "paddle/fluid/pir/dialect/operator/ir/manual_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/op_attribute.h"
@@ -927,16 +928,29 @@ pir::Operation* OpTranscriber::operator()(pir::IrContext* ctx,
       ctx, param_map, op_desc, op_info.name(), input_infos, block);
 
   OpOutputMapping arg_to_idx;
-  OpOutputTypeList op_output_types;
-  std::tie(op_output_types, arg_to_idx) =
+  OpOutputTypeList translate_output_types;
+  std::tie(translate_output_types, arg_to_idx) =
       this->GenerateOperationOutput(ctx, op_desc, output_infos);
 
   auto attribute_map =
       this->TranslateOpAttribute(ctx, op_info.name(), attr_infos, op_desc);
   TranslateOpDistAttribute(op_desc, &attribute_map);
   VLOG(4) << "[general op][" << op_desc.Type() << "] preparation end.";
-  pir::Operation* operation = pir::Operation::Create(
-      op_inputs, attribute_map, op_output_types, op_info);
+
+  auto infer_meta_interface =
+      op_info.GetInterfaceImpl<paddle::dialect::InferMetaInterface>();
+  std::vector<pir::Type> output_types;
+  if (infer_meta_interface) {
+    output_types =
+        infer_meta_interface->infer_meta_by_value_(op_inputs, &attribute_map);
+  }
+  if (output_types.empty() ||
+      output_types.size() != translate_output_types.size()) {
+    output_types = translate_output_types;
+  }
+
+  pir::Operation* operation =
+      pir::Operation::Create(op_inputs, attribute_map, output_types, op_info);
   VLOG(4) << "[general op][" << op_desc.Type() << "] operation creation end.";
   block->push_back(operation);
 
