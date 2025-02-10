@@ -20,6 +20,7 @@ limitations under the License. */
 #include "paddle/phi/backends/xpu/xpu_context.h"
 #include "paddle/phi/core/distributed/auto_parallel/dist_tensor.h"
 #include "paddle/phi/core/framework/feed_fetch_type.h"
+#include "paddle/phi/core/framework/reader.h"
 #include "paddle/phi/core/raw_tensor.h"
 #include "paddle/phi/core/selected_rows.h"
 #include "paddle/phi/core/sparse_coo_tensor.h"
@@ -57,6 +58,7 @@ template class TypeInfoTraits<phi::TensorBase, Vocab>;
 template class TypeInfoTraits<phi::TensorBase, Strings>;
 template class TypeInfoTraits<phi::TensorBase, RawTensor>;
 template class TypeInfoTraits<phi::TensorBase, FeedList>;
+template class TypeInfoTraits<phi::TensorBase, paddle::framework::ReaderHolder>;
 
 template class TypeInfoTraits<phi::DeviceContext, CPUContext>;
 template class TypeInfoTraits<phi::DeviceContext, CustomContext>;

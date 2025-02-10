@@ -21,6 +21,8 @@
 
 #include "paddle/common/ddim.h"
 #include "paddle/phi/common/place.h"
+#include "paddle/phi/core/enforce.h"
+#include "paddle/phi/core/extended_tensor.h"
 #include "paddle/phi/core/framework/framework.pb.h"
 #include "paddle/phi/core/tensor_array.h"
 
@@ -146,7 +148,8 @@ class FileReader : public ReaderBase {
 
 // The ReaderHolder is used as reader' unified wrapper,
 // making it easier to access different type reader in Variables.
-class ReaderHolder {
+class ReaderHolder : public phi::ExtendedTensor,
+                     public phi::TypeInfoTraits<phi::TensorBase, ReaderHolder> {
  public:
   template <typename T>
   void Reset(const std::shared_ptr<T>& reader) {
@@ -159,6 +162,10 @@ class ReaderHolder {
   }
 
   ~ReaderHolder() {}
+
+  /// \brief Returns the name of the class for type traits.
+  /// \return The name of the class.
+  static const char* name() { return "ReaderHolder"; }
 
   const std::shared_ptr<ReaderBase>& Get() const { return reader_; }
 
