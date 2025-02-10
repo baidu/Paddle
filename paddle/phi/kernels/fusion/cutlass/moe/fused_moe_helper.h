@@ -219,6 +219,18 @@ class MoeHelper {
     fc1_result_ =
         reinterpret_cast<T *>(total_rows_before_expert_ + padded_experts);
 
+    DenseTensor expert_for_source_row_tensor;
+    expert_for_source_row_tensor.Resize({num_moe_inputs});
+    expert_for_source_row = ctx.template Alloc<int>(&expert_for_source_row_tensor);
+
+    DenseTensor permuted_data_tensor;
+    permuted_data_tensor.Resize({buf_size});
+    permuted_data_ = ctx.template Alloc<T>(&permuted_data_tensor);
+    
+    DenseTensor total_rows_before_expert_tensor;
+    total_rows_before_expert_tensor.Resize({padded_experts});
+    total_rows_before_expert_ = ctx.template Alloc<int64_t>(&total_rows_before_expert_tensor);
+
     const bool is_pow_2 =
         (num_experts != 0) && ((num_experts & (num_experts - 1)) == 0);
     if (!is_pow_2 || num_experts > 256) {
