@@ -45,6 +45,19 @@
 extern "C" {
 #endif
 
+enum KernelArgsType {
+  unk_args_type = -1,    //! Unknown type
+  void_p_args_type = 0,  //! void*
+  int64_args_type = 1,   //! int64_t
+};
+
+struct KernelArgsNode {
+  void* data_ptr{nullptr};
+  int64_t symbol_val{-1};
+
+  KernelArgsType args_type{KernelArgsType::unk_args_type};
+};
+
 #define CINN_ALWAYS_INLINE __attribute__((always_inline)) inline
 
 //! Code for the primitive types supported in CINN.
