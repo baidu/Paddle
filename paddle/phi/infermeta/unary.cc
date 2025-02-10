@@ -4056,7 +4056,7 @@ void SetValueInferMeta(const MetaTensor& x, MetaTensor* out) {
 void ShapeInferMeta(const MetaTensor& input, MetaTensor* out) {
   auto in_dim = input.dims();
   out->set_dims(common::make_ddim({in_dim.size()}));
-  out->set_dtype(DataType::INT32);
+  out->set_dtype(DataType::INT64);
 }
 
 void Shape64InferMeta(const MetaTensor& input,

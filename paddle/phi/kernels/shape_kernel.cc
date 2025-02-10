@@ -25,7 +25,7 @@ void ShapeKernel(const Context& ctx,
                  DenseTensor* out) {
   auto& in_dims = input.dims();
   out->Resize({in_dims.size()});
-  auto out_data = ctx.template HostAlloc<int32_t>(out);
+  auto out_data = ctx.template HostAlloc<int64_t>(out);
   for (int i = 0; i < in_dims.size(); ++i) {
     out_data[i] = in_dims[i];
   }
