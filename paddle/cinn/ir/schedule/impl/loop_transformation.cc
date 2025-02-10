@@ -39,30 +39,24 @@
 namespace cinn {
 namespace ir {
 
-void SimplifyBindingsInStaticShape(const cinn::ir::DyScheduleImpl* sch,
-                                   const Expr& loop,
-                                   const std::string& sch_name,
-                                   Expr* stmt) {
+void SimplifyBindings(const cinn::ir::DyScheduleImpl* sch,
+                      const Expr& loop,
+                      const std::string& sch_name,
+                      Expr* stmt) {
   // Get outer loops of current loops.
   Expr root = sch->GetRootBlock(loop);
   std::vector<Expr> outer_loops = GetLoopsOfExpr(loop, root);
+  // Create an analyzer of outer loops and new fused loop.
+  std::vector<Expr> combine_loops = outer_loops;
+  combine_loops.push_back(*stmt);
+  common::cas_intervals_t var_intervals_t =
+      common::CollectVarIntervalsOfExprs(combine_loops);
+  common::SymbolicExprAnalyzer ana{var_intervals_t};
 
-  // TODO(liujinnan): Deal dynamic shape.
-  if (!ContainDynamicShape(root)) {
-    // Create an analyzer of outer loops and new fused loop.
-    std::vector<Expr> combine_loops = outer_loops;
-    combine_loops.push_back(*stmt);
-    common::cas_intervals_t var_intervals_t =
-        common::CollectVarIntervalsOfExprs(combine_loops);
-    common::SymbolicExprAnalyzer ana{var_intervals_t};
-
-    // Simplify the bindings of new loop.
-    VLOG(4) << "Before SimplifyBindings in " << sch_name << ", ir is:\n"
-            << *stmt;
-    common::SimplifyBlockBinding::SimplifyBindings(*stmt, outer_loops, ana);
-    VLOG(4) << "After SimplifyBindings in " << sch_name << ", ir is:\n"
-            << *stmt;
-  }
+  // Simplify the bindings of new loop.
+  VLOG(4) << "Before SimplifyBindings in " << sch_name << ", ir is:\n" << *stmt;
+  common::SimplifyBlockBinding::SimplifyBindings(*stmt, outer_loops, ana);
+  VLOG(4) << "After SimplifyBindings in " << sch_name << ", ir is:\n" << *stmt;
 }
 
 std::vector<Expr> DyScheduleImpl::Split(const Expr& loop,
@@ -145,7 +139,7 @@ std::vector<Expr> DyScheduleImpl::Split(const Expr& loop,
       splited_loops[i] = new_node;
     }
 
-    SimplifyBindingsInStaticShape(this, loop, "split", &new_node);
+    SimplifyBindings(this, loop, "split", &new_node);
 
     this->Replace(loop, new_node);
     VLOG(3) << "After Split, ir is:\n" << splited_loops.at(0);
@@ -238,7 +232,7 @@ std::vector<Expr> DyScheduleImpl::Split(const Expr& loop,
     splited_loops[i] = new_node;
   }
 
-  SimplifyBindingsInStaticShape(this, loop, "split", &new_node);
+  SimplifyBindings(this, loop, "split", &new_node);
 
   this->Replace(loop, new_node);
   VLOG(3) << "After Split, ir is:\n" << splited_loops.at(0);
@@ -344,7 +338,7 @@ std::vector<Expr> DyScheduleImpl::Split(const Expr& loop,
     splited_loops[i] = new_node;
   }
 
-  SimplifyBindingsInStaticShape(this, loop, "split", &new_node);
+  SimplifyBindings(this, loop, "split", &new_node);
 
   this->Replace(loop, new_node);
   VLOG(3) << "After Split, ir is:\n" << splited_loops.at(0);
@@ -449,7 +443,7 @@ Expr DyScheduleImpl::Fuse(const std::vector<Expr>& loops) {
                             for_nodes[0]->device_api,
                             fused_body);
 
-  SimplifyBindingsInStaticShape(this, loops[0], "fuse", &new_stmt);
+  SimplifyBindings(this, loops[0], "fuse", &new_stmt);
 
   this->Replace(loops[0], new_stmt);
 
