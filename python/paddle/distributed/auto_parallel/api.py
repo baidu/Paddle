@@ -2842,7 +2842,7 @@ class DistModel:
                         # Obtain all the parameters to be fused, differentiated by suffixes, such as: beta1_pow_acc_0, _fp32_master_0_moment1_0.
                         suffix_names = []
                         for k, v in local_state_dict.items():
-                            suffix = _get_suffix(ori_params_meta[0].name, k)
+                            suffix = _get_suffix(k, ori_params_meta[0].name)
                             if suffix is not None:
                                 suffix_names.append(suffix)
                         if len(suffix_names) == 0:
@@ -2860,6 +2860,14 @@ class DistModel:
                                     concat_tensors.append(
                                         local_state_dict[ori_p.name + suffix]
                                     )
+                            concat_tensors = [
+                                (
+                                    paddle.to_tensor(t)
+                                    if not isinstance(t, paddle.Tensor)
+                                    else t
+                                )
+                                for t in concat_tensors
+                            ]
                             if len(concat_tensors) == len(ori_params_meta):
                                 if "_pow_acc" in suffix:
                                     fused_w = concat_tensors[0]
@@ -2887,7 +2895,7 @@ class DistModel:
                                     _to_lodtensor(fused_w)
                                 )
                                 for ori_p in ori_params_meta:
-                                    local_state_dict.pop(ori_p + suffix)
+                                    local_state_dict.pop(ori_p.name + suffix)
 
         if use_pir_api():
             dist_main_program.set_state_dict(
