@@ -2543,6 +2543,163 @@ def addmm_(
         return _C_ops.addmm_(input, x, y, beta, alpha)
 
 
+def baddbmm(
+    input: Tensor,
+    x: Tensor,
+    y: Tensor,
+    beta: float = 1.0,
+    alpha: float = 1.0,
+    name: str | None = None,
+) -> Tensor:
+    """
+    **baddbmm**
+
+    Perform batch matrix multiplication for input $x$ and $y$.
+    $input$ is added to the final result.
+    The equation is:
+
+    ..  math::
+        Out = alpha * x * y + beta * input
+
+    $Input$, $x$ and $y$ can carry the LoD (Level of Details) information, or not. But the output only shares the LoD information with input $input$.
+
+    Args:
+        input (Tensor): The input Tensor to be added to the final result.
+        x (Tensor): The first input Tensor for batch matrix multiplication.
+        y (Tensor): The second input Tensor for batch matrix multiplication.
+        beta (float, optional): Coefficient of $input$, default is 1.
+        alpha (float, optional): Coefficient of $x*y$, default is 1.
+        name (str|None, optional): Name for the operation (optional, default is None). For more information, please refer to :ref:`api_guide_Name`.
+
+    Returns:
+        Tensor: The output Tensor of baddbmm.
+
+    Examples:
+        .. code-block:: python
+
+            >>> import paddle
+
+            >>> x = paddle.ones([2, 2, 2])
+            >>> y = paddle.ones([2, 2, 2])
+            >>> input = paddle.ones([2, 2, 2])
+
+            >>> out = paddle.baddbmm(input=input, x=x, y=y, beta=0.5, alpha=5.0)
+
+            >>> print(out)
+            Tensor(shape=[2, 2, 2], dtype=float32, place=Place(cpu), stop_gradient=True,
+            [[[10.50000000, 10.50000000],
+              [10.50000000, 10.50000000]],
+             [[10.50000000, 10.50000000],
+              [10.50000000, 10.50000000]]])
+    """
+    input_shape = input.shape
+    x_shape = x.shape
+    y_shape = y.shape
+    if not len(x_shape) == len(y_shape) == 3:
+        raise ValueError(
+            f"The dimension of x, y should be 3 but receive x's shape: {x_shape}, y's shape: {y_shape}"
+        )
+    if x_shape[2] != y_shape[1]:
+        raise ValueError(
+            f"The input Variable x's width must be equal with Variable y's height. But received x's shape = {x_shape}, y's shape = {y_shape}."
+        )
+
+    if len(input_shape) == 3:
+        if input_shape[0] != x_shape[0]:
+            raise ValueError(
+                f"The batch size of input must be equal to the batch size of x. But received input's batch size = {input_shape[0]}, x's batch size = {x_shape[0]}"
+            )
+        if input_shape[1] != x_shape[1]:
+            if input_shape[1] != 1:
+                raise ValueError(
+                    f"When x's dimension[1] is not equal with input's dimension[1], input's dimension[1] must be 1 but got {input_shape[1]}"
+                )
+        if input_shape[2] != y_shape[2]:
+            if input_shape[2] != 1:
+                raise ValueError(
+                    f"When y's dimension[2] is not equal with input's dimension[2], input's dimension[2] must be 1 but got {input_shape[2]}"
+                )
+    else:
+        raise ValueError(
+            f"The dimension of input should be 3 but received input's shape: {input_shape}"
+        )
+
+    if in_dynamic_or_pir_mode():
+        return _C_ops.baddbmm(input, x, y, beta, alpha)
+    else:
+        inputs = {'Input': input, "X": x, "Y": y}
+        attrs = {'Alpha': alpha, 'Beta': beta}
+
+        helper = LayerHelper("baddbmm", **locals())
+        check_variable_and_dtype(
+            input,
+            'Input',
+            ['float16', 'float32', 'float64', 'uint16'],
+            'baddbmm',
+        )
+        check_variable_and_dtype(
+            x, 'X', ['float16', 'float32', 'float64', 'uint16'], 'baddbmm'
+        )
+        check_variable_and_dtype(
+            y, 'Y', ['float16', 'float32', 'float64', 'uint16'], 'baddbmm'
+        )
+        out = helper.create_variable_for_type_inference(dtype=x.dtype)
+
+        helper.append_op(
+            type="baddbmm", inputs=inputs, attrs=attrs, outputs={"Out": out}
+        )
+        return out
+
+
+@inplace_apis_in_dygraph_only
+def baddbmm_(
+    input: Tensor,
+    x: Tensor,
+    y: Tensor,
+    beta: float = 1.0,
+    alpha: float = 1.0,
+    name: str | None = None,
+) -> Tensor:
+    """
+    Inplace version of ``baddbmm`` API, the output Tensor will be inplaced with input ``x``.
+    Please refer to :ref:`api_paddle_baddbmm`.
+    """
+    input_shape = input.shape
+    x_shape = x.shape
+    y_shape = y.shape
+    if not len(x_shape) == len(y_shape) == 3:
+        raise ValueError(
+            f"The dimension of x, y should be 3 but receive x's shape: {x_shape}, y's shape: {y_shape}"
+        )
+    if x_shape[2] != y_shape[1]:
+        raise ValueError(
+            f"The input Variable x's width must be equal with Variable y's height. But received x's shape = {x_shape}, y's shape = {y_shape}."
+        )
+
+    if len(input_shape) == 3:
+        if input_shape[0] != x_shape[0]:
+            raise ValueError(
+                f"The batch size of input must be equal to the batch size of x. But received input's batch size = {input_shape[0]}, x's batch size = {x_shape[0]}"
+            )
+        if input_shape[1] != x_shape[1]:
+            if input_shape[1] != 1:
+                raise ValueError(
+                    f"When x's dimension[1] is not equal with input's dimension[1], input's dimension[1] must be 1 but got {input_shape[1]}"
+                )
+        if input_shape[2] != y_shape[2]:
+            if input_shape[2] != 1:
+                raise ValueError(
+                    f"When y's dimension[2] is not equal with input's dimension[2], input's dimension[2] must be 1 but got {input_shape[2]}"
+                )
+    else:
+        raise ValueError(
+            f"The dimension of input should be 3 but received input's shape: {input_shape}"
+        )
+
+    if in_dynamic_mode():
+        return _C_ops.baddbmm_(input, x, y, beta, alpha)
+
+
 def renorm(x: Tensor, p: float, axis: int, max_norm: float) -> Tensor:
     """
     **renorm**

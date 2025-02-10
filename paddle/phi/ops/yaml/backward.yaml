@@ -236,6 +236,16 @@
     func : atanh_grad
   inplace : (out_grad -> x_grad)
 
+- backward_op : baddbmm_grad
+  forward : baddbmm (Tensor input, Tensor x, Tensor y, float beta=1.0, float alpha=1.0) -> Tensor(out)
+  args : (Tensor input, Tensor x, Tensor y, Tensor out_grad, float alpha, float beta)
+  output : Tensor(input_grad), Tensor(x_grad), Tensor(y_grad)
+  infer_meta :
+    func : GeneralTernaryGradInferMeta
+    param : [input, x, y]
+  kernel :
+    func : baddbmm_grad
+
 - backward_op : batch_fc_grad
   forward : batch_fc (Tensor input, Tensor w, Tensor bias) -> Tensor(out)
   args : (Tensor input, Tensor w, Tensor bias, Tensor out_grad)

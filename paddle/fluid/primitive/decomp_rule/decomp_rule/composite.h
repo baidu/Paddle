@@ -1420,6 +1420,28 @@ Tensor addmm_decomp(const Tensor& input,
 }
 
 template <typename T>
+Tensor baddbmm_decomp(const Tensor& input,
+                      const Tensor& x,
+                      const Tensor& y,
+                      const float beta,
+                      const float alpha) {
+  int batch_size = x.shape()[0];
+  std::vector<Tensor> batch_results;
+
+  for (int i = 0; i < batch_size; ++i) {
+    Tensor x_batch = get_slice<T>(x, i);
+    Tensor y_batch = get_slice<T>(y, i);
+    Tensor result = matmul<T>(x_batch, y_batch);
+    batch_results.push_back(result);
+  }
+
+  Tensor x_y_mat = concat<T>(batch_results);
+
+  return full_scalar<T>(alpha, x_y_mat.dtype()) * x_y_mat +
+         full_scalar<T>(beta, input.dtype()) * input;
+}
+
+template <typename T>
 Tensor eye_decomp(const paddle::Scalar& num_rows,
                   const paddle::Scalar& num_columns,
                   const DataType dtype,

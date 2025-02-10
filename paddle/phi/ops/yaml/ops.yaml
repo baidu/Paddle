@@ -490,6 +490,18 @@
   inplace : (in_sum_1 -> out_sum_1), (in_sum_2 -> out_sum_2), (in_sum_3 -> out_sum_3), (in_num_accumulates -> out_num_accumulates), (in_old_num_accumulates -> out_old_num_accumulates), (in_num_updates -> out_num_updates)
   traits : paddle::dialect::ForwardOnlyTrait
 
+- op : baddbmm
+  args : (Tensor input, Tensor x, Tensor y, float beta=1.0, float alpha=1.0)
+  output : Tensor(out)
+  infer_meta :
+    func : BaddbmmInferMeta
+  kernel :
+    func : baddbmm
+    data_type : x
+  inplace: (input -> out)
+  backward : baddbmm_grad
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
+
 - op : barrier
   args : (Tensor x, int ring_id=0)
   output : Tensor(out)
