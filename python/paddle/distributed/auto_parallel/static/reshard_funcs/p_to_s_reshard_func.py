@@ -56,10 +56,6 @@ class PToSReshardFunction(ReshardFunction):
             chunk_id = src_value.get_defining_op().dist_attr.chunk_id
 
         split_axis = dst_dist_attr.dims_mapping.index(0)
-        num_of_process = len(src_dist_attr.process_mesh.process_ids)
-        remainder_of_padding = src_value.shape[split_axis] % num_of_process
-        is_balanced_split = remainder_of_padding == 0
-
         permute = False
         if split_axis != 0:
             perm = list(range(0, len(src_value.shape)))
@@ -73,8 +69,6 @@ class PToSReshardFunction(ReshardFunction):
             dst_dist_attr = copy_dist_attr_with_new_member(
                 dst_dist_attr, new_dims_mapping=tmp_dims_mapping
             )
-
-        if is_balanced_split:
             global_dst_attr = dst_type.as_dist_type().dist_attr()
             global_dims_mapping = global_dst_attr.dims_mapping
             axis = global_dims_mapping[0]
@@ -86,6 +80,12 @@ class PToSReshardFunction(ReshardFunction):
             dst_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
                 src_value.type(), global_dist_attr
             )
+
+        num_of_process = len(src_dist_attr.process_mesh.process_ids)
+        remainder_of_padding = src_value.shape[split_axis] % num_of_process
+        is_balanced_split = remainder_of_padding == 0
+
+        if is_balanced_split:
             group = new_process_group(sorted(src_mesh.process_ids))
             dst_value = paddle._C_ops.reduce_scatter(
                 src_value, group.id, num_of_process
@@ -109,19 +109,17 @@ class PToSReshardFunction(ReshardFunction):
             dst_type = paddle.base.libpaddle.pir.cvt_to_dist_type(
                 src_value.type(), dst_dist_attr
             )
-            original_dims_mapping = dst_dist_attr.dims_mapping.copy()
-            original_split_axis = split_axis
-            split_axis = 0
-            avg_size_on_split_axis = int(
-                (src_value.shape[split_axis] + num_of_process - 1)
+            reduce_scatter_axis = 0
+            avg_size_on_reduce_scatter_axis = int(
+                (src_value.shape[reduce_scatter_axis] + num_of_process - 1)
                 / num_of_process
             )
             padding_num = (
-                avg_size_on_split_axis * num_of_process
-                - src_value.shape[split_axis]
+                avg_size_on_reduce_scatter_axis * num_of_process
+                - src_value.shape[reduce_scatter_axis]
             )
             padding_shape = src_value._local_shape
-            padding_shape[split_axis] = padding_num
+            padding_shape[reduce_scatter_axis] = padding_num
             padding_tensor = paddle.full(
                 padding_shape,
                 0.0,
@@ -137,7 +135,7 @@ class PToSReshardFunction(ReshardFunction):
                 )
             )
             concat_value = paddle._C_ops.concat(
-                [src_value, padding_tensor], split_axis
+                [src_value, padding_tensor], reduce_scatter_axis
             )
             axis_dist_attr = (
                 paddle.base.libpaddle.pir.create_tensor_dist_attribute(
@@ -161,8 +159,8 @@ class PToSReshardFunction(ReshardFunction):
             )
 
             concat_global_shape = list(src_value.shape)
-            concat_global_shape[split_axis] = (
-                avg_size_on_split_axis * num_of_process
+            concat_global_shape[reduce_scatter_axis] = (
+                avg_size_on_reduce_scatter_axis * num_of_process
             )
             concat_type = paddle.pir.create_shaped_type(
                 src_value.type(), concat_global_shape
@@ -174,7 +172,7 @@ class PToSReshardFunction(ReshardFunction):
 
             dst_value = self.reshard_p_to_s_with_padding(
                 concat_value,
-                split_axis,
+                reduce_scatter_axis,
                 src_dist_attr,
                 dst_dist_attr,
                 dst_type,
@@ -182,7 +180,6 @@ class PToSReshardFunction(ReshardFunction):
             )
             if permute:
                 dst_value = paddle._C_ops.transpose(dst_value, perm)
-                split_axis = original_split_axis
             return dst_value
 
     def reshard_p_to_s_with_padding(
