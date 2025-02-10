@@ -24,9 +24,6 @@ string(REPLACE ".py" "" DIST_TEST_OPS "${DIST_TEST_OPS}")
 if(WITH_COVERAGE)
   list(REMOVE_ITEM TEST_OPS test_unique)
 endif()
-list(APPEND DIST_TEST_OPS test_auto_parallel_autoconvert_deprecated)
-list(APPEND DIST_TEST_OPS test_auto_parallel_data_unshard_deprecated)
-list(APPEND DIST_TEST_OPS test_auto_parallel_save_load_deprecated)
 set(MIXED_DIST_TEST_OPS ${DIST_TEST_OPS})
 #remove distribute unittests.
 
@@ -157,9 +154,6 @@ if((NOT WITH_GPU) AND (NOT WITH_ROCM))
   list(REMOVE_ITEM TEST_OPS test_auto_parallel_reshard_mppp_deprecated)
   list(REMOVE_ITEM TEST_OPS test_auto_parallel_reshard_dpmppp_deprecated)
   list(REMOVE_ITEM TEST_OPS test_auto_parallel_cost_model_deprecated)
-  list(REMOVE_ITEM TEST_OPS test_auto_parallel_autoconvert_deprecated)
-  list(REMOVE_ITEM TEST_OPS test_auto_parallel_data_unshard_deprecated)
-  list(REMOVE_ITEM TEST_OPS test_auto_parallel_save_load_deprecated)
   list(REMOVE_ITEM TEST_OPS test_auto_parallel_reshard_serial_deprecated)
 
 elseif(WITH_GPU)
@@ -650,16 +644,6 @@ set_tests_properties(test_uniform_random_op_deprecated PROPERTIES TIMEOUT 60)
 
 set_tests_properties(test_inplace_addto_strategy_deprecated PROPERTIES TIMEOUT
                                                                        120)
-if(WITH_DISTRIBUTE
-   AND WITH_GPU
-   AND WITH_NCCL)
-  set_tests_properties(test_auto_parallel_autoconvert_deprecated
-                       PROPERTIES TIMEOUT 120)
-  set_tests_properties(test_auto_parallel_data_unshard_deprecated
-                       PROPERTIES TIMEOUT 120)
-  set_tests_properties(test_auto_parallel_save_load_deprecated
-                       PROPERTIES TIMEOUT 120)
-endif()
 
 set(TEST_CINN_OPS
     test_slice_op_deprecated test_layer_norm_op_deprecated

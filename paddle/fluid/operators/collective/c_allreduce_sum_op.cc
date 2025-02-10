@@ -63,13 +63,3 @@ REGISTER_OP_WITHOUT_GRADIENT(c_allreduce_sum,
                              ops::CAllReduceOp,
                              ops::CAllReduceSumOpMaker,
                              ops::AllreduceSumInplaceInferer)
-
-PD_REGISTER_STRUCT_KERNEL(c_allreduce_sum,
-                          CPU,
-                          ALL_LAYOUT,
-                          ops::CAllReduceSumCPUKernel,
-                          float,
-                          double,
-                          int,
-                          int64_t,
-                          phi::dtype::float16) {}
