@@ -288,8 +288,6 @@ if(WITH_ROCM)
   string(REPLACE "-Werror" "-Wno-error" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
   string(REPLACE "-Werror" "-Wno-error" CMAKE_C_FLAGS ${CMAKE_C_FLAGS})
   # disable warnings
-  string(APPEND HIP_HIPCC_FLAGS " -Wno-cuda-compat")
-  string(APPEND HIP_HIPCC_FLAGS " -Wno-self-assign")
   string(APPEND HIP_HIPCC_FLAGS " -Wno-dev ")
   string(APPEND CMAKE_CXX_FLAGS " -Wno-unused-result")
   string(APPEND CMAKE_CXX_FLAGS " -Wno-unused-variable")
