@@ -225,6 +225,8 @@ class CinnJitInstruction::FnPtrImpl {
     }
   }
 
+  std::string FnName() const { return cinn_kernel_info_.fn_name; }
+
  private:
   CINNKernelInfo cinn_kernel_info_;
 
@@ -309,6 +311,27 @@ CinnJitInstruction::CinnJitInstruction(
     tensor_args_.push_back(&tensor);
   }
   output_tensor_size += temp_space_tensors_.size();
+
+  for (int i = 0; i < op->num_results(); ++i) {
+    auto result = op->result(i);
+    // std::cerr << "use count " << result.use_count() << std::endl;
+    // std::cerr << "use is " << result.first_use().owner()->name() <<
+    // std::endl;
+
+    if (result.use_count() == 1 &&
+        result.first_use().owner()->isa<pir::ShadowOutputOp>()) {
+      // std::cerr << "is a showd !!\n";
+
+      auto t1 = result.first_use().owner()->dyn_cast<pir::ShadowOutputOp>();
+
+      // if( t1.attributes().count("no_need_buffers") &&
+      // t1.attribute("no_need_buffers").dyn_cast<pir::BoolAttribute>().data())
+      if (t1.attributes().count("no_need_buffer")) {
+        std::cerr << "index is no need buffer        " << i << std::endl;
+        no_need_buffer_set.insert(i + input_tensor_size);
+      }
+    }
+  }
 }
 
 void CinnJitInstruction::Run() {
@@ -330,17 +353,33 @@ void CinnJitInstruction::Run() {
         tensor_args_, ir_dims_, input_tensor_size, output_tensor_size);
   }
   for (size_t i = 0; i < tensor_args_.size(); ++i) {
+    // if( no_need_buffer_set.count(i) )
+    // {
+    //   std::cerr << "no need buffer dims " << tensor_args_[i]->dims() <<
+    //   std::endl;
+    // }
     dev_ctx_->Alloc(tensor_args_[i], tensor_args_[i]->dtype());
   }
 
   // 2. exexute kernel
   fn_ptr_impl_->Run(tensor_args_, running_stream, is_gpu);
 
+  // for(size_t i =0; i < tensor_args_.size(); ++i)
+  // {
+  //   std::cerr << "index  " << i << "\t" << *(tensor_args_[i]) << std::endl;
+  // }
+
   // 3. release resource
   fn_ptr_impl_->FreeFuncArgs();
   for (auto& tensor : temp_space_tensors_) {
     tensor.clear();
   }
+
+  // if( fn_ptr_impl_->FnName() ==
+  // "fn_elementwise_mul_yield_store_subtract_subtract_elementwise_mul_generate_shape_broadcast_to_generate_shape_broadcast_to_elementwise_add_subtract_scale_yield_store_divide_subtract_yield_store_subtract_yield_store_elementwise_mul_scale_yield_store_subtract_yield_store_divide_subtract_scale_scale_yield_store_")
+  // {
+  //   throw std::runtime_error("failed");
+  // }
 #else
   VLOG(0) << "Not Supported: cinn jit instruction currently does not "
              "support CUDA/HIP kernel";

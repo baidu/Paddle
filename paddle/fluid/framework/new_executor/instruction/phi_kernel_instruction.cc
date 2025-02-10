@@ -222,6 +222,15 @@ void PhiKernelInstruction::Run() {
     ShareVarBuffer(pair.first, pair.second);
   }
   VLOG(6) << "Begin run op " << phi_op_name_ << " kernel.";
+
+  // std::cerr << "phi op name " << phi_op_name_ << std::endl;
+  if (phi_op_name_ == "pd_op.accuracy_check") {
+    std::cerr << "accury check\n";
+
+    for (size_t i = 0; i < kernel_context_.InputsSize(); ++i) {
+      std::cerr << kernel_context_.InputAt<phi::DenseTensor>(i) << std::endl;
+    }
+  }
   {
     phi::RecordEvent record_event(kernel_name_ + " kernel launch",
                                   phi::TracerEventType::StaticKernelLaunch,

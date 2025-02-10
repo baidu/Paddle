@@ -116,6 +116,10 @@ void ApplyShapeOptimizationPass(
                                    FLAGS_cinn_input_dynamic_dim_spec_file);
   }
   pass_manager->AddPass(pir::CreateShapeOptimizationPass());
+
+  pass_manager->AddPass(cinn::dialect::ir::CreateProcessShadowOutputPass());
+
+  // pass_manager->EnableIRPrinting();
   pass_manager->Run(program);
 }
 
@@ -138,6 +142,7 @@ void ApplyPdToCinnPass(
 
   pass_manager->AddPass(pir::CreateDeadCodeEliminationPass());
 
+  // pass_manager->EnableIRPrinting();
   pass_manager->Run(program);
 }
 
@@ -235,6 +240,7 @@ void ApplyCinnLowerPass(
   pass_manager->AddPass(
       cinn::dialect::ir::CreateSplitGenerateShapeIntoShapeOpsPass());
 
+  // pass_manager->EnableIRPrinting();
   pass_manager->Run(program);
 }
 

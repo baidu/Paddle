@@ -169,10 +169,22 @@ std::ostream& operator<<(std::ostream& os, const OpLoweringGroup& group) {
   ::pir::IrPrinter printer(os);
   os << "Group id: " << group.group_id() << ", func_name: " << group.FuncName()
      << "\n";
+  os << "Input is " << group.GetInputOpValues().size() << std::endl;
+  for (auto& val : group.GetInputOpValues()) {
+    printer.PrintValue(val);
+    os << " ";
+  }
+  os << "\n";
   for (auto* op : group.ops()) {
     printer.PrintOperation(*op);
     PrintSymbolDims(*op);
     os << "\n";
+  }
+
+  os << "Output is " << group.output_values().size() << std::endl;
+  for (auto& val : group.output_values()) {
+    printer.PrintValue(val);
+    os << " ";
   }
   return os;
 }

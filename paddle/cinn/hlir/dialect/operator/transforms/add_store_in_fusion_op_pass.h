@@ -23,6 +23,8 @@ namespace ir {
 
 std::unique_ptr<pir::Pass> CreateAddStoreInFusionOpPass();
 
+std::unique_ptr<pir::Pass> CreateProcessShadowOutputPass();
+
 }  // namespace ir
 }  // namespace dialect
 }  // namespace cinn

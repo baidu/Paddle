@@ -535,6 +535,12 @@ void GenerateProposalsV2InferMeta(const MetaTensor& scores,
                                   MetaTensor* rpn_roi_probs,
                                   MetaTensor* rpn_rois_num);
 
+void GenerateShapeInferMeta(const std::vector<const MetaTensor*>& x,
+                            const std::vector<int>& tensor_idx,
+                            const std::vector<int>& dim_idx,
+                            MetaTensor* out,
+                            MetaConfig config = MetaConfig());
+
 void LegacyGenerateProposalsInferMeta(const MetaTensor& scores,
                                       const MetaTensor& bbox_deltas,
                                       const MetaTensor& im_info,

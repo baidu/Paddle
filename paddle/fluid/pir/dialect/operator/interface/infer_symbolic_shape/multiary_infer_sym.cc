@@ -2265,6 +2265,34 @@ bool GenerateProposalsOpInferSymbolicShape(
   return true;
 }
 
+bool GenerateShapeOpInferSymbolicShape(
+    pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
+  std::vector<int> tensor_idx =
+      paddle::dialect::details::GetVectorAttr<int>(op, "tensor_idx");
+
+  std::vector<int> dim_idx =
+      paddle::dialect::details::GetVectorAttr<int>(op, "dim_idx");
+
+  pir::Value operand_source = op->operand_source(0);
+  const auto &x_shape = infer_context->GetShapeOrDataForValue(operand_source);
+  const auto &shape_data_list =
+      x_shape.dyn_cast<symbol::TensorListShapeOrDataDimExprs>();
+
+  std::vector<symbol::DimExpr> output_shape;
+  output_shape.reserve(tensor_idx.size());
+
+  for (size_t i = 0; i < tensor_idx.size(); ++i) {
+    output_shape.push_back(shape_data_list[tensor_idx[i]].shape()[dim_idx[i]]);
+  }
+
+  infer_context->SetShapeOrDataForValue(
+      op->result(0),
+      symbol::ShapeOrDataDimExprs{
+          symbol::TensorShapeOrDataDimExprs(output_shape)});
+
+  return true;
+}
+
 bool GraphKhopSamplerOpInferSymbolicShape(
     pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
   const symbol::ShapeOrDataDimExprs &row_shape_or_data =

@@ -43,6 +43,16 @@ void Shape64Kernel(const Context& ctx,
   }
 }
 
+template <typename T, typename Context>
+void GenerateShapeKernel(const Context& ctx,
+                         const std::vector<const DenseTensor*>& x,
+                         const std::vector<int>& tensor_idx,
+                         const std::vector<int>& dim_idx,
+                         DenseTensor* out) {
+  // only need shape
+  ctx.template HostAlloc<int64_t>(out);
+}
+
 }  // namespace phi
 
 PD_REGISTER_KERNEL(shape,
@@ -143,11 +153,49 @@ PD_REGISTER_KERNEL(shape64,
   kernel->OutputAt(0).SetDataType(phi::DataType::INT64);
 }
 
+PD_REGISTER_KERNEL(generate_shape,
+                   CPU,
+                   ALL_LAYOUT,
+                   phi::GenerateShapeKernel,
+                   bool,
+                   int,
+                   int8_t,
+                   uint8_t,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {
+  kernel->InputAt(0).SetBackend(phi::Backend::ALL_BACKEND);
+  kernel->OutputAt(0).SetBackend(phi::Backend::CPU);
+  kernel->OutputAt(0).SetDataType(phi::DataType::INT64);
+}
+
 #if defined(PADDLE_WITH_CUDA) || defined(PADDLE_WITH_HIP)
 PD_REGISTER_KERNEL(shape64,
                    GPU,
                    ALL_LAYOUT,
                    phi::Shape64Kernel,
+                   bool,
+                   int,
+                   int8_t,
+                   uint8_t,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {
+  kernel->InputAt(0).SetBackend(phi::Backend::ALL_BACKEND);
+  kernel->OutputAt(0).SetBackend(phi::Backend::CPU);
+  kernel->OutputAt(0).SetDataType(phi::DataType::INT64);
+}
+
+PD_REGISTER_KERNEL(generate_shape,
+                   GPU,
+                   ALL_LAYOUT,
+                   phi::GenerateShapeKernel,
                    bool,
                    int,
                    int8_t,

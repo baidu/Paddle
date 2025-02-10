@@ -2607,6 +2607,21 @@ void FusionGroupInferMeta(const std::vector<const MetaTensor*>& ins,
   }
 }
 
+void GenerateShapeInferMeta(const std::vector<const MetaTensor*>& x,
+                            const std::vector<int>& tensor_idx,
+                            const std::vector<int>& dim_idx,
+                            MetaTensor* out,
+                            MetaConfig config) {
+  std::vector<int64_t> output_shape;
+
+  output_shape.reserve(tensor_idx.size());
+  for (size_t i = 0; i < tensor_idx.size(); ++i) {
+    output_shape.push_back(x[tensor_idx[i]]->dims()[dim_idx[i]]);
+  }
+  out->set_dims(common::make_ddim(output_shape));
+  out->set_dtype(phi::DataType::INT64);
+}
+
 void GenerateProposalsV2InferMeta(const MetaTensor& scores,
                                   const MetaTensor& bbox_deltas,
                                   const MetaTensor& im_shape,

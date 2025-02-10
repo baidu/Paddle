@@ -884,6 +884,15 @@ class PartialProgramLayer:
                         self._build_strategy, self._backend
                     ),
                 )
+
+                for op in forward_program.global_block().ops:
+                    if (
+                        op.name() == "builtin.shadow_output"
+                        and op.attrs()["output_name"]
+                        in program_name_attr["no_need_buffers"]
+                    ):
+                        op.set_bool_attr("no_need_buffer", True)
+
                 if cinn_is_enabled(self._build_strategy, self._backend):
                     paddle.base.libpaddle.pir.apply_cinn_pass(forward_program)
                     init_backward_program_shape_analysis(

@@ -187,7 +187,7 @@ void ExecutionEngine::Link(const ir::Module &module) {
       llvm::cantFail(llvm::orc::JITTargetMachineBuilder::detectHost())
           .createTargetMachine()));
   LLVMModuleOptimizer optimize(machine.get(), 3, {}, true);
-  optimize(m.get());
+  // optimize(m.get());
   PADDLE_ENFORCE_EQ(
       !llvm::verifyModule(*m, &llvm::errs()),
       true,
@@ -196,11 +196,11 @@ void ExecutionEngine::Link(const ir::Module &module) {
     VLOG(5) << "function: " << DumpToString(f);
   }
 
-  llvm::raw_svector_ostream rawstream(buffer_);
-  llvm::legacy::PassManager pass_manager;
-  machine->addPassesToEmitFile(
-      pass_manager, rawstream, nullptr, llvm::CGFT_ObjectFile);
-  pass_manager.run(*m);
+  // llvm::raw_svector_ostream rawstream(buffer_);
+  // llvm::legacy::PassManager pass_manager;
+  // machine->addPassesToEmitFile(
+  //     pass_manager, rawstream, nullptr, llvm::CGFT_ObjectFile);
+  // pass_manager.run(*m);
 
   if (VLOG_IS_ON(5)) {
     VLOG(5) << "======= dump jit execution session ======";

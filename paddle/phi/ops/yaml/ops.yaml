@@ -2320,6 +2320,19 @@
   interfaces : paddle::dialect::InferSymbolicShapeInterface
   traits : paddle::dialect::ForwardOnlyTrait
 
+- op : generate_shape
+  args : (Tensor[] x, int[] tensor_idx, int[] dim_idx)
+  output : Tensor(out)
+  infer_meta :
+    func : GenerateShapeInferMeta
+  kernel :
+    func : generate_shape
+  data_transform :
+    skip_transform : x
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
+  traits : paddle::dialect::ForwardOnlyTrait
+  no_need_buffer : x
+
 - op : global_gather
   args : (Tensor x, Tensor local_count, Tensor global_count, int ring_id = 0)
   output : Tensor(out)
