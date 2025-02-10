@@ -24,6 +24,7 @@ from ...profiler import EventGuard, event_register
 from ...psdb import NO_FALLBACK_CODES
 from ...utils import (
     ENV_SOT_ALLOW_DYNAMIC_SHAPE,
+    ENV_SOT_ENABLE_GUARD_TREE,
     BreakGraphError,
     CompileCountInfo,
     FallbackError,
@@ -135,7 +136,8 @@ class OpcodeExecutorCache(metaclass=Singleton):
                         f"[Cache]: Cache hit, Guard is \n{getattr(guard_fn, 'expr', 'None')}\n",
                     )
                     return custom_code
-                else:
+                elif not ENV_SOT_ENABLE_GUARD_TREE.get():
+                    # TODO(zrr1999): remove condition after faster guard tree support error analysis
                     log_do(
                         4,
                         self.analyse_guard_global_object(guard_fn),

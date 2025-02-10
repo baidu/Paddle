@@ -20,6 +20,8 @@ import re
 import sys
 from typing import TYPE_CHECKING
 
+import paddle
+
 from ...profiler import event_register
 from ...utils import BreakGraphError, log
 from ..instruction_utils import Instruction
@@ -66,6 +68,16 @@ class FunctionGlobalTracker(Tracker):
         codegen.gen_load_attr("__globals__")
         codegen.gen_load_const(self.name)
         codegen.gen_subscribe()
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        fn_tracer = self.fn.tracker.guard_tree_expr_node()
+        return paddle.framework.core.ItemExprNode(
+            paddle.framework.core.AttributeExprNode(
+                fn_tracer,
+                "__globals__",
+            ),
+            paddle.framework.core.ConstantExprNode(self.name),
+        )
 
     def trace_value_from_frame(self) -> StringifiedExpression:
         """
@@ -114,6 +126,10 @@ class FunctionClosureTracker(Tracker):
         codegen.gen_load_const(self.idx)
         codegen.gen_subscribe()
         codegen.gen_load_attr("cell_contents")
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement FunctionClosureExprNode
+        raise NotImplementedError("FunctionClosureExprNode is not implemented")
 
     def trace_value_from_frame(self):
         """

@@ -20,6 +20,8 @@ import sys
 from itertools import chain
 from typing import TYPE_CHECKING
 
+import paddle
+
 from ...utils import InnerError, NameGenerator
 from .guard import StringifiedExpression, stringify_pyobject, union_free_vars
 
@@ -58,6 +60,11 @@ class Tracker:
             codegen (PyCodeGen): An instance of PyCodeGen to generate instructions.
         """
         raise NotImplementedError
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        raise NotImplementedError(
+            f"{self.__class__.__name__} has no guard_tree_expr_node"
+        )
 
     # TODO(xiongkun): trace_value_from_frame is not a good name, it should be more related to guard but not tracable.
     def trace_value_from_frame(self) -> StringifiedExpression:
@@ -195,6 +202,9 @@ class LocalTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_fast(self.name)
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.LocalVarExprNode(self.name)
+
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(f"frame.f_locals['{self.name}']", [], {})
 
@@ -205,6 +215,9 @@ class LocalTracker(Tracker):
 class CellTracker(LocalTracker):
     def gen_instructions(self, codegen: PyCodeGen):
         codegen.gen_load_deref(self.name)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.LocalVarExprNode(self.name)
 
     def trace_value_from_frame(self):
         return StringifiedExpression(f"frame.f_locals['{self.name}']", [], {})
@@ -228,6 +241,9 @@ class GlobalTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_global(self.name, push_null=False)
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.GlobalVarExprNode(self.name)
+
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(f"frame.f_globals['{self.name}']", [], {})
 
@@ -249,6 +265,11 @@ class BuiltinTracker(Tracker):
 
     def gen_instructions(self, codegen: PyCodeGen) -> None:
         codegen.gen_load_global(self.name, push_null=False)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.ConstantExprNode(
+            getattr(builtins, self.name)
+        )
 
     def trace_value_from_frame(self) -> StringifiedExpression:
         return StringifiedExpression(
@@ -273,6 +294,9 @@ class ConstTracker(Tracker):
 
     def gen_instructions(self, codegen: PyCodeGen):
         codegen.gen_load_const(self.value)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        return paddle.framework.core.ConstantExprNode(self.value)
 
     def trace_value_from_frame(self):
         value_str, value_free_vars = stringify_pyobject(self.value)
@@ -321,6 +345,20 @@ class BinaryOperatorTracker(Tracker):
             "BINARY_POWER": "**",
         }[self.operator]
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        assert (
+            len(self.operands) == 2
+        ), "Currently only support binary operator."
+        # TODO(zrr1999): implement BinaryExprNode
+        raise NotImplementedError("BinaryExprNode is not implemented")
+        # left_expr = self.operands[0].tracker.guard_tree_expr_node()
+        # right_expr = self.operands[1].tracker.guard_tree_expr_node()
+        # return paddle.framework.core.BinaryExprNode(
+        #     left_expr,
+        #     right_expr,
+        #     self.get_operator_symbol(),
+        # )
+
     def trace_value_from_frame(self):
         sub_exprs = [x.tracker.trace_value_from_frame() for x in self.operands]
         sub_frees = [x.free_vars for x in sub_exprs]
@@ -352,6 +390,13 @@ class GetAttrTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen):
         self.obj.tracker.gen_instructions(codegen)
         codegen.gen_load_attr(self.attr)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        obj_tracer = self.obj.tracker.guard_tree_expr_node()
+        return paddle.framework.core.AttributeExprNode(
+            obj_tracer,
+            self.attr,
+        )
 
     def trace_value_from_frame(self):
         obj_tracer = self.obj.tracker.trace_value_from_frame()
@@ -399,6 +444,13 @@ class GetItemTracker(Tracker):
             codegen.gen_load_const(self.key)
         codegen.gen_subscribe()
 
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        container_tracer = self.container.tracker.guard_tree_expr_node()
+        return paddle.framework.core.ItemExprNode(
+            container_tracer,
+            paddle.framework.core.ConstantExprNode(self.key),
+        )
+
     def trace_value_from_frame(self):
         container_tracer = self.container.tracker.trace_value_from_frame()
         key_string, key_free_vars = stringify_pyobject(self.key)
@@ -432,6 +484,10 @@ class GetIterTracker(Tracker):
     def gen_instructions(self, codegen: PyCodeGen):
         self.iter_source.tracker.gen_instructions(codegen)
         codegen.add_instr("GET_ITER")
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement IterExprNode
+        raise NotImplementedError("IterExprNode is not implemented")
 
     def trace_value_from_frame(self):
         iter_source_tracer = self.iter_source.tracker.trace_value_from_frame()
@@ -469,6 +525,10 @@ class CreateLayerTracker(Tracker):
                 v.reconstruct(codegen)
             codegen.gen_build_map(len(self.kwargs))
             codegen.gen_call_function_ex(has_kwargs=True)
+
+    def guard_tree_expr_node(self) -> paddle.framework.core.ExprNode:
+        # TODO(zrr1999): implement LayerExprNode
+        raise NotImplementedError("LayerExprNode is not implemented")
 
     def trace_value_from_frame(self):
         class_tracer = self.layer_class.tracker.trace_value_from_frame()
