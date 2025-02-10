@@ -20,6 +20,7 @@ import paddle
 from paddle import in_dynamic_mode
 
 from .. import functional as F
+from ..quant.quantized_linear import weight_only_linear, weight_quantize
 from .layers import Layer
 
 if TYPE_CHECKING:
@@ -200,6 +201,7 @@ class Linear(Layer):
         weight_attr: ParamAttrLike | None = None,
         bias_attr: ParamAttrLike | None = None,
         name: str | None = None,
+        use_wint8=False,
     ) -> None:
         super().__init__()
         self._dtype = self._helper.get_default_dtype()
@@ -218,11 +220,25 @@ class Linear(Layer):
             is_bias=True,
         )
         self.name = name
+        self.use_wint8 = use_wint8
+        self.first_run = True
+        self.weight8 = None
+        self.scale8 = None
 
     def forward(self, input: Tensor) -> Tensor:
-        out = F.linear(
-            x=input, weight=self.weight, bias=self.bias, name=self.name
-        )
+        if self.use_wint8:
+            if self.first_run:
+                self.weight8, self.scale8 = weight_quantize(self.weight)
+                del self.weight
+                paddle.device.cuda.empty_cache()
+                self.first_run = False
+            out = weight_only_linear(
+                input, self.weight8, self.bias, self.scale8
+            )
+        else:
+            out = F.linear(
+                x=input, weight=self.weight, bias=self.bias, name=self.name
+            )
         return out
 
     def extra_repr(self) -> str:
