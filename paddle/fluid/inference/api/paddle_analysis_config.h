@@ -1258,7 +1258,7 @@ struct PD_INFER_DECL AnalysisConfig {
 
   bool use_optimized_model_{false};
 
-  bool use_new_executor_{false};
+  bool use_new_executor_{true};
 
   bool specify_input_name_{false};
 
