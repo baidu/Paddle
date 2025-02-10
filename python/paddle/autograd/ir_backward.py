@@ -962,7 +962,7 @@ def append_backward_ops(
                         )
                     state.op_to_opgrad[op] = []
 
-        if fwd_block != bwd_block:
+        if fwd_block != bwd_block and base_op is not None:
             if while_prune_check(while_tuple_ops):
                 remove_op(bwd_block, while_tuple_ops[0], state)
                 while_tuple_ops[1].get_parent_block().remove_op(
@@ -1118,19 +1118,22 @@ def calc_gradient_helper(
     grad_outputs: Value | Sequence[Value | None] | None = None,
     no_grad_set: set[Value] | None = None,
 ) -> ValueDict:
-    block = paddle.base.libpaddle.pir.get_current_insertion_point().block()
-    state = State(block)
-    if all_stop_gradient_true(block):
+    forward_block = outputs[0].get_defining_op().get_parent_block()
+    backward_block = (
+        paddle.base.libpaddle.pir.get_current_insertion_point().block()
+    )
+    state = State(forward_block)
+    if all_stop_gradient_true(forward_block):
         logging.warning(
             "all op in block stop_gradient is True, no grad will be calculate"
         )
         return state.value_to_valuegrad
 
-    total_ops = parent_total_ops(block)
+    total_ops = parent_total_ops(forward_block)
 
     # update no_grad_set if some value stop_gradient=True
-    update_no_grad_set_by_stopgradient(block, no_grad_set)
-    with block:
+    update_no_grad_set_by_stopgradient(backward_block, no_grad_set)
+    with backward_block:
         (
             complete_grad_outputs,
             complete_outputs,
@@ -1159,8 +1162,8 @@ def calc_gradient_helper(
         None,
         None,
         None,
-        block,
-        block,
+        forward_block,
+        backward_block,
         effective_forward_ops,
         no_grad_set,
         backward_ops,
@@ -1174,7 +1177,7 @@ def calc_gradient_helper(
     )
 
     # set chunk id for grad ops
-    _complete_grad_op_chunk_id(block, state)
+    _complete_grad_op_chunk_id(backward_block, state)
 
     remove_ops = []
     if not is_inplace_net(backward_ops) and inputs:
@@ -1196,7 +1199,7 @@ def calc_gradient_helper(
         if bwd_op.result(0) in ValueSet(complete_grad_outputs):
             continue
         if bwd_op.result(0).use_empty():
-            remove_op(block, bwd_op, state)
+            remove_op(backward_block, bwd_op, state)
     state.turn_map()
 
     input_grad_map = state.value_to_valuegrad

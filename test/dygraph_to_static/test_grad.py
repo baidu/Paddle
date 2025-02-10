@@ -203,7 +203,8 @@ class TestNoGrad(Dy2StTestBase):
 def grad_with_if_case(x):
     y = paddle.tanh(x)
     if x.numel() > 0:
-        return paddle.grad([y], [x])[0]
+        t = paddle.grad([y], [x])[0]
+        return t
     return paddle.ones_like(x, dtype='float32')
 
 
