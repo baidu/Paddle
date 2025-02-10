@@ -123,7 +123,23 @@ def transpose(
             [3, 2, 4]
 
     """
-    if in_dynamic_or_pir_mode():
+    if (
+        paddle.is_tensor(x)
+        and isinstance(perm, (tuple, list))
+        and in_dynamic_or_pir_mode()
+    ):
+        # TODO: Parameter validation is currently implemented here due to issues
+        # arising in certain optimization passes ('squeeze_transpose_onednn_fuse_pass'
+        # and 'squeeze2_transpose2_onednn_fuse_pass') when checks are added directly
+        # in the C++ backend. This validation logic will be migrated to the C++
+        # side in a future update to improve performance and maintainability.
+        if len(perm) != len(x.shape):
+            raise ValueError(
+                "Input(perm) is the permutation of dimensions of Input(x), "
+                "its length should be equal to dimensions of Input(x), "
+                f"but received dimension of Input(x) is {len(x.shape)}, "
+                f"the length of Input(perm) is {len(perm)}."
+            )
         return _C_ops.transpose(x, perm)
     else:
         check_variable_and_dtype(

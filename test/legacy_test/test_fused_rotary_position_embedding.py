@@ -287,22 +287,22 @@ class TestFusedRotaryPositionEmbedding(unittest.TestCase):
         if test_time_major:
             # [batch_size, seq_len, num_heads, head_dim] -> [seq_len, batch_size, num_heads, head_dim]
             if tensor_q is not None:
-                tensor_q = paddle.transpose(tensor_q, perm=[1, 0])
+                tensor_q = paddle.transpose(tensor_q, perm=[1, 0, 2, 3])
             if tensor_k is not None:
-                tensor_k = paddle.transpose(tensor_k, perm=[1, 0])
+                tensor_k = paddle.transpose(tensor_k, perm=[1, 0, 2, 3])
             if tensor_v is not None:
-                tensor_v = paddle.transpose(tensor_v, perm=[1, 0])
+                tensor_v = paddle.transpose(tensor_v, perm=[1, 0, 2, 3])
             if tensor_grad_outq is not None:
                 tensor_grad_outq = paddle.transpose(
-                    tensor_grad_outq, perm=[1, 0]
+                    tensor_grad_outq, perm=[1, 0, 2, 3]
                 )
             if tensor_grad_outk is not None:
                 tensor_grad_outk = paddle.transpose(
-                    tensor_grad_outk, perm=[1, 0]
+                    tensor_grad_outk, perm=[1, 0, 2, 3]
                 )
             if tensor_grad_outv is not None:
                 tensor_grad_outv = paddle.transpose(
-                    tensor_grad_outv, perm=[1, 0]
+                    tensor_grad_outv, perm=[1, 0, 2, 3]
                 )
 
         tensor_q = tensor_q.detach().clone()
@@ -347,8 +347,8 @@ class TestFusedRotaryPositionEmbedding(unittest.TestCase):
         if test_time_major:
             # transpose back
             # [seq_len, batch_size, num_heads, head_dim] -> [batch_size, seq_len, num_heads, head_dim]
-            fw = [paddle.transpose(x, perm=[1, 0]) for x in fw]
-            bw = [paddle.transpose(x, perm=[1, 0]) for x in bw]
+            fw = [paddle.transpose(x, perm=[1, 0, 2, 3]) for x in fw]
+            bw = [paddle.transpose(x, perm=[1, 0, 2, 3]) for x in bw]
 
         return fw, bw
 

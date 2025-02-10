@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import os
 import unittest
 
@@ -19,6 +20,7 @@ import gradient_checker
 import numpy as np
 from decorator_helper import prog_scope
 from op_test import OpTest, convert_float_to_uint16
+from utils import dygraph_guard, static_guard
 
 import paddle
 from paddle import base
@@ -499,7 +501,6 @@ class TestTransposeOpBool8D(TestTransposeOpBool):
 
 
 class TestTransposeOpError(unittest.TestCase):
-
     def test_errors(self):
         paddle.enable_static()
         with paddle.static.program_guard(
@@ -536,7 +537,6 @@ class TestTransposeOpError(unittest.TestCase):
 
 
 class TestTransposeApi(unittest.TestCase):
-
     def test_static_out(self):
         paddle.enable_static()
         with paddle.static.program_guard(paddle.static.Program()):
@@ -574,7 +574,6 @@ class TestTransposeApi(unittest.TestCase):
 
 
 class TestTAPI(unittest.TestCase):
-
     def test_static_out(self):
         with base.program_guard(base.Program()):
             data = paddle.static.data(shape=[10], dtype="float64", name="data")
@@ -646,7 +645,6 @@ class TestTAPI(unittest.TestCase):
 
 
 class TestMoveAxis(unittest.TestCase):
-
     def test_static_moveaxis1(self):
         x_np = np.random.randn(2, 3, 4, 5, 7)
         expected = np.moveaxis(x_np, [0, 4, 3, 2], [1, 3, 2, 0])
@@ -904,6 +902,38 @@ class TestMatrixTransposeApiFPPrecision(unittest.TestCase):
 
     def tearDown(self):
         paddle.enable_static()
+
+
+class TestTransposeParamCheck(unittest.TestCase):
+    # Currently, Paddle does not support passing a permutation list of length 2
+    # for swapping axes in a multi-dimensional tensor. The length of the perm
+    # parameter must match the number of dimensions of the input tensor, and the
+    # axes are rearranged according to the order specified in perm.
+
+    def _test_error(self):
+        x = paddle.rand([16, 2, 4, 8])
+        if paddle.device.is_compiled_with_cuda():
+            x_cuda = x.cuda()
+            with self.assertRaisesRegex(
+                ValueError,
+                r"^Input\(perm\) is the permutation of dimensions of Input\(x\), its length should be equal to dimensions of Input\(x\)",
+            ):
+                x_cuda.transpose([1, 2])
+
+        x_cpu = x.cpu()
+        with self.assertRaisesRegex(
+            ValueError,
+            r"^Input\(perm\) is the permutation of dimensions of Input\(x\), its length should be equal to dimensions of Input\(x\)",
+        ):
+            x_cpu.transpose([1, 2])
+
+    def test_dygraph(self):
+        with dygraph_guard():
+            self._test_error()
+
+    def test_static(self):
+        with static_guard():
+            self._test_error()
 
 
 if __name__ == '__main__':
