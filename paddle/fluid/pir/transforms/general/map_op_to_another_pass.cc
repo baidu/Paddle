@@ -16,6 +16,7 @@
 
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
+#include "paddle/fluid/pir/utils/general_functions.h"
 
 #include "paddle/pir/include/pass/pass.h"
 #include "paddle/pir/include/pass/pass_registry.h"
@@ -61,6 +62,62 @@ class DepthWiseConv2d2Conv2dPattern : public paddle::drr::DrrPatternBase {
   }
 };
 
+// flatten_contiguous to reshape
+class FlattenContiguousRange2ReshapePattern
+    : public paddle::drr::DrrPatternBase {
+ public:
+  std::string name() const override {
+    return "FlattenContiguousRange2ReshapePattern";
+  }
+
+  void operator()(paddle::drr::DrrPatternContext *ctx) const override {
+    paddle::drr::SourcePattern pat = ctx->SourcePattern();
+    const auto &flatten_op = pat.Op(paddle::dialect::FlattenOp::name(),
+                                    {{"start_axis", pat.Attr("start_axis")},
+                                     {"stop_axis", pat.Attr("stop_axis")}});
+    flatten_op({&pat.Tensor("flatten_in")},
+               {&pat.Tensor("flatten_out"), &pat.Tensor("flatten_xshape")});
+    paddle::drr::ResultPattern res = pat.ResultPattern();
+
+    pat.AddConstraint([&](const paddle::drr::MatchContext &match_ctx) {
+      auto shape = pir::GetShapeFromValue(match_ctx.Tensor("flatten_in"));
+      size_t shape_size = shape.size();
+      int start_axis = match_ctx.Attr<int>("start_axis");
+      int stop_axis = match_ctx.Attr<int>("stop_axis");
+
+      if (start_axis == 1 && stop_axis == 3 && shape_size == 4 &&
+          shape[2] == 1 && shape[3] == 1) {
+        return true;
+      } else if (start_axis == 2 && stop_axis == 3 && shape_size == 4 &&
+                 shape[2] == 1) {
+        return true;
+      }
+      return false;
+    });
+
+    const auto &shape_attr = res.ComputeAttr(
+        [](const paddle::drr::MatchContext &match_ctx) -> std::vector<int64_t> {
+          auto shape = pir::GetShapeFromValue(match_ctx.Tensor("flatten_in"));
+          size_t shape_size = shape.size();
+          int start_axis = match_ctx.Attr<int>("start_axis");
+          int stop_axis = match_ctx.Attr<int>("stop_axis");
+
+          if (start_axis == 1 && stop_axis == 3 && shape_size == 4 &&
+              shape[2] == 1 && shape[3] == 1) {
+            return {0, -1};
+          } else if (start_axis == 2 && stop_axis == 3 && shape_size == 4 &&
+                     shape[2] == 1) {
+            return {0, 0, -1};
+          }
+          return shape;
+        });
+    const auto &reshape_op =
+        res.Op(paddle::dialect::ReshapeOp::name(), {{"shape", shape_attr}});
+    reshape_op({&res.Tensor("flatten_in")},
+               {&res.Tensor("flatten_out"), &res.OutputNoneTensor()});
+  }
+};
+
 class MapOpToAnotherPass : public pir::PatternRewritePass {
  public:
   MapOpToAnotherPass() : pir::PatternRewritePass("map_op_to_another_pass", 2) {}
@@ -68,6 +125,7 @@ class MapOpToAnotherPass : public pir::PatternRewritePass {
   pir::RewritePatternSet InitializePatterns(pir::IrContext *context) override {
     pir::RewritePatternSet ps(context);
     ps.Add(paddle::drr::Create<DepthWiseConv2d2Conv2dPattern>(context));
+    ps.Add(paddle::drr::Create<FlattenContiguousRange2ReshapePattern>(context));
     return ps;
   }
 };
