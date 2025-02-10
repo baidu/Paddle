@@ -43,6 +43,7 @@ disable_wingpu_test="^test_model$|\
 ^test_activation_op$|\
 ^test_norm_nn_grad$|\
 ^test_bilinear_interp_op$|\
+^test_fused_moe_op$|\
 ^disable_wingpu_test$"
 
 # /*================Fixed Disabled Windows CUDA12.0 MKL(PR-CI-Windows) unittests===========================*/
@@ -290,6 +291,7 @@ disable_wingpu_cuda12_test="^test_cholesky_op$|\
 ^test_trt_convert_clip$|\
 ^test_trt_convert_grid_sampler$|\
 ^test_trt_convert_p_norm$|\
+^test_fused_moe_op$|\
 ^disable_wingpu_cuda12_test$"
 
 # /*=================Fixed Disabled Windows TRT MKL unittests=======================*/
