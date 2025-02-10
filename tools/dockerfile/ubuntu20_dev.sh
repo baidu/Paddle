@@ -97,7 +97,7 @@ function base_image(){
     sed -i 's#CUDNN_VERSION=8.4.1#CUDNN_VERSION=9.1.1#g' ${dockerfile_name}
   elif [[ ${ref_CUDA_MAJOR} == "12.6" ]];then
     dockerfile_name="Dockerfile-126"
-    sed "s#<baseimg>#nvidia/cuda:12.6.0-devel-ubuntu20.04#g" ./Dockerfile.ubuntu20 >${dockerfile_name}
+    sed "s#<baseimg>#nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04#g" ./Dockerfile.ubuntu20 >${dockerfile_name}
     sed -i "s#<setcuda>#ENV LD_LIBRARY_PATH=/usr/local/cuda-12.6/targets/x86_64-linux/lib:\$LD_LIBRARY_PATH #g" ${dockerfile_name}
     sed -i 's#<install_cpu_package>##g' ${dockerfile_name}
     sed -i "s#<install_gcc>#WORKDIR /usr/bin ENV PATH=/usr/local/gcc-12.0/bin:\$PATH #g" ${dockerfile_name}
