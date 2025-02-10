@@ -362,8 +362,12 @@ paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize> {}:
   VLOG(4) << \"Finish AD API GRAD: {}";
   VLOG(6) << "gradnode_ptr = " << this;
   // LOG IF DEBUG
-
 {}
+
+  if (HasNodePostHook()) {{
+    returns = ApplyNodePostHooks(returns, hooked_grads);
+  }}
+
   // Return
 {}
 }}

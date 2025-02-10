@@ -109,6 +109,10 @@ AddNGradNodeFinal::operator()(
         INPUT_PRINT_TEMPLATE, input_str, output_str);
   }
 
+  if (HasNodePostHook()) {
+    returns = ApplyNodePostHooks(returns, hooked_grads);
+  }
+
   if (NeedComplexToRealConversion()) HandleComplexGradToRealGrad(&returns);
   return returns;
 }

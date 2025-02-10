@@ -867,4 +867,49 @@ uintptr_t GradNodeBase::GetPtr() const {
   return reinterpret_cast<uintptr_t>(this);
 }
 
+int64_t GradNodeBase::RegisterNodePostHook(
+    std::shared_ptr<NodePostHookBase>&& hook) {
+  post_hooks_.emplace(next_post_hook_id_, std::move(hook));
+  return next_post_hook_id_++;
+}
+
+bool GradNodeBase::RemoveNodePostHook(int64_t hook_id) {
+  auto remove_cnt = post_hooks_.erase(hook_id);
+  if (remove_cnt == 0) {
+    return false;
+  }
+  return true;
+}
+
+bool GradNodeBase::HasNodePostHook() { return !post_hooks_.empty(); }
+
+paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize>
+GradNodeBase::ApplyNodePostHooks(
+    const paddle::small_vector<std::vector<paddle::Tensor>,
+                               egr::kSlotSmallVectorSize>& grad_outputs,
+    const paddle::small_vector<std::vector<paddle::Tensor>,
+                               egr::kSlotSmallVectorSize>& grad_inputs) {
+  paddle::small_vector<std::vector<paddle::Tensor>, kSlotSmallVectorSize> outs =
+      grad_outputs;
+  for (auto& iter : post_hooks_) {
+    auto hook = iter.second;
+    outs = (*hook)(outs, grad_inputs);
+  }
+
+  for (size_t i = 0; i < outs.size(); i++) {
+    if (outs[i].empty() && (!grad_outputs[i].empty())) {
+      outs[i].resize(grad_outputs[i].size());
+    }
+
+    for (size_t j = 0; j < outs[i].size(); j++) {
+      if (!outs[i][j].defined() || !outs[i][j].initialized()) {
+        outs[i][j] = grad_outputs[i][j];
+      } else {
+        CheckTensor(grad_outputs[i][j], outs[i][j]);
+      }
+    }
+  }
+
+  return outs;
+}
 }  // namespace egr

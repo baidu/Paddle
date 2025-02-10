@@ -2720,6 +2720,95 @@ void* UnPackHook::operator()(void* packed_value, void* other) {
   return reinterpret_cast<void*>(ret);
 }
 
+PyObject* ToPyObject(
+    const paddle::small_vector<std::vector<paddle::Tensor>,
+                               egr::kSlotSmallVectorSize>& grads) {
+  PyObject* args = nullptr;
+  args = PyTuple_New(grads.size());
+
+  for (size_t i = 0; i < grads.size(); i++) {
+    if (grads[i].size() == 0) {
+      Py_INCREF(Py_None);
+      PyTuple_SET_ITEM(args, i, Py_None);
+    } else if (grads[i].size() == 1) {
+      PyTuple_SET_ITEM(args, i, ToPyObject(grads[i][0]));
+    } else {
+      PyTuple_SET_ITEM(args, i, ToPyObject(grads[i]));
+    }
+  }
+
+  return args;
+}
+
+paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize>
+CastPyArg2SmallVectorOfVectorOfTensor(PyObject* obj) {
+  paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize>
+      result;
+  if (PyList_Check(obj)) {
+    Py_ssize_t len = PyList_Size(obj);
+    PyObject* item = nullptr;
+    for (Py_ssize_t i = 0; i < len; i++) {
+      item = PyList_GetItem(obj, i);
+      if (PyObject_TypeCheck(item, p_tensor_type)) {
+        std::vector<paddle::Tensor> tensors;
+        tensors.push_back(reinterpret_cast<TensorObject*>(item)->tensor);
+        result.emplace_back(tensors);
+      } else if (item == Py_None) {
+        // emplace empty Tensor for None
+        std::vector<paddle::Tensor> tensors;
+        result.emplace_back(tensors);
+      } else {
+        result.emplace_back(CastPyArg2VectorOfTensor(obj, 0));
+      }
+    }
+  } else if (PyTuple_Check(obj)) {
+    Py_ssize_t len = PyTuple_Size(obj);
+    PyObject* item = nullptr;
+    for (Py_ssize_t i = 0; i < len; i++) {
+      item = PyTuple_GetItem(obj, i);
+      if (PyObject_TypeCheck(item, p_tensor_type)) {
+        std::vector<paddle::Tensor> tensors;
+        tensors.push_back(reinterpret_cast<TensorObject*>(item)->tensor);
+        result.emplace_back(tensors);
+      } else if (item == Py_None) {
+        // emplace empty Tensor for None
+        std::vector<paddle::Tensor> tensors;
+        result.emplace_back(tensors);
+      } else {
+        result.emplace_back(CastPyArg2VectorOfTensor(obj, 0));
+      }
+    }
+  } else {
+    PADDLE_THROW(common::errors::InvalidType(
+        "argument must be "
+        "list or tuple, but got %s",
+        reinterpret_cast<PyTypeObject*>(obj->ob_type)->tp_name));
+  }
+  return result;
+}
+
+paddle::small_vector<std::vector<paddle::Tensor>, egr::kSlotSmallVectorSize>
+NodePostHook::operator()(
+    const paddle::small_vector<std::vector<paddle::Tensor>,
+                               egr::kSlotSmallVectorSize>& grad_outputs,
+    const paddle::small_vector<std::vector<paddle::Tensor>,
+                               egr::kSlotSmallVectorSize>& grad_inputs) {
+  bool grad_tmp = egr::Controller::Instance().HasGrad();
+  egr::Controller::Instance().SetHasGrad(false);
+  ::pybind11::gil_scoped_acquire gil;
+  PyObject* args = PyTuple_New(2);
+  PADDLE_ENFORCE_NOT_NULL(
+      args, common::errors::External(pybind11::detail::error_string().c_str()));
+  PyTuple_SET_ITEM(args, 0, ToPyObject(grad_outputs));
+  PyTuple_SET_ITEM(args, 1, ToPyObject(grad_inputs));
+  PyObject* ret = PyObject_Call(hook_.ptr(), args, nullptr);
+  PADDLE_ENFORCE_NOT_NULL(
+      ret, common::errors::External(pybind11::detail::error_string().c_str()));
+  Py_XDECREF(args);
+  egr::Controller::Instance().SetHasGrad(grad_tmp);
+  return CastPyArg2SmallVectorOfVectorOfTensor(ret);
+}
+
 /* ------------------ for SetStaticOpArgPreCastHook ----------------------- */
 
 static Py_tss_t static_op_arg_pre_cast_hook_key = {0, 0};
