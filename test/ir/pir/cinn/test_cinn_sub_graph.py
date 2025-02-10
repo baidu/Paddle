@@ -263,6 +263,36 @@ class TestReduceAs(TestCinnSubGraphBase):
         np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
 
 
+class TestLayerNormMultiNorm(TestCinnSubGraphBase):
+    def train(self, use_cinn):
+        paddle.seed(2022)
+        net = paddle.nn.LayerNorm([32, 32])
+
+        input_spec = [
+            paddle.static.InputSpec(
+                shape=[16, 16, 32, 32], dtype='float64', name='x'
+            )
+        ]
+
+        self.x = paddle.uniform(
+            [16, 16, 32, 32], dtype="float64", min=-0.5, max=0.5
+        )
+        self.x.stop_gradient = False
+
+        net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
+        out = net(self.x)
+
+        loss = out.sum()
+        loss.backward()
+
+        return out
+
+    def test_forward(self):
+        cinn_out = self.train(use_cinn=True)
+        dy_out = self.train(use_cinn=False)
+        np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
+
+
 # class TestCinnLayerNorm(TestCinnSubGraphBase):
 #     def train(self, use_cinn):
 #         paddle.seed(2022)
