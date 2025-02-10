@@ -342,6 +342,13 @@ class TestStandardNormalDtype(unittest.TestCase):
         paddle.enable_static()
 
 
+class TestZeroSizeRandN(unittest.TestCase):
+    def test_zero_size_randn(self):
+        paddle.disable_static()
+        x = paddle.randn((0,))
+        paddle.enable_static()
+
+
 support_types = get_xpu_op_support_types('gaussian_random')
 for stype in support_types:
     create_test_class(globals(), XPUTestGaussianRandomOp, stype)

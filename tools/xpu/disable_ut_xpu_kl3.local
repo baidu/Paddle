@@ -41,7 +41,6 @@ test_auto_checkpoint_dist_basic
 test_auto_checkpoint_multiple
 test_auto_recompute_dy2static
 test_autograd_functional_dynamic
-test_backward_without_params
 test_c_comm_init_op
 test_c_concat
 test_c_split

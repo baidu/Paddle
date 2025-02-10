@@ -30,6 +30,11 @@ void GaussianKernel(const Context& ctx,
                     DenseTensor* out) {
   out->Resize(common::make_ddim(shape.GetData()));
   T* data = ctx.template Alloc<T>(out);
+
+  if (out->numel() == 0) {
+    return;
+  }
+
   using XPUType = typename XPUTypeTrait<T>::Type;
   int64_t real_seed = seed != 0 ? seed : ctx.GetGenerator()->Random64();
 
