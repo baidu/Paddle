@@ -905,3 +905,99 @@ class PaddleLayerClassVariable(ClassVariable):
         ):
             return PaddleLayerClassVariable(value, graph, tracker)
         return None
+
+
+class ProcessMeshClassVariable(ClassVariable):
+    def __init__(self, class_: type, graph: FunctionGraph, tracker: Tracker):
+        super().__init__(class_, graph, tracker)
+
+    def call_function(self, /, *args, **kwargs):
+        from ..function_graph import convert_to_py_value
+
+        mesh = self.value(
+            *convert_to_py_value(args),
+            **convert_to_py_value(kwargs),
+        )
+        return VariableFactory.from_value(
+            mesh, self.graph, CreateLayerTracker(self, args, kwargs)
+        )
+
+    @VariableFactory.register_from_value(successor="ClassVariable")
+    def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
+        if inspect.isclass(value) and issubclass(
+            value, paddle.distributed.ProcessMesh
+        ):
+            return ProcessMeshClassVariable(value, graph, tracker)
+        return None
+
+
+class ShardClassVariable(ClassVariable):
+    def __init__(self, class_: type, graph: FunctionGraph, tracker: Tracker):
+        super().__init__(class_, graph, tracker)
+
+    def call_function(self, /, *args, **kwargs):
+        from ..function_graph import convert_to_py_value
+
+        placement = self.value(
+            *convert_to_py_value(args),
+            **convert_to_py_value(kwargs),
+        )
+        return VariableFactory.from_value(
+            placement, self.graph, CreateLayerTracker(self, args, kwargs)
+        )
+
+    @VariableFactory.register_from_value(successor="ClassVariable")
+    def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
+        if inspect.isclass(value) and issubclass(
+            value, paddle.distributed.Shard
+        ):
+            return ShardClassVariable(value, graph, tracker)
+        return None
+
+
+class ReplicateClassVariable(ClassVariable):
+    def __init__(self, class_: type, graph: FunctionGraph, tracker: Tracker):
+        super().__init__(class_, graph, tracker)
+
+    def call_function(self, /, *args, **kwargs):
+        from ..function_graph import convert_to_py_value
+
+        placement = self.value(
+            *convert_to_py_value(args),
+            **convert_to_py_value(kwargs),
+        )
+        return VariableFactory.from_value(
+            placement, self.graph, CreateLayerTracker(self, args, kwargs)
+        )
+
+    @VariableFactory.register_from_value(successor="ClassVariable")
+    def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
+        if inspect.isclass(value) and issubclass(
+            value, paddle.distributed.Replicate
+        ):
+            return ReplicateClassVariable(value, graph, tracker)
+        return None
+
+
+class PartialClassVariable(ClassVariable):
+    def __init__(self, class_: type, graph: FunctionGraph, tracker: Tracker):
+        super().__init__(class_, graph, tracker)
+
+    def call_function(self, /, *args, **kwargs):
+        from ..function_graph import convert_to_py_value
+
+        placement = self.value(
+            *convert_to_py_value(args),
+            **convert_to_py_value(kwargs),
+        )
+        return VariableFactory.from_value(
+            placement, self.graph, CreateLayerTracker(self, args, kwargs)
+        )
+
+    @VariableFactory.register_from_value(successor="ClassVariable")
+    def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
+        if inspect.isclass(value) and issubclass(
+            value, paddle.distributed.Partial
+        ):
+            return PartialClassVariable(value, graph, tracker)
+        return None
