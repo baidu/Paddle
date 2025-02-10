@@ -16,6 +16,7 @@
 
 #include <vector>
 #include "paddle/common/hostdevice.h"
+#include "paddle/phi/common/memory_utils.h"
 #include "paddle/phi/core/dense_tensor.h"
 #include "paddle/phi/kernels/funcs/for_range.h"
 #if defined(__NVCC__) || defined(__HIPCC__)
@@ -157,15 +158,45 @@ void FFTFillConj(const DeviceContext& ctx,
   }
 
 #if defined(__NVCC__) || defined(__HIPCC__)
-  const thrust::device_vector<int64_t> src_strides_g(src_strides_v);
-  const auto src_strides = thrust::raw_pointer_cast(src_strides_g.data());
-  const thrust::device_vector<int64_t> dst_strides_g(dst_strides_v);
-  const auto dst_strides = thrust::raw_pointer_cast(dst_strides_g.data());
-  const thrust::device_vector<int64_t> dst_shape_g(dst_shape_v);
-  const auto dst_shape = thrust::raw_pointer_cast(dst_shape_g.data());
-  const thrust::device_vector<bool> is_fft_axis_g(_is_fft_axis.get(),
-                                                  _is_fft_axis.get() + rank);
-  const auto p_is_fft_axis = thrust::raw_pointer_cast(is_fft_axis_g.data());
+  DenseTensor src_strides_g;
+  src_strides_g.Resize({(int64_t)src_strides_v.size()});
+  int64_t* src_strides = ctx.template Alloc<int64_t>(&src_strides_g);
+  DenseTensor dst_strides_g;
+  dst_strides_g.Resize({(int64_t)dst_strides_v.size()});
+  int64_t* dst_strides = ctx.template Alloc<int64_t>(&dst_strides_g);
+  DenseTensor dst_shape_g;
+  dst_shape_g.Resize({(int64_t)dst_shape_v.size()});
+  int64_t* dst_shape = ctx.template Alloc<int64_t>(&dst_shape_g);
+  DenseTensor is_fft_axis_g;
+  is_fft_axis_g.Resize({rank});
+  bool* p_is_fft_axis = ctx.template Alloc<bool>(&is_fft_axis_g);
+  auto cplace = phi::CPUPlace();
+  const auto gplace = ctx.GetPlace();
+  memory_utils::Copy(gplace,
+                     src_strides,
+                     cplace,
+                     src_strides_v.data(),
+                     sizeof(int64_t) * src_strides_v.size(),
+                     ctx.stream());
+  memory_utils::Copy(gplace,
+                     dst_strides,
+                     cplace,
+                     dst_strides_v.data(),
+                     sizeof(int64_t) * dst_strides_v.size(),
+                     ctx.stream());
+  memory_utils::Copy(gplace,
+                     dst_shape,
+                     cplace,
+                     dst_shape_v.data(),
+                     sizeof(int64_t) * dst_shape_v.size(),
+                     ctx.stream());
+  memory_utils::Copy(gplace,
+                     p_is_fft_axis,
+                     cplace,
+                     _is_fft_axis.get(),
+                     sizeof(bool) * rank,
+                     ctx.stream());
+
 #else
   const auto src_strides = src_strides_v.data();
   const auto dst_strides = dst_strides_v.data();
