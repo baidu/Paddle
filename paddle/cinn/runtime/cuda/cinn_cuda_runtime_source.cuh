@@ -283,7 +283,7 @@ __device__ inline bfloat16 FN_BF16(rsqrt)(bfloat16 x) {
 
 __device__ inline bfloat16 FN_BF16(cbrt)(bfloat16 x) { return bfloat16(FN_FP32(cbrt)(static_cast<float>(x))); }
 
-__device__ inline bfloat16 FN_BF16(abs)(bfloat16 x) { return cinn::common::abs(x); }
+//__device__ inline bfloat16 FN_BF16(abs)(bfloat16 x) { return cinn::common::abs(x); }
 
 __device__ inline bool FN_BF16(isnan)(bfloat16 x) { return cinn::common::isnan(x); }
 __device__ inline bool FN_BF16(isinf)(bfloat16 x) { return cinn::common::isinf(x); }

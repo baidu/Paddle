@@ -82,18 +82,7 @@ cinn_value_t ToValue<double>(double v) {
   val.v_float64 = v;
   return val;
 }
-template <>
-cinn_value_t ToValue<bfloat16>(bfloat16 v) {
-  cinn_value_t val;
-  val.v_float64 = static_cast<double>(v);
-  return val;
-}
-template <>
-cinn_value_t ToValue<float16>(float16 v) {
-  cinn_value_t val;
-  val.v_float64 = static_cast<double>(v);
-  return val;
-}
+
 template <>
 cinn_value_t ToValue<char *>(char *v) {
   cinn_value_t val;
@@ -245,14 +234,7 @@ CINNValue &CINNValue::operator=(double value) {
   *this = CINNValue(value);
   return *this;
 }
-CINNValue &CINNValue::operator=(bfloat16 value) {
-  *this = CINNValue(value);
-  return *this;
-}
-CINNValue &CINNValue::operator=(float16 value) {
-  *this = CINNValue(value);
-  return *this;
-}
+
 CINNValue &CINNValue::operator=(char *value) {
   *this = CINNValue(value);
   return *this;

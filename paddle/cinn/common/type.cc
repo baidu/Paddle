@@ -561,13 +561,6 @@ Type Str2Type(const std::string &type) {
       {"uint8_p", type_of<uint8_t *>()},
       {"uint8_t*", type_of<uint8_t *>()},
 
-      {"bfloat16*", type_of<bfloat16 *>()},
-      {"float16*", type_of<float16 *>()},
-      {"half*", type_of<float16 *>()},
-      {"bfloat16_p", type_of<bfloat16 *>()},
-      {"float16_p", type_of<float16 *>()},
-      {"half_p", type_of<float16 *>()},
-
       {"float*", type_of<float *>()},
       {"float32*", type_of<float *>()},
       {"float_p", type_of<float *>()},

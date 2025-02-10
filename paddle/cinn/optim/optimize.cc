@@ -18,8 +18,6 @@
 #include "paddle/cinn/ir/schedule/ir_schedule_util.h"
 #include "paddle/cinn/ir/utils/ir_copy.h"
 #include "paddle/cinn/ir/utils/stmt_converter.h"
-#include "paddle/cinn/optim/call_arg_list_to_pod_value.h"
-#include "paddle/cinn/optim/cast_bool_to_int8.h"
 #include "paddle/cinn/optim/eliminate_broadcast_in_forloop.h"
 #include "paddle/cinn/optim/eliminate_invariant_loop.h"
 #include "paddle/cinn/optim/extern_call_process_pass.h"

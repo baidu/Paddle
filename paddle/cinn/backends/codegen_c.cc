@@ -985,10 +985,6 @@ void CodeGenC::PrintRuntimeType(const cinn_type_t &type) {
     str_ += "cinn_uint32_t()";
   } else if (type == cinn_uint64_t()) {
     str_ += "cinn_uint64_t()";
-  } else if (type == cinn_bfloat16_t()) {
-    str_ += "cinn_bfloat16_t()";
-  } else if (type == cinn_float16_t()) {
-    str_ += "cinn_float16_t()";
   } else if (type == cinn_float32_t()) {
     str_ += "cinn_float32_t()";
   } else if (type == cinn_float64_t()) {

@@ -25,9 +25,7 @@
 #include <immintrin.h>
 #endif
 
-#include <stdint.h>
-
-#include <cmath>
+#include <cstdint>
 
 #ifdef CINN_WITH_CUDA
 #include <cuda.h>
@@ -35,6 +33,9 @@
 #if (defined(__CUDACC__) || defined(__CUDACC_RTC__)) && CUDA_VERSION >= 7050
 #define CINN_CUDA_FP16
 #include <cuda_fp16.h>
+#else
+#include <cmath>
+#include <cstring>
 
 #define CUDA_ARCH_FP16_SUPPORTED(CUDA_ARCH) (CUDA_ARCH >= 600)
 #endif  // __CUDACC__
@@ -613,10 +614,6 @@ __host__ __device__ inline float16(abs)(const float16& a) {
 #else
   return static_cast<float16>(fabsf(static_cast<float>(a)));
 #endif
-}
-
-__host__ __device__ inline float16(log)(const float16& a) {
-  return float16(std::log(static_cast<float>(a)));
 }
 
 #ifdef __cplusplus

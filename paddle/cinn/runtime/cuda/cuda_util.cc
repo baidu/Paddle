@@ -79,13 +79,13 @@ class CublasHandle {
 };
 
 int64_t cinn_get_value_in_cuda_kernel_args(void *v_args, int idx) {
-  cinn_pod_value_t *args = static_cast<cinn_pod_value_t *>(v_args);
-  return args[idx].operator int64_t();
+  KernelArgsNode *args = static_cast<KernelArgsNode *>(v_args);
+  return args[idx].symbol_val;
 }
 
 void *cinn_get_item_in_cuda_kernel_args(void *v_args, int idx) {
-  cinn_pod_value_t *args = static_cast<cinn_pod_value_t *>(v_args);
-  return static_cast<void *>(&args[idx]);
+  KernelArgsNode *args = static_cast<KernelArgsNode *>(v_args);
+  return static_cast<void *>(&(args[idx].data_ptr));
 }
 
 void cinn_call_cuda_kernel(void *kernel_fn,
@@ -104,19 +104,20 @@ void cinn_call_cuda_kernel(void *kernel_fn,
           << ", " << block_z << "}, num_args=" << num_args
           << ", shared_memory_bytes=" << shared_memory_bytes
           << ", stream=" << stream << ", kernel_fn=" << kernel_fn;
-
   std::vector<void *> kernel_args;
   {
-    cinn::utils::RecordEvent record_run("prepare_args",
-                                        cinn::utils::EventType::kInstruction);
     kernel_args.reserve(num_args);
-    cinn_pod_value_t *args = static_cast<cinn_pod_value_t *>(v_args);
+    KernelArgsNode *args = static_cast<KernelArgsNode *>(v_args);
     for (int idx = 0; idx < num_args; ++idx) {
-      if (args[idx].type_code() == ::cinn_type_code<cinn_buffer_t *>()) {
-        kernel_args.emplace_back(
-            &((cinn_buffer_t *)(args[idx]))->memory);  // NOLINT
+      // kernel_args.emplace_back( &(args[idx]));  // NOLINT
+
+      if (args[idx].args_type == KernelArgsType::void_p_args_type) {
+        kernel_args.emplace_back(&(args[idx].data_ptr));  // NOLINT
+      } else if (args[idx].args_type == KernelArgsType::int64_args_type) {
+        kernel_args.emplace_back(&(args[idx].symbol_val));  // NOLINT
       } else {
-        kernel_args.emplace_back(args[idx].data_addr());
+        PADDLE_THROW(
+            phi::errors::PreconditionNotMet("Only support void* and int64"));
       }
     }
   }

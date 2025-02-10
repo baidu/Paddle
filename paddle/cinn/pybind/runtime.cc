@@ -357,16 +357,7 @@ void BindCinnRuntime(py::module *m) {
       .def("to_cinn_buffer_t_p", &cinn_pod_value_t::operator cinn_buffer_t *)
       .def("to_char_p", &cinn_pod_value_t::operator char *)
       .def("type_code",
-           py::overload_cast<>(&cinn_pod_value_t::type_code, py::const_))
-      .def("data_addr", &cinn_pod_value_t::data_addr);
-
-  m->def("cinn_pod_value_to_float", &cinn_pod_value_to_float)
-      .def("cinn_pod_value_to_double", &cinn_pod_value_to_double)
-      .def("cinn_pod_value_to_int64", &cinn_pod_value_to_int64)
-      .def("cinn_pod_value_to_int32", &cinn_pod_value_to_int32)
-      .def("cinn_pod_value_to_int8", &cinn_pod_value_to_int8)
-      .def("cinn_pod_value_to_void_p", &cinn_pod_value_to_void_p)
-      .def("cinn_pod_value_to_buffer_p", &cinn_pod_value_to_buffer_p);
+           py::overload_cast<>(&cinn_pod_value_t::type_code, py::const_));
 
   m->def("set_cinn_cudnn_deterministic",
          &cinn::runtime::SetCinnCudnnDeterministic,

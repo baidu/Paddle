@@ -21,15 +21,14 @@
 
 #include <stdint.h>
 
-#include <cmath>
-#include <cstring>
-
 #ifdef CINN_WITH_CUDA
 #include <cuda.h>
 
 #if (defined(__CUDACC__) || defined(__CUDACC_RTC__)) && CUDA_VERSION >= 11000
 #define CINN_CUDA_BF16
 #include <cuda_bf16.h>
+#else
+#include <cstring>
 
 #endif  // __CUDACC__
 #endif  // CINN_WITH_CUDA

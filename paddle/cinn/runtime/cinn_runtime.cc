@@ -19,9 +19,6 @@
 
 #include <cmath>
 
-using cinn::common::bfloat16;
-using cinn::common::float16;
-
 extern "C" {
 
 int cinn_buffer_malloc(void* context, struct cinn_buffer_t* buf) {
@@ -157,12 +154,6 @@ cinn_type_t cinn_uint64_t(int num_asterisks) {
   return cinn_type_t(cinn_type_uint, 64, num_asterisks);
 }
 
-cinn_type_t cinn_bfloat16_t(int num_asterisks) {
-  return cinn_type_t(cinn_type_bfloat, 16, num_asterisks);
-}
-cinn_type_t cinn_float16_t(int num_asterisks) {
-  return cinn_type_t(cinn_type_float, 16, num_asterisks);
-}
 cinn_type_t cinn_float32_t(int num_asterisks) {
   return cinn_type_t(cinn_type_float, 32, num_asterisks);
 }
@@ -224,14 +215,6 @@ cinn_pod_value_t::operator double() const {
 cinn_pod_value_t::operator float() const {
   CINN_CHECK_EQ(type_code_, ::cinn_type_code<float>());
   return value_.v_float64;
-}
-cinn_pod_value_t::operator cinn::common::bfloat16() const {
-  CINN_CHECK_EQ(type_code_, ::cinn_type_code<cinn::common::bfloat16>());
-  return static_cast<cinn::common::bfloat16>(value_.v_float64);
-}
-cinn_pod_value_t::operator cinn::common::float16() const {
-  CINN_CHECK_EQ(type_code_, ::cinn_type_code<cinn::common::float16>());
-  return static_cast<cinn::common::float16>(value_.v_float64);
 }
 
 cinn_pod_value_t::operator bool() const {
@@ -335,14 +318,7 @@ cinn_pod_value_t::cinn_pod_value_t(float value)
     : type_code_(::cinn_type_code<float>()) {
   value_.v_float64 = value;
 }
-cinn_pod_value_t::cinn_pod_value_t(bfloat16 value)
-    : type_code_(::cinn_type_code<bfloat16>()) {
-  value_.v_float64 = value;
-}
-cinn_pod_value_t::cinn_pod_value_t(float16 value)
-    : type_code_(::cinn_type_code<float16>()) {
-  value_.v_float64 = value;
-}
+
 cinn_pod_value_t::cinn_pod_value_t(double value)
     : type_code_(::cinn_type_code<double>()) {
   value_.v_float64 = value;
@@ -359,8 +335,6 @@ cinn_pod_value_t::cinn_pod_value_t(const char* value)
 // @{
 float cinn_pod_value_to_float(cinn_pod_value_t* value) { return *value; }
 double cinn_pod_value_to_double(cinn_pod_value_t* value) { return *value; }
-bfloat16 cinn_pod_value_to_bfloat16(cinn_pod_value_t* value) { return *value; }
-float16 cinn_pod_value_to_float16(cinn_pod_value_t* value) { return *value; }
 
 int64_t cinn_pod_value_to_int64(cinn_pod_value_t* value) { return *value; }
 int32_t cinn_pod_value_to_int32(cinn_pod_value_t* value) { return *value; }
@@ -375,9 +349,7 @@ uint8_t cinn_pod_value_to_uint8(cinn_pod_value_t* value) { return *value; }
 bool cinn_pod_value_to_bool(cinn_pod_value_t* value) { return *value; }
 
 void* cinn_pod_value_to_void_p(cinn_pod_value_t* value) { return *value; }
-int32_t* cinn_pod_value_to_int32_p(cinn_pod_value_t* value) {
-  return reinterpret_cast<int32_t*>(value->data_addr());
-}
+
 cinn_buffer_t* cinn_pod_value_to_buffer_p(cinn_pod_value_t* value) {
   return *value;
 }
@@ -387,12 +359,7 @@ cinn_buffer_t* cinn_pod_value_to_buffer_p(cinn_pod_value_t* value) {
 void float_to_cinn_pod_value(float v, cinn_pod_value_t* out) {
   *out = cinn_pod_value_t(v);
 }
-void bfloat16_to_cinn_pod_value(bfloat16 v, cinn_pod_value_t* out) {
-  *out = cinn_pod_value_t(v);
-}
-void float16_to_cinn_pod_value(float16 v, cinn_pod_value_t* out) {
-  *out = cinn_pod_value_t(v);
-}
+
 void double_to_cinn_pod_value(double v, cinn_pod_value_t* out) {
   *out = cinn_pod_value_t(v);
 }
@@ -444,30 +411,6 @@ void cinn_print_debug_string(const char* s, ...) {
   fprintf(stderr, "\n");
 }
 
-void debug_pod_value(cinn_pod_value_t v, int i) {
-  switch (v.type_code()) {
-    case ::cinn_type_code<cinn_buffer_t*>(): {
-      cinn_buffer_t* node = v;
-      if (node->memory) {
-        cinn_print_debug_string("arg[%d].memory: %p\n", i, node->memory);
-      } else {
-        cinn_print_debug_string("arg[%d].memory: %p\n", i, NULL);
-      }
-    } break;
-    case ::cinn_type_code<int32_t>(): {
-      int node = v;
-      cinn_print_debug_string("arg[%d] : %d\n", i, node);
-    } break;
-    case ::cinn_type_code<float>(): {
-      float node = v;
-      cinn_print_debug_string("arg[%f] : %d\n", i, node);
-    } break;
-    default:
-      cinn_print_debug_string("pod type not supported");
-      break;
-  }
-}
-
 void cinn_print_debug_args(cinn_pod_value_t* args, int count) {
   cinn_print_debug_string("start debug ==");
   cinn_print_debug_string("args: %p\n", (void*)args);  // NOLINT
@@ -479,7 +422,6 @@ void cinn_print_debug_args(cinn_pod_value_t* args, int count) {
 
   for (int i = 0; i < count; i++) {
     cinn_print_debug_string("arg[%d]: %p\n", i, (void*)(&args[i]));  // NOLINT
-    debug_pod_value(args[i], i);
   }
 }
 
@@ -494,34 +436,6 @@ void cinn_args_construct(cinn_pod_value_t* arr, int count, ...) {
     // debug_pod_value(*elem_addr, i);
   }
   va_end(args);
-}
-
-void* cinn_pod_value_t::data_addr() const {
-  switch (type_code()) {
-    case ::cinn_type_code<bool>():
-    case ::cinn_type_code<int8_t>():
-    case ::cinn_type_code<int16_t>():
-    case ::cinn_type_code<int32_t>():
-    case ::cinn_type_code<int64_t>():
-    case ::cinn_type_code<uint8_t>():
-    case ::cinn_type_code<uint16_t>():
-    case ::cinn_type_code<uint32_t>():
-    case ::cinn_type_code<uint64_t>():
-      return (void*)&value_.v_int64;  // NOLINT
-    case ::cinn_type_code<bfloat16>():
-    case ::cinn_type_code<float16>():
-    case ::cinn_type_code<float>():
-    case ::cinn_type_code<double>():
-      return (void*)&value_.v_float64;  // NOLINT
-    case ::cinn_type_code<void*>():
-      return (void*)&value_.v_handle;  // NOLINT
-    case ::cinn_type_code<cinn_buffer_t*>():
-      return (void*)&value_.v_handle;  // NOLINT
-    default:
-      cinn_print_debug_string("POD value type [%d] not supported", type_code());
-      CINN_RUNTIME_NOT_IMPLEMENTED
-  }
-  return nullptr;
 }
 
 template <>
@@ -564,14 +478,6 @@ cinn_type_t cinn_type_of<uint64_t>() {
 }
 
 template <>
-cinn_type_t cinn_type_of<bfloat16>() {
-  return cinn_bfloat16_t();
-}
-template <>
-cinn_type_t cinn_type_of<float16>() {
-  return cinn_float16_t();
-}
-template <>
 cinn_type_t cinn_type_of<float>() {
   return cinn_float32_t();
 }
@@ -586,14 +492,6 @@ cinn_type_t cinn_type_of<float*>() {
 }
 template <>
 cinn_type_t cinn_type_of<double*>() {
-  return cinn_float64_t();
-}
-template <>
-cinn_type_t cinn_type_of<bfloat16*>() {
-  return cinn_float64_t();
-}
-template <>
-cinn_type_t cinn_type_of<float16*>() {
   return cinn_float64_t();
 }
 

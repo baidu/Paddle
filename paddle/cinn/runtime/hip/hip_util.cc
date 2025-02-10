@@ -49,9 +49,9 @@ void cinn_call_hip_kernel(void *kernel_fn,
       if (args[idx].type_code() == ::cinn_type_code<cinn_buffer_t *>()) {
         kernel_args.emplace_back(
             &((cinn_buffer_t *)(args[idx]))->memory);  // NOLINT
-      } else {
-        kernel_args.emplace_back(args[idx].data_addr());
-      }
+      }                                                // else {
+      //   kernel_args.emplace_back(args[idx].data_addr());
+      // }
     }
   }
 

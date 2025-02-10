@@ -59,9 +59,10 @@ void cinn_call_sycl_kernel(void *kernel_fn,
         VLOG(4) << "sycl kernel arg[" << idx
                 << "] is a buffer, addr=" << ss.str();
         kernel_args.emplace_back(&addr);
-      } else {
-        kernel_args.emplace_back((args[idx].data_addr()));
       }
+      // else {
+      //   kernel_args.emplace_back((args[idx].data_addr()));
+      // }
     }
   }
 

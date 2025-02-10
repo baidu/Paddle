@@ -85,13 +85,6 @@ if(WITH_GPU)
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
   set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
 
-  message(
-    STATUS
-      "copy paddle/cinn/common/float16.h paddle/cinn/common/bfloat16.h to $ENV{runtime_include_dir}"
-  )
-  file(COPY paddle/cinn/common/float16.h paddle/cinn/common/bfloat16.h
-       DESTINATION $ENV{runtime_include_dir})
-
   find_library(CUDASTUB libcuda.so HINTS ${CUDA_TOOLKIT_ROOT_DIR}/lib64/stubs/
                                          REQUIRED)
   find_library(CUBLAS libcublas.so HINTS ${CUDA_TOOLKIT_ROOT_DIR}/lib64

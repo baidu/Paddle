@@ -33,17 +33,22 @@
 #include <vector>
 #endif
 
-#ifndef CINN_COMMON_FLOAT16_H
-#include "paddle/cinn/common/float16.h"
-#endif  // CINN_COMMON_FLOAT16_H
-
-#ifndef CINN_COMMON_BFLOAT16_H
-#include "paddle/cinn/common/bfloat16.h"
-#endif  // CINN_COMMON_BFLOAT16_H
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+enum KernelArgsType {
+  unk_args_type = -1,    //! Unknown type
+  void_p_args_type = 0,  //! void*
+  int64_args_type = 1,   //! int64_t
+};
+
+struct KernelArgsNode {
+  void* data_ptr{nullptr};
+  int64_t symbol_val{-1};
+
+  KernelArgsType args_type{KernelArgsType::unk_args_type};
+};
 
 #define CINN_ALWAYS_INLINE __attribute__((always_inline)) inline
 
@@ -113,8 +118,6 @@ extern cinn_type_t cinn_uint16_t(int num_asterisks = 0);
 extern cinn_type_t cinn_uint32_t(int num_asterisks = 0);
 extern cinn_type_t cinn_uint64_t(int num_asterisks = 0);
 
-extern cinn_type_t cinn_bfloat16_t(int num_asterisks = 0);
-extern cinn_type_t cinn_float16_t(int num_asterisks = 0);
 extern cinn_type_t cinn_float32_t(int num_asterisks = 0);
 extern cinn_type_t cinn_float64_t(int num_asterisks = 0);
 // @}
@@ -341,14 +344,6 @@ struct cinn_device_interface_impl_t {
 // The device implementations
 extern struct cinn_device_interface_t* cinn_x86_device_interface();
 
-inline cinn::common::bfloat16 cinn_buffer_load_bfloat16(
-    struct cinn_buffer_t* buf, uint32_t index) {
-  return ((cinn::common::bfloat16*)buf->memory)[index];  // NOLINT
-}
-inline cinn::common::float16 cinn_buffer_load_float16(struct cinn_buffer_t* buf,
-                                                      uint32_t index) {
-  return ((cinn::common::float16*)buf->memory)[index];  // NOLINT
-}
 inline float cinn_buffer_load_float32(struct cinn_buffer_t* buf,
                                       uint32_t index) {
   return ((float*)buf->memory)[index];  // NOLINT
@@ -456,8 +451,6 @@ struct cinn_pod_value_t {
 
   explicit cinn_pod_value_t(float value);
   explicit cinn_pod_value_t(double value);
-  explicit cinn_pod_value_t(cinn::common::bfloat16 value);
-  explicit cinn_pod_value_t(cinn::common::float16 value);
 
   explicit cinn_pod_value_t(void* value);
   explicit cinn_pod_value_t(const char* value);
@@ -466,8 +459,6 @@ struct cinn_pod_value_t {
   //@{
   operator double() const;
   operator float() const;
-  operator cinn::common::bfloat16() const;
-  operator cinn::common::float16() const;
 
   operator bool() const;
 
@@ -487,8 +478,6 @@ struct cinn_pod_value_t {
   //@}
 
   int type_code() const { return type_code_; }
-
-  void* data_addr() const;
 
   void set_type_code(int x) { type_code_ = x; }
   void set_value(union cinn_value_t x) { value_ = x; }
@@ -521,13 +510,11 @@ __m(char const*, 6);
 __m(cinn_buffer_t*, 7);
 __m(int8_t, 8);
 __m(bool, 9);
-__m(cinn::common::float16, 10);
 __m(int16_t, 11);
 __m(uint8_t, 12);
 __m(uint16_t, 13);
 __m(uint32_t, 14);
 __m(uint64_t, 15);
-__m(cinn::common::bfloat16, 16);
 #undef __m
 //@}
 #endif  // __cplusplus
@@ -545,8 +532,6 @@ extern "C" {
 // @{
 float cinn_pod_value_to_float(cinn_pod_value_t* value);
 double cinn_pod_value_to_double(cinn_pod_value_t* value);
-cinn::common::bfloat16 cinn_pod_value_to_bfloat16(cinn_pod_value_t* value);
-cinn::common::float16 cinn_pod_value_to_float16(cinn_pod_value_t* value);
 
 int64_t cinn_pod_value_to_int64(cinn_pod_value_t* value);
 int32_t cinn_pod_value_to_int32(cinn_pod_value_t* value);
@@ -568,9 +553,7 @@ cinn_buffer_t* cinn_pod_value_to_buffer_p(cinn_pod_value_t* value);
 //! other specific types to cinn_pod_value
 // @{
 void float_to_cinn_pod_value(float v, cinn_pod_value_t* out);
-void bfloat16_to_cinn_pod_value(cinn::common::bfloat16 v,
-                                cinn_pod_value_t* out);
-void float16_to_cinn_pod_value(cinn::common::float16 v, cinn_pod_value_t* out);
+
 void double_to_cinn_pod_value(double v, cinn_pod_value_t* out);
 
 void bool_to_cinn_pod_value(bool v, cinn_pod_value_t* out);

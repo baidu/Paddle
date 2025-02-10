@@ -159,11 +159,15 @@ std::string Compiler::CompileCudaSource(const std::string& code,
     std::vector<std::string> include_paths;
     for (auto& header : cuda_headers) {
       VLOG(5) << "add include-path: " << header;
+      std::cerr << "include path " << header << std::endl;
       include_paths.push_back("--include-path=" + header);
     }
     for (auto& header : cinn_headers) {
+      std::cerr << "include path " << header << std::endl;
       include_paths.push_back("--include-path=" + header);
     }
+    include_paths.push_back(
+        "--include-path=/paddle/dev_code/Paddle/build/python/paddle/libs");
     compile_options.insert(
         std::end(compile_options), include_paths.begin(), include_paths.end());
   }

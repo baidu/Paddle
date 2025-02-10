@@ -137,12 +137,7 @@ class CINNValue : public cinn_pod_value_t {
   explicit CINNValue(float value) : cinn_pod_value_t(value) {
     type_code_ = ::cinn_type_code<float>();
   }
-  explicit CINNValue(bfloat16 value) : cinn_pod_value_t(value) {
-    type_code_ = ::cinn_type_code<bfloat16>();
-  }
-  explicit CINNValue(float16 value) : cinn_pod_value_t(value) {
-    type_code_ = ::cinn_type_code<float16>();
-  }
+
   explicit CINNValue(double value) : cinn_pod_value_t(value) {
     type_code_ = ::cinn_type_code<double>();
   }
@@ -162,8 +157,6 @@ class CINNValue : public cinn_pod_value_t {
   // @{
   using cinn_pod_value_t::operator double;
   using cinn_pod_value_t::operator float;
-  using cinn_pod_value_t::operator cinn::common::bfloat16;
-  using cinn_pod_value_t::operator cinn::common::float16;
   using cinn_pod_value_t::operator bool;
   using cinn_pod_value_t::operator int32_t;
   using cinn_pod_value_t::operator int64_t;
