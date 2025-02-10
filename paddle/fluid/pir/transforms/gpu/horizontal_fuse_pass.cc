@@ -51,6 +51,7 @@ class HorizontalFusePattern : public pir::RewritePattern {
       pir::Operation* op,
       pir::PatternRewriter& rewriter) const override {  // NOLINT
     bool match_flag = false;
+    return false;
     for (size_t i = 0; i < op->num_results(); i++) {
       // only fuse three or more op
       if (GetOpCntUseValue(op->result(i)) >= 3) {
