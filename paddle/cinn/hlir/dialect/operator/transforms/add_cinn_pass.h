@@ -26,9 +26,8 @@ class Program;
 
 namespace cinn::dialect::ir {
 
-void ApplyCinnPass(
-    ::pir::Program* program,
-    const std::function<std::shared_ptr<pir::PassManager>()>& CreatePassManager,
-    bool is_train_mode = true);
+void ApplyCinnPass(::pir::Program* program,
+                   const std::function<std::shared_ptr<pir::PassManager>()>&
+                       CreatePassManager);
 
 }  // namespace cinn::dialect::ir

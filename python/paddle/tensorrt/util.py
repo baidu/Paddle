@@ -78,7 +78,6 @@ def run_pir_pass(program, disable_passes=[], scope=None):
 
     pm = pir.PassManager(opt_level=4)
     pm.enable_print_statistics()
-    paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
     if scope is None:
         scope = paddle.static.global_scope()
     place = paddle.CUDAPlace(0)
@@ -121,7 +120,6 @@ def run_pir_pass(program, disable_passes=[], scope=None):
 def run_trt_partition(program):
     pm = pir.PassManager(opt_level=4)
     pm.enable_print_statistics()
-    paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
     pm.add_pass("trt_sub_graph_extract_pass", {})
     pm.run(program)
     return program

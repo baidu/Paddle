@@ -770,13 +770,6 @@ class PartialProgramLayer:
         if is_infer_mode:
 
             def pass_fn(forward_program, backward_program, program_name_attr):
-                # common pass
-                pm = paddle.base.libpaddle.pir.PassManager()
-                paddle.base.libpaddle.pir.infer_symbolic_shape_pass(
-                    pm, forward_program
-                )
-                pm.run(forward_program)
-
                 apply_general_passes(
                     forward_program,
                     enable_cse=cse_is_enabled(),

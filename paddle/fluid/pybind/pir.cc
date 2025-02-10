@@ -137,7 +137,6 @@ using pybind11::return_value_policy;
 namespace name_analysis = pir::utils::name_analysis;
 
 COMMON_DECLARE_bool(print_ir);
-COMMON_DECLARE_bool(pir_apply_shape_optimization_pass);
 
 namespace paddle {
 namespace pybind {
@@ -2585,9 +2584,7 @@ void InferSymbolicShapePass(
     pir::Program &program) {                          // NOLINT
   pir::IrContext *ctx = pir::IrContext::Instance();
   ctx->GetOrRegisterDialect<pir::shape::ShapeDialect>();
-  if (FLAGS_pir_apply_shape_optimization_pass) {
-    pass_manager->AddPass(pir::CreateShapeOptimizationPass());
-  }
+  pass_manager->AddPass(pir::CreateShapeOptimizationPass());
 }
 
 std::shared_ptr<Program> ApplyCommonSubexpressionEliminationPass(

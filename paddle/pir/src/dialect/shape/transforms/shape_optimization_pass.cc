@@ -28,8 +28,6 @@
 #include "paddle/pir/include/pass/pass_manager.h"
 #include "paddle/pir/include/pass/pass_registry.h"
 
-COMMON_DECLARE_bool(pir_apply_shape_optimization_pass);
-
 constexpr int vlog_level = 3;
 
 // TODO(zhangbopd): Some op results inferred by InferSymbolicShape is NOT
@@ -465,9 +463,7 @@ void AddShapeOptimizationPass(
     pir::Program& program) {                          // NOLINT
   pir::IrContext* ctx = pir::IrContext::Instance();
   ctx->GetOrRegisterDialect<pir::shape::ShapeDialect>();
-  if (FLAGS_pir_apply_shape_optimization_pass) {
-    pass_manager->AddPass(pir::CreateShapeOptimizationPass());
-  }
+  pass_manager->AddPass(pir::CreateShapeOptimizationPass());
 }
 
 }  // namespace pir::shape

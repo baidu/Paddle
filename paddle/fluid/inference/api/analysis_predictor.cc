@@ -944,8 +944,7 @@ void AnalysisPredictor::OptimizeInferencePirProgram() {
 
     if (config_.cinn_enabled()) {
       VLOG(4) << "[CINN] Begin ApplyCinnPass";
-      cinn::dialect::ir::ApplyCinnPass(
-          pir_program_.get(), CreatePassMgr, false);
+      cinn::dialect::ir::ApplyCinnPass(pir_program_.get(), CreatePassMgr);
     }
 #endif
 
