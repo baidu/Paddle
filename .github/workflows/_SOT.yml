@@ -1,0 +1,206 @@
+name: PR-CI-SOT
+
+on:
+  workflow_call:
+
+env:
+  dockerfile: Dockerfile.cuda9_cudnn7_gcc48_py35_centos6
+  docker_image: 077ca344c322
+  PR_ID: ${{ github.event.pull_request.number }}
+  COMMIT_ID: ${{ github.event.pull_request.head.sha }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-test:
+    runs-on:
+      group: GZ_BD-CPU
+
+    steps:
+    # sudo usermod -aG docker $USER
+    - name: Check docker image and run container
+      env:
+        work_dir: /home/gushiwei/actions-runner/_work
+        FLAGS_fraction_of_gpu_memory_to_use: 0.15
+        CTEST_OUTPUT_ON_FAILURE: 1
+        CTEST_PARALLEL_LEVEL: 2
+        WITH_GPU: "OFF"
+        WITH_CACHE: "ON"
+        WITH_AVX: "OFF"
+        WITH_MKL: "OFF"
+        WITH_TESTING: "OFF"
+        WITH_COVERAGE: "OFF"
+        COVERALLS_UPLOAD: "OFF"
+        GIT_PR_ID: ${{ github.event.pull_request.number }}
+        PADDLE_VERSION: 0.0.0
+        CMAKE_BUILD_TYPE: Release
+        PADDLE_FRACTION_GPU_MEMORY_TO_USE: 0.15
+        WITH_DISTRIBUTE: "OFF"
+        RUN_TEST: OFF
+        PRECISION_TEST: "OFF"
+        PREC_SUFFIX: .py3
+        WITH_UNITY_BUILD: "ON"
+        TIMEOUT_DEBUG_HEL: "OFF"
+        PY_VERSION: 3.10
+        CI_SKIP_CPP_TEST: "OFF"
+        PROC_RUN: 12
+        FLAGS_enable_eager_mode: 1
+        WITH_TENSORRT: "OFF"
+        WITH_NEWIR: "ON"
+        GENERATOR: Ninja
+        WITH_INFERENCE_API_TEST: "OFF"
+        CCACHE_MAXSIZE: 150G
+        CCACHE_LIMIT_MULTIPLE: 0.8
+      run: |
+        # if ! docker image inspect ${docker_image} > /dev/null 2>&1; then
+        #   cd ..
+        #   wget https://raw.githubusercontent.com/PaddlePaddle/Paddle/refs/heads/develop/tools/dockerfile/ci_dockerfile.sh
+        #   wget https://raw.githubusercontent.com/PaddlePaddle/Paddle/refs/heads/develop/tools/dockerfile/Dockerfile.ubuntu20
+        #   bash ci_dockerfile.sh
+        #   docker build -t ${docker-image} -f ${dockerfile} .
+        # fi
+        docker run -d -t --name paddle-CI \
+          -v "cfs:/home/data/cfs" \
+          -v "gzcfs:/home/data/gzcfs" \
+          -v "shm:/dev/shm" \
+          -v "/home/gushiwei:/home/gushiwei" \
+          -e PR_ID \
+          -e COMMIT_ID \
+          -e FLAGS_fraction_of_gpu_memory_to_use \
+          -e CTEST_OUTPUT_ON_FAILURE \
+          -e CTEST_PARALLEL_LEVEL \
+          -e WITH_GPU \
+          -e WITH_CACHE \
+          -e WITH_AVX \
+          -e WITH_MKL \
+          -e WITH_TESTING \
+          -e WITH_COVERAGE \
+          -e COVERALLS_UPLOAD \
+          -e GIT_PR_ID \
+          -e PADDLE_VERSION \
+          -e CMAKE_BUILD_TYPE \
+          -e PADDLE_FRACTION_GPU_MEMORY_TO_USE \
+          -e WITH_DISTRIBUTE \
+          -e RUN_TEST \
+          -e PRECISION_TEST \
+          -e PREC_SUFFIX \
+          -e WITH_UNITY_BUILD \
+          -e TIMEOUT_DEBUG_HEL \
+          -e PY_VERSION \
+          -e CI_SKIP_CPP_TEST \
+          -e PROC_RUN \
+          -e FLAGS_enable_eager_mode \
+          -e WITH_TENSORRT \
+          -e WITH_NEWIR \
+          -e GENERATOR \
+          -e WITH_INFERENCE_API_TEST \
+          -e CCACHE_MAXSIZE \
+          -e CCACHE_LIMIT_MULTIPLE \
+          -w /home/gushiwei/actions-runner/_work/Paddle/Paddle --network host ${docker_image}
+      # working_directory: ./tools/dockerfile/
+
+    - name: Download paddle and update
+      run: |
+        docker exec -t paddle-CI /bin/bash -c "
+        rm -rf * .[^.]*
+        ln -s /home/data/cfs/.cache /root/.cache
+        wget -q --no-proxy https://paddle-github-action.bj.bcebos.com/PR/Paddle/${PR_ID}/${COMMIT_ID}/Paddle.tar.gz --no-check-certificate
+        tar xf Paddle.tar.gz --strip-components=1
+        rm Paddle.tar.gz
+        git config --global user.name "PaddleCI"
+        git config --global user.email "paddle_ci@example.com"
+        git remote add upstream https://github.com/PaddlePaddle/Paddle.git
+        set -x
+        git remote -v
+        git checkout develop
+        git_code=1
+        # set +e
+        proxy=\$(cat ../proxy)
+        export http_proxy=\${proxy}
+        export https_proxy=\${proxy}
+        set -x
+        git pull upstream develop
+        echo \$?
+        # if [ $? -eq 0 ]; then
+        #   git_code=0
+        #   echo 'git pull succeed with1'
+        # else
+        #   proxy=${{ vars.PADDLE_PROXY }}
+        #   echo \"::add-mask::$proxy\"
+        #   export http_proxy=$proxy
+        #   export https_proxy=$proxy
+        #   git pull upstream develop
+        #   if [ $? -eq 0 ]; then
+        #     git_code=0
+        #     echo 'git pull succeed with2'
+        #   else
+        #     echo 'proxy filed'
+        #     exit 2
+        #   fi
+        # fi
+        # set -e
+        git fetch upstream develop
+        git checkout test
+        git merge develop
+        "
+
+    - name: Configure cache and ccache
+      run: |
+        docker exec -t paddle-CI /bin/bash -c "
+        mkdir -p /home/data/cfs/.cache/build
+        echo 'CACHE_DIR=/home/data/cfs/.cache/build' >> \$GITHUB_ENV
+        if [ -f '/home/data/gzcfs/gz.txt' ];then
+          mkdir -p /home/data/gzcfs/.ccache/sot
+          echo 'CCACHE_DIR=/home/data/gzcfs/.ccache/sot' >> \$GITHUB_ENV
+        else
+          mkdir -p /home/data/cfs/.ccache/sot
+          echo 'CCACHE_DIR=/home/data/cfs/.ccache/sot' >> \$GITHUB_ENV
+        fi
+        "
+
+    - name: Check sot
+      env:
+        work_dir: "/home/gushiwei/actions-runner/_work/Paddle/Paddle"
+        PADDLE_ROOT: "/home/gushiwei/actions-runner/_work/Paddle/Paddle"
+      run: |
+        docker exec -t paddle-CI /bin/bash -c "
+        EXCODE=0
+        set +e
+        PATH=/usr/local/bin:${PATH}
+        ln -sf \$(which python3.10) /usr/local/bin/python
+        ln -sf \$(which pip3.10) /usr/local/bin/pip
+        bash -x \${work_dir}/paddle/scripts/paddle_build.sh cicheck_sot;EXCODE=\$?
+        echo \$EXCODE
+        echo \"EXCODE=$EXCODE\" >> \$GITHUB_ENV
+        "
+
+    - name: Check result
+      run: |
+        docker exec -t paddle-CI /bin/bash -c "
+        rm -rf * .[^.]*
+        if [[ \$EXCODE -eq 0 ]];then
+          echo 'Congratulations!  Your PR passed the paddle-build.'
+        elif [[ \$EXCODE -eq 4 ]];then
+          echo 'Sorry, your code style check failed.'
+        elif [[ \$EXCODE -eq 5 ]];then
+          echo 'Sorry, API's example code check failed.'
+        elif [[ \$EXCODE -eq 6 ]];then
+          echo 'Sorry, your pr need to be approved.'
+        elif [[ \$EXCODE -eq 7 ]];then
+          echo 'Sorry, build failed.'
+        elif [[ \$EXCODE -eq 8 ]];then
+          echo 'Sorry, some tests failed.'
+        elif [[ \$EXCODE -eq 9 ]];then
+          echo 'Sorry, coverage check failed.'
+        fi
+        # set -x
+        exit \$EXCODE
+        "
+
+    - name: Terminate and delete the container
+      if: always()
+      run: |
+        docker stop paddle-CI
+        docker rm paddle-CI

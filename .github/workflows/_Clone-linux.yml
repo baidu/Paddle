@@ -1,0 +1,80 @@
+name: Clone-linux
+
+on:
+  workflow_call:
+
+permissions: read-all
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PR_ID: ${{ github.event.pull_request.number }}
+  COMMIT_ID: ${{ github.event.pull_request.head.sha }}
+
+jobs:
+  Clone:
+    # Don't run  on forked repos.
+    if: github.repository_owner == 'PaddlePaddle'
+    runs-on:
+      group: HK-Clone
+
+    steps:
+    - name: Clone paddle
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.base.ref }}
+        submodules: 'recursive'
+        fetch-depth: 1000
+
+    - name: Merge PR to test branch
+      run: |
+        git switch develop
+        set +e
+        git branch -D test
+        set -e
+        git gc
+        git switch -c test
+        git config --global user.name "PaddleCI"
+        git config --global user.email "paddle_ci@example.com"
+        git fetch origin pull/${{ github.event.pull_request.number }}/head:pr
+        git merge --no-ff pr
+        git branch -d pr
+
+    - name: Download bos client
+      env:
+        # bos_file: "/home/paddle/actions-runner/bos_upload.py"
+        home_path: "/home/paddle/actions-runner/"
+        bos_file: "/home/paddle/actions-runner/bos/BosClient.py"
+      run: |
+        if [ ! -f "${bos_file}" ]; then
+          # wget -q --no-proxy -O ${bos_file} https://paddle-docker-tar.cdn.bcebos.com/bos_upload.py --no-check-certificate
+          wget -q --no-proxy -O ${home_path}/bos_new.tar.gz https://xly-devops.bj.bcebos.com/home/bos_new.tar.gz --no-check-certificate
+          mkdir ${home_path}/bos
+          tar xf ${home_path}/bos_new.tar.gz -C ${home_path}/bos
+        fi
+
+    - name: Push paddle-action.tar.gz to bos
+      env:
+        AK: paddle
+        SK: paddle
+        # AK: ${{ vars.AK }}
+        # SK: ${{ vars.SK }}
+        # bos_file: "/home/paddle/actions-runner/bos_upload.py"
+        bos_file: "/home/paddle/actions-runner/bos/BosClient.py"
+      run: |
+        cd ..
+        tar -zcf Paddle.tar.gz Paddle
+        python -m pip install bce-python-sdk==0.8.74
+        python ${bos_file} Paddle.tar.gz paddle-github-action/PR/Paddle/${PR_ID}/${COMMIT_ID}
+        rm Paddle.tar.gz
+        cd -
+        git switch develop
+        git branch -D test
+        git gc
+
+    # - name: Clean environment
+    #   if: always()
+    #   run: |
+    #     rm -rf ${{ github.workspace }}/*

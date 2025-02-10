@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  PR_ID: ${{ github.event.pull_request.number }}
+  COMMIT_ID: ${{ github.event.pull_request.head.sha }}
+  # PR_REF: ${{ github.event.pull_request.head.ref }}
+
+jobs:
+  Clone:
+    uses: ./.github/workflows/_Clone-linux.yml
+
+  SOT:
+    uses: ./.github/workflows/_SOT.yml
+    needs: Clone
+
+  # Py3:
+  #   uses: ./.github/workflows/_Py3.yml
+  #   needs: Clone
