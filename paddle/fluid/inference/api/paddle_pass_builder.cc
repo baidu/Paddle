@@ -623,6 +623,8 @@ const std::vector<std::string> kPirXpuPasses{
     "rms_norm_xpu_fuse_pass",
     "elementwise_mul_add_xpu_fuse_pass",
     "conv2d_bn_xpu_fuse_pass",
+    "group_norm_silu_fuse_pass",
+    "decoder_attention_xpu_fuse_pass"};
     "conv2d_add_xpu_fuse_pass",
     "group_norm_silu_fuse_pass",
     "fc_xpu_fuse_pass"};
