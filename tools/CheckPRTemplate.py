@@ -146,6 +146,9 @@ def pull_request_event_template(event, repo, *args, **kwargs):
 
 
 def get_a_pull(pull_id):
+    """
+    获取pr描述，可以使用pygithub代替
+    """
     url = "https://api.github.com/repos/PaddlePaddle/Paddle/pulls/ " + str(
         pull_id
     )
