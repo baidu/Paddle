@@ -145,8 +145,7 @@ class Categorical(distribution.Distribution):
             self.logits = self._to_tensor(logits)[0]
             if self.dtype != convert_dtype(self.logits.dtype):
                 self.logits = paddle.cast(self.logits, dtype=self.dtype)
-        dist_sum = paddle.sum(self.logits, axis=-1, keepdim=True)
-        self._prob = self.logits / dist_sum
+        self._prob = paddle.nn.functional.softmax(self.logits, axis=-1)
 
     def sample(self, shape: Sequence[int] = []) -> Tensor:
         """Generate samples of the specified shape.
