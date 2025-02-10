@@ -30,6 +30,7 @@ if ! [[ $version == *"$VERSION"* ]]; then
     # low version of pip may not have the source of clang-format whl
     pip install --upgrade pip
     pip install clang-format==13.0.0
+    pip install clang-tidy==15.0.2.1
 fi
 
 clang-format $@

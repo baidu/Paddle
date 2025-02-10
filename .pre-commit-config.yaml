@@ -100,6 +100,7 @@ repos:
         files: \.(c|cc|cxx|cpp|h|hpp|hxx)$
         args:
             - -p=build/
+            - -clang-tidy-binary=clang-tidy
             - -extra-arg=-Wno-unknown-warning-option
             - -extra-arg=-Wno-pessimizing-move
             - -extra-arg=-Wno-braced-scalar-init

@@ -3991,6 +3991,327 @@ function trt_convert_test() {
     fi
 }
 
+function clang-tidy_check() {
+    set +x
+    trap 'abort' 0
+    set -e
+
+    cd ${PADDLE_ROOT}
+    pwd
+    echo "Checking code style by clang-tidy ..."
+    startTime_s=`date +%s`
+
+    exec 3>&1 4>&2
+    temp_file=$(mktemp)
+    modified_files=$(git diff --name-only test..upstream/develop)
+    diff_files=()
+    num_diff_files=0
+    for file in $modified_files
+    do
+        if [[ $file == *.cpp || $file == *.cc || $file == *.cxx || $file == *.c++ || $file == *.h || $file == *.hpp || $file == *.hh || $file == *.hxx || $file == *.h++ ]]; then
+            diff_files+=($file)
+            num_diff_files=$((num_diff_files + 1))
+        fi
+    done
+
+    echo "C++-related files updated: $num_diff_files"
+
+    if [[ $num_diff_files -eq 0 ]]; then
+        echo "No C++ related files to analyze."
+        trap : 0
+        set -x
+        exit 0
+    fi
+
+    python ./tools/codestyle/clang-tidy.py -p=build -j=20 \
+        -clang-tidy-binary=clang-tidy \
+        -extra-arg=-Wno-unknown-warning-option \
+        -extra-arg=-Wno-pessimizing-move \
+        -extra-arg=-Wno-braced-scalar-init \
+        -extra-arg=-Wno-deprecated-copy \
+        -extra-arg=-Wno-dangling-gsl \
+        -extra-arg=-Wno-final-dtor-non-final-class \
+        -extra-arg=-Wno-implicit-int-float-conversion \
+        -extra-arg=-Wno-inconsistent-missing-override \
+        -extra-arg=-Wno-infinite-recursion \
+        -extra-arg=-Wno-mismatched-tags \
+        -extra-arg=-Wno-self-assign \
+        -extra-arg=-Wno-sign-compare \
+        -extra-arg=-Wno-sometimes-uninitialized \
+        -extra-arg=-Wno-tautological-overlap-compare \
+        -extra-arg=-Wno-unused-const-variable \
+        -extra-arg=-Wno-unused-lambda-capture \
+        -extra-arg=-Wno-unused-private-field \
+        -extra-arg=-Wno-unused-value \
+        -extra-arg=-Wno-unused-variable \
+        -extra-arg=-Wno-overloaded-virtual \
+        -extra-arg=-Wno-defaulted-function-deleted \
+        -extra-arg=-Wno-delete-non-abstract-non-virtual-dtor \
+        -extra-arg=-Wno-error \
+        -extra-arg=-Wno-return-type-c-linkage \
+        "${diff_files[@]}" 2>&1 | tee $temp_file 1>&3 3>&-
+
+    T=$(cat $temp_file)
+    S=(
+        # "bugprone-argument-comment"
+        "bugprone-assert-side-effect"
+        "bugprone-bad-signal-to-kill-thread"
+        "bugprone-bool-pointer-implicit-conversion"
+        # "bugprone-branch-clone"
+        "bugprone-copy-constructor-init"
+        "bugprone-dangling-handle"
+        "bugprone-dynamic-static-initializers"
+        # "bugprone-exception-escape"
+        "bugprone-fold-init-type"
+        "bugprone-forwarding-reference-overload"
+        "bugprone-inaccurate-erase"
+        "bugprone-incorrect-roundings"
+        "bugprone-infinite-loop"
+        "bugprone-integer-division"
+        "bugprone-macro-repeated-side-effects"
+        "bugprone-misplaced-operator-in-strlen-in-alloc"
+        "bugprone-misplaced-widening-cast"
+        "bugprone-move-forwarding-reference"
+        "bugprone-multiple-statement-macro"
+        # "bugprone-narrowing-conversions"
+        "bugprone-not-null-terminated-result"
+        "bugprone-parent-virtual-call"
+        "bugprone-posix-return"
+        # "bugprone-signed-char-misuse"
+        "bugprone-sizeof-container"
+        "bugprone-sizeof-expression"
+        "bugprone-string-constructor"
+        "bugprone-string-integer-assignment"
+        "bugprone-string-literal-with-embedded-nul"
+        "bugprone-suspicious-enum-usage"
+        "bugprone-suspicious-memset-usage"
+        "bugprone-suspicious-missing-comma"
+        "bugprone-suspicious-semicolon"
+        "bugprone-suspicious-string-compare"
+        "bugprone-terminating-continue"
+        "bugprone-throw-keyword-missing"
+        "bugprone-too-small-loop-variable"
+        "bugprone-undefined-memory-manipulation"
+        "bugprone-undelegated-constructor"
+        # "bugprone-unhandled-self-assignment"
+        # "bugprone-unused-raii"
+        "bugprone-unused-return-value"
+        # "bugprone-use-after-move"
+        "bugprone-virtual-near-miss"
+        "clang-analyzer-apiModeling.StdCLibraryFunctions"
+        "clang-analyzer-apiModeling.TrustNonnull"
+        "clang-analyzer-apiModeling.google.GTest"
+        "clang-analyzer-apiModeling.llvm.CastValue"
+        "clang-analyzer-apiModeling.llvm.ReturnValue"
+        # "clang-analyzer-core.CallAndMessage"
+        "clang-analyzer-core.DivideZero"
+        "clang-analyzer-core.DynamicTypePropagation"
+        "clang-analyzer-core.NonNullParamChecker"
+        "clang-analyzer-core.NonnilStringConstants"
+        "clang-analyzer-core.NullDereference"
+        "clang-analyzer-core.StackAddrEscapeBase"
+        "clang-analyzer-core.StackAddressEscape"
+        "clang-analyzer-core.UndefinedBinaryOperatorResult"
+        "clang-analyzer-core.VLASize"
+        "clang-analyzer-core.builtin.BuiltinFunctions"
+        "clang-analyzer-core.builtin.NoReturnFunctions"
+        "clang-analyzer-core.uninitialized.ArraySubscript"
+        "clang-analyzer-core.uninitialized.Assign"
+        "clang-analyzer-core.uninitialized.Branch"
+        "clang-analyzer-core.uninitialized.CapturedBlockVariable"
+        "clang-analyzer-core.uninitialized.UndefReturn"
+        "clang-analyzer-cplusplus.InnerPointer"
+        "clang-analyzer-cplusplus.Move"
+        # "clang-analyzer-cplusplus.NewDelete"
+        # "clang-analyzer-cplusplus.NewDeleteLeaks"
+        "clang-analyzer-cplusplus.PureVirtualCall"
+        "clang-analyzer-cplusplus.SelfAssignment"
+        "clang-analyzer-cplusplus.SmartPtr"
+        "clang-analyzer-cplusplus.VirtualCallModeling"
+        # "clang-analyzer-deadcode.DeadStores"
+        "clang-analyzer-fuchsia.HandleChecker"
+        "clang-analyzer-nullability.NullPassedToNonnull"
+        "clang-analyzer-nullability.NullReturnedFromNonnull"
+        "clang-analyzer-nullability.NullabilityBase"
+        "clang-analyzer-nullability.NullableDereferenced"
+        "clang-analyzer-nullability.NullablePassedToNonnull"
+        "clang-analyzer-nullability.NullableReturnedFromNonnull"
+        "clang-analyzer-optin.cplusplus.UninitializedObject"
+        "clang-analyzer-optin.cplusplus.VirtualCall"
+        "clang-analyzer-optin.mpi.MPI-Checker"
+        "clang-analyzer-optin.osx.OSObjectCStyleCast"
+        "clang-analyzer-optin.osx.cocoa.localizability.EmptyLocalizationContextChecker"
+        "clang-analyzer-optin.osx.cocoa.localizability.NonLocalizedStringChecker"
+        "clang-analyzer-optin.performance.GCDAntipattern"
+        "clang-analyzer-optin.performance.Padding"
+        "clang-analyzer-optin.portability.UnixAPI"
+        "clang-analyzer-osx.API"
+        "clang-analyzer-osx.MIG"
+        "clang-analyzer-osx.NSOrCFErrorDerefChecker"
+        "clang-analyzer-osx.NumberObjectConversion"
+        "clang-analyzer-osx.OSObjectRetainCount"
+        "clang-analyzer-osx.ObjCProperty"
+        "clang-analyzer-osx.SecKeychainAPI"
+        "clang-analyzer-osx.cocoa.AtSync"
+        "clang-analyzer-osx.cocoa.AutoreleaseWrite"
+        "clang-analyzer-osx.cocoa.ClassRelease"
+        "clang-analyzer-osx.cocoa.Dealloc"
+        "clang-analyzer-osx.cocoa.IncompatibleMethodTypes"
+        "clang-analyzer-osx.cocoa.Loops"
+        "clang-analyzer-osx.cocoa.MissingSuperCall"
+        "clang-analyzer-osx.cocoa.NSAutoreleasePool"
+        "clang-analyzer-osx.cocoa.NSError"
+        "clang-analyzer-osx.cocoa.NilArg"
+        "clang-analyzer-osx.cocoa.NonNilReturnValue"
+        "clang-analyzer-osx.cocoa.ObjCGenerics"
+        "clang-analyzer-osx.cocoa.RetainCount"
+        "clang-analyzer-osx.cocoa.RetainCountBase"
+        "clang-analyzer-osx.cocoa.RunLoopAutoreleaseLeak"
+        "clang-analyzer-osx.cocoa.SelfInit"
+        "clang-analyzer-osx.cocoa.SuperDealloc"
+        "clang-analyzer-osx.cocoa.UnusedIvars"
+        "clang-analyzer-osx.cocoa.VariadicMethodTypes"
+        "clang-analyzer-osx.coreFoundation.CFError"
+        "clang-analyzer-osx.coreFoundation.CFNumber"
+        "clang-analyzer-osx.coreFoundation.CFRetainRelease"
+        "clang-analyzer-osx.coreFoundation.containers.OutOfBounds"
+        "clang-analyzer-osx.coreFoundation.containers.PointerSizedValues"
+        "clang-analyzer-security.FloatLoopCounter"
+        "clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+        "clang-analyzer-security.insecureAPI.SecuritySyntaxChecker"
+        "clang-analyzer-security.insecureAPI.UncheckedReturn"
+        "clang-analyzer-security.insecureAPI.bcmp"
+        "clang-analyzer-security.insecureAPI.bcopy"
+        "clang-analyzer-security.insecureAPI.bzero"
+        "clang-analyzer-security.insecureAPI.decodeValueOfObjCType"
+        "clang-analyzer-security.insecureAPI.getpw"
+        "clang-analyzer-security.insecureAPI.gets"
+        "clang-analyzer-security.insecureAPI.mkstemp"
+        "clang-analyzer-security.insecureAPI.mktemp"
+        "clang-analyzer-security.insecureAPI.rand"
+        "clang-analyzer-security.insecureAPI.strcpy"
+        "clang-analyzer-security.insecureAPI.vfork"
+        "clang-analyzer-unix.API"
+        "clang-analyzer-unix.DynamicMemoryModeling"
+        "clang-analyzer-unix.Malloc"
+        "clang-analyzer-unix.MallocSizeof"
+        "clang-analyzer-unix.MismatchedDeallocator"
+        "clang-analyzer-unix.Vfork"
+        "clang-analyzer-unix.cstring.BadSizeArg"
+        "clang-analyzer-unix.cstring.CStringModeling"
+        "clang-analyzer-unix.cstring.NullArg"
+        "clang-analyzer-valist.CopyToSelf"
+        "clang-analyzer-valist.Uninitialized"
+        "clang-analyzer-valist.Unterminated"
+        "clang-analyzer-valist.ValistBase"
+        # "cppcoreguidelines-avoid-c-arrays"
+        "cppcoreguidelines-avoid-goto"
+        "cppcoreguidelines-c-copy-assignment-signature"
+        # "cppcoreguidelines-explicit-virtual-functions"
+        # "cppcoreguidelines-init-variables"
+        # "cppcoreguidelines-narrowing-conversions"
+        # "cppcoreguidelines-no-malloc"
+        # "cppcoreguidelines-pro-type-const-cast"
+        # "cppcoreguidelines-pro-type-member-init"
+        "cppcoreguidelines-slicing"
+        "hicpp-avoid-goto"
+        "hicpp-exception-baseclass"
+        # "misc-unused-alias-decls"
+        # "misc-unused-using-decls"
+        # "modernize-avoid-bind"
+        # "modernize-avoid-c-arrays"
+        # "modernize-deprecated-headers"
+        "modernize-deprecated-ios-base-aliases"
+        # "modernize-loop-convert"
+        "modernize-make-shared"
+        # "modernize-make-unique"
+        "modernize-pass-by-value"
+        "modernize-raw-string-literal"
+        # "modernize-redundant-void-arg"
+        "modernize-replace-auto-ptr"
+        "modernize-replace-random-shuffle"
+        "modernize-shrink-to-fit"
+        "modernize-unary-static-assert"
+        # "modernize-use-bool-literals"
+        # "modernize-use-emplace"
+        # "modernize-use-equals-default"
+        "modernize-use-equals-delete"
+        "modernize-use-noexcept"
+        # "modernize-use-nullptr"
+        # "modernize-use-override"
+        # "modernize-use-transparent-functors"
+        "modernize-use-uncaught-exceptions"
+        # "performance-faster-string-find"
+        # "performance-for-range-copy"
+        "performance-implicit-conversion-in-loop"
+        "performance-inefficient-algorithm"
+        # "performance-inefficient-string-concatenation"
+        "performance-inefficient-vector-operation"
+        # "performance-move-const-arg"
+        # "performance-move-constructor-init"
+        "performance-no-automatic-move"
+        # "performance-noexcept-move-constructor"
+        "performance-trivially-destructible"
+        "performance-type-promotion-in-math-fn"
+        "performance-unnecessary-copy-initialization"
+        # "readability-container-size-empty"
+    )
+
+    check_error=0
+    declare -A count_map
+
+    for str in "${S[@]}"; do
+        count_map["$str"]=0
+    done
+
+    while IFS= read -r line; do
+        for str in "${S[@]}"; do
+            if [[ "$line" == *"$str"* ]]; then
+                count=$((count_map["$str"] + 1))
+                count_map["$str"]=$count
+                if (( $ [$count ] -ge 2 )); then
+                    check_error=1
+                    file_path=$(echo "$line" | awk '{for (i=2; i<NF; i++) if ($i ~ /\/.*\/.*\/.*\.(c|cc|cpp|h|hpp):/) {print $i; break}}')
+                    echo "check error: $str in file $file_path"
+                fi
+            fi
+        done
+    done
+
+    rm $temp_file
+    endTime_s=`date +%s`
+    [ -n "$startTime_firstBuild" ] && startTime_s=$startTime_firstBuild
+    echo "Files Num: $[ $num_diff_files ]"
+    echo "Check Time: $[ $endTime_s - $startTime_s ]s"
+    echo "Check error: $[ $check_error ]"
+
+    echo -e '\n************************************************************************************'
+    if [ ${check_error} != 0 ];then
+        echo "Your PR code style clang-tidy check failed."
+        echo "Please install clang-tidy locally:"
+        echo ""
+        echo "    pip install clang-tidy==15.0.2.1"
+        echo ""
+        echo ""
+        if [[ $num_diff_files -le 100 ]];then
+            echo "After the build is completed, run clang-tidy to check codestyle issues in your PR:"
+            echo ""
+            echo "    python ./tools/codestyle/clang-tidy.py -p=build -j=10 -clang-tidy-binary=clang-tidy --files" $(echo ${diff_files} | tr "\n" " ")
+            echo ""
+        fi
+        echo "For more information, please refer to our codestyle check guide:"
+        echo "https://www.paddlepaddle.org.cn/documentation/docs/zh/develop/dev_guides/git_guides/codestyle_check_guide_cn.html"
+    else
+        echo "Your PR code style clang-tidy check passed."
+    fi
+    echo -e '************************************************************************************\n'
+
+    trap : 0
+    set -x
+
+    exit ${check_error}
+}
+
 function build_pr_and_develop() {
     run_setup ${PYTHON_ABI:-""} bdist_wheel ${parallel_number}
     if [ ! -d "${PADDLE_ROOT}/build/python/dist/" ]; then
@@ -4038,6 +4359,7 @@ function build_pr_and_develop() {
     fi
 
     generate_api_spec "$1" "DEV"
+    clang-tidy_check
 
 }
 
