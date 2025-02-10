@@ -65,6 +65,8 @@ CUSOLVER_ROUTINE_EACH(DECLARE_DYNAMIC_LOAD_CUSOLVER_WRAP);
 
 #if CUDA_VERSION >= 9020
 #define CUSOLVER_ROUTINE_EACH_R1(__macro) \
+  __macro(cusolverDnSgetrs);              \
+  __macro(cusolverDnDgetrs);              \
   __macro(cusolverDnSpotrfBatched);       \
   __macro(cusolverDnDpotrfBatched);       \
   __macro(cusolverDnSpotrsBatched);       \

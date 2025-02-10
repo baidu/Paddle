@@ -87,6 +87,7 @@ from .linalg import (  # noqa: F401
     householder_product,
     lstsq,
     lu,
+    lu_solve,
     lu_unpack,
     matmul,
     matrix_power,

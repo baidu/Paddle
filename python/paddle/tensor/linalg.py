@@ -3575,6 +3575,69 @@ def lu(
         return lu, p
 
 
+def lu_solve(b: Tensor, lu_data: Tensor, pivots: Tensor, trans: str = "N", name=None):
+    r"""
+    Computes the solution y to the system of linear equations :math:`Ay = b` ,
+    given LU decomposition :math:`A` and column vector :math:`b`.
+
+    Args:
+        b (Tensor): Column vector `b` in the above equation. It has shape :math:`(*, m, k)`,
+            where :math:`*` is batch dimensions, with data type float32, float16.
+        lu_data (Tensor): LU decomposition. It has shape :math:`(*, m, m)`, where :math:`*` is batch
+            dimensions, that can be decomposed into an upper triangular matrix U and a lower triangular
+            matrix L, with data type float32, float16.
+        pivots (Tensor): Permutation matrix P of LU decomposition. It has
+            shape :math:`(*, m)`, where :math:`*` is batch dimensions, that can be converted
+            to a permutation matrix P, with data type int32.
+        trans (str): The transpose of the matrix A. It can be "N" or "T",
+
+    Returns:
+        Tensor, the same data type as the `b` and `lu_data`.
+
+    Examples:
+        >>> import paddle
+        >>> import numpy as np
+        >>> b = paddle.to_tensor(np.array([[1], [3], [3]]), paddle.float32)
+        >>> LU_data = paddle.to_tensor(np.array([[2, 1, 1], [0.5, 1, 1.5], [0.5, 0, 2.5]]), paddle.float32)
+        >>> LU_pivots = paddle.to_tensor(np.array([2, 2, 3]), paddle.int32)
+        >>> y = paddle.lu_solve(b, LU_data, LU_pivots)
+        >>> print(y)
+        [[ 1.9000002]
+         [-1.4000001]
+         [ 0.6      ]]
+    """
+    b = b if b.shape[:-2] == lu_data.shape[:-2] else paddle.broadcast_to(b, lu_data.shape[-2:] + b.shape[:-2])
+    pivots = pivots if pivots.shape[:-1] == lu_data.shape[:-2] else paddle.broadcast_to(pivots, lu_data.shape[-2:] + pivots.shape[:-1])
+    if b.ndim < 2:
+        raise ValueError(f'`b` dimension must be gather than 2, but got {len(b.shape)}')
+    if lu_data.ndim < 2:
+        raise ValueError(f'`lu_data` dimension must be gather than 2, but got {len(lu_data.shape)}')
+    if pivots.ndim < 1:
+        raise ValueError(f'`pivots` dimension must be gather than 1, but got {len(pivots.shape)}')
+    if b.shape[-2] != lu_data.shape[-2]:
+        raise ValueError(f'the rows of `b` must be equal to the rows of `lu_data`, but got {b.shape[-2]} and {lu_data.shape[-2]}')
+    if lu_data.shape[-1] != lu_data.shape[-2]:
+        raise ValueError(f'`lu_data` shape[-1] must be equal to `lu_data` shape[-2], but got {lu_data.shape[-1]} and {lu_data.shape[-2]}')
+    if pivots.shape[-1] != lu_data.shape[-1]:
+        raise ValueError(f'`pivots` shape[-1] must be equal to `lu_data` shape[-1], but got {pivots.shape[-1]} and {lu_data.shape[-1]}')
+
+    if in_dynamic_or_pir_mode():
+        out = _C_ops.lu_solve(b, lu_data, pivots, trans)
+    else:
+        check_variable_and_dtype(b, 'dtype', ['float32', 'float64'], 'lu_solve')
+        check_variable_and_dtype(lu_data, 'dtype', ['float32', 'float64'], 'lu_solve')
+        check_variable_and_dtype(pivots, 'dtype', ['int32'], 'lu_solve')
+        helper = LayerHelper('lu_solve', **locals())
+        out = helper.create_variable_for_type_inference(dtype=b.dtype)
+        helper.append_op(
+            type='lu_solve',
+            inputs={'x': b, 'lu': lu_data, 'pivots': pivots},
+            outputs={'out': out},
+            attrs={'trans':trans}
+        )
+    return out
+
+
 def lu_unpack(
     x: Tensor,
     y: Tensor,
