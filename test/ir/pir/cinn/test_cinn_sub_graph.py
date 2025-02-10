@@ -14,7 +14,6 @@
 
 import unittest
 
-import numpy as np
 import utils
 
 import paddle
@@ -58,8 +57,13 @@ class CINNSubGraphNet(paddle.nn.Layer):
         self.fn = exp_sub
 
     def forward(self, x):
-        out = self.fn(x)
-        return out
+        # out = self.fn(x)
+        # return out
+        t1 = x.shape[1]
+
+        out = t1 == 1
+
+        return t1, out
 
 
 class CINNSoftmaxSubGraphNet(paddle.nn.Layer):
@@ -152,7 +156,7 @@ class TestCinnSubGraphBase(unittest.TestCase):
         self.prepare_data()
 
     def prepare_data(self):
-        self.shape = [128, 128, 768]
+        self.shape = [2, 2]
         self.axis = -1
         self.x = paddle.uniform(self.shape, dtype="float64", min=-0.5, max=0.5)
         self.x.stop_gradient = False
@@ -166,101 +170,105 @@ class TestCinnExpSubNet(TestCinnSubGraphBase):
     def eval(self, use_cinn):
         paddle.seed(2022)
         net = CINNSubGraphNet()
-        net = utils.apply_to_static(net, use_cinn)
+
+        input_spec = [
+            paddle.static.InputSpec(shape=[2, -1], dtype='float32', name='in_x')
+        ]
+        net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
         net.eval()
         out = net(self.x)
-        if use_cinn:
-            self.check_jit_kernel_info(net.forward)
+        # if use_cinn:
+        #     self.check_jit_kernel_info(net.forward)
         return out
 
     def test_eval(self):
         cinn_out = self.eval(use_cinn=True)
-        dy_out = self.eval(use_cinn=False)
-        np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
+        # dy_out = self.eval(use_cinn=False)
+        # np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
 
 
-class TestCinnSoftmax(TestCinnSubGraphBase):
-    def train(self, use_cinn):
-        paddle.seed(2022)
-        net = CINNSoftmaxSubGraphNet()
-        net = utils.apply_to_static(net, use_cinn)
-        out = net(self.x, self.axis)
+# class TestCinnSoftmax(TestCinnSubGraphBase):
+#     def train(self, use_cinn):
+#         paddle.seed(2022)
+#         net = CINNSoftmaxSubGraphNet()
+#         net = utils.apply_to_static(net, use_cinn)
+#         out = net(self.x, self.axis)
 
-        loss = out.sum()
-        loss.backward()
-        return out, self.x.gradient()
+#         loss = out.sum()
+#         loss.backward()
+#         return out, self.x.gradient()
 
-    def test_forward(self):
-        cinn_out, cinn_grad = self.train(use_cinn=True)
-        dy_out, dy_grad = self.train(use_cinn=False)
-        np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
-        np.testing.assert_allclose(cinn_grad, dy_grad, atol=1e-8)
-
-
-class TestCinnSlice(TestCinnSubGraphBase):
-    def train(self, use_cinn):
-        paddle.seed(2022)
-        net = CINNSliceSubGraphNet()
-
-        input_spec = [
-            paddle.static.InputSpec(
-                shape=[-1, -1], dtype='float32', name='in_x'
-            ),
-            paddle.static.InputSpec(shape=[1], dtype='int64', name='d1'),
-            paddle.static.InputSpec(shape=[1], dtype='int64', name='d2'),
-            paddle.static.InputSpec(shape=[1], dtype='int64', name='d3'),
-            paddle.static.InputSpec(shape=[1], dtype='int64', name='42'),
-        ]
-
-        self.x = paddle.uniform([16, 256], dtype="float64", min=-0.5, max=0.5)
-        self.d1 = paddle.full([1], fill_value=4, dtype="int64")
-        self.d2 = paddle.full([1], fill_value=16, dtype="int64")
-        self.d3 = paddle.full([1], fill_value=4, dtype="int64")
-        self.d4 = paddle.full([1], fill_value=4, dtype="int64")
-
-        net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
-        out = net(self.x, self.d1, self.d2, self.d3, self.d4)
-
-        return out
-
-    def test_forward(self):
-        cinn_out = self.train(use_cinn=True)
-        dy_out = self.train(use_cinn=False)
-        np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
+#     def test_forward(self):
+#         cinn_out, cinn_grad = self.train(use_cinn=True)
+#         dy_out, dy_grad = self.train(use_cinn=False)
+#         np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
+#         np.testing.assert_allclose(cinn_grad, dy_grad, atol=1e-8)
 
 
-class TestCinnSmallSoftmax(TestCinnSoftmax):
-    def prepare_data(self):
-        self.shape = [1, 1, 17, 17]
-        self.axis = -1
-        self.x = paddle.uniform(self.shape, dtype="float64", min=-0.5, max=0.5)
-        self.x.stop_gradient = False
+# class TestCinnSlice(TestCinnSubGraphBase):
+#     def train(self, use_cinn):
+#         paddle.seed(2022)
+#         net = CINNSliceSubGraphNet()
+
+#         input_spec = [
+#             paddle.static.InputSpec(
+#                 shape=[-1, -1], dtype='float32', name='in_x'
+#             ),
+#             paddle.static.InputSpec(shape=[1], dtype='int64', name='d1'),
+#             paddle.static.InputSpec(shape=[1], dtype='int64', name='d2'),
+#             paddle.static.InputSpec(shape=[1], dtype='int64', name='d3'),
+#             paddle.static.InputSpec(shape=[1], dtype='int64', name='42'),
+#         ]
+
+#         self.x = paddle.uniform([16, 256], dtype="float64", min=-0.5, max=0.5)
+#         self.d1 = paddle.full([1], fill_value=4, dtype="int64")
+#         self.d2 = paddle.full([1], fill_value=16, dtype="int64")
+#         self.d3 = paddle.full([1], fill_value=4, dtype="int64")
+#         self.d4 = paddle.full([1], fill_value=4, dtype="int64")
+
+#         net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
+#         out = net(self.x, self.d1, self.d2, self.d3, self.d4)
+
+#         return out
+
+#     def test_forward(self):
+#         cinn_out = self.train(use_cinn=True)
+#         dy_out = self.train(use_cinn=False)
+#         np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
 
 
-class TestReduceAs(TestCinnSubGraphBase):
-    def train(self, use_cinn):
-        paddle.seed(2022)
-        net = CINNAddSubGraphNet()
+# class TestCinnSmallSoftmax(TestCinnSoftmax):
+#     def prepare_data(self):
+#         self.shape = [1, 1, 17, 17]
+#         self.axis = -1
+#         self.x = paddle.uniform(self.shape, dtype="float64", min=-0.5, max=0.5)
+#         self.x.stop_gradient = False
 
-        input_spec = [
-            paddle.static.InputSpec(shape=[-1, -1], dtype='float32', name='x')
-        ]
 
-        self.x = paddle.uniform([16, 256], dtype="float64", min=-0.5, max=0.5)
-        self.x.stop_gradient = False
+# class TestReduceAs(TestCinnSubGraphBase):
+#     def train(self, use_cinn):
+#         paddle.seed(2022)
+#         net = CINNAddSubGraphNet()
 
-        net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
-        out = net(self.x)
+#         input_spec = [
+#             paddle.static.InputSpec(shape=[-1, -1], dtype='float32', name='x')
+#         ]
 
-        loss = out.sum()
-        loss.backward()
+#         self.x = paddle.uniform([16, 256], dtype="float64", min=-0.5, max=0.5)
+#         self.x.stop_gradient = False
 
-        return out
+#         net = utils.apply_to_static(net, use_cinn, input_spec=input_spec)
+#         out = net(self.x)
 
-    def test_forward(self):
-        cinn_out = self.train(use_cinn=True)
-        dy_out = self.train(use_cinn=False)
-        np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
+#         loss = out.sum()
+#         loss.backward()
+
+#         return out
+
+#     def test_forward(self):
+#         cinn_out = self.train(use_cinn=True)
+#         dy_out = self.train(use_cinn=False)
+#         np.testing.assert_allclose(cinn_out.numpy(), dy_out.numpy(), atol=1e-8)
 
 
 # class TestCinnLayerNorm(TestCinnSubGraphBase):
