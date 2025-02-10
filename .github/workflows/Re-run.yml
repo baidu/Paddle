@@ -1,0 +1,44 @@
+name: Re-run
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  re-run:
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '/re-run') }}
+    runs-on: ubuntu-latest
+    env:
+      pr_number: ${{ github.event.issue.number }}
+
+    steps:
+      - name: List failed workflows
+        id: list_failed
+        run: |
+          curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?status=failure&branch=${{ github.head_ref }}" | \
+            jq --arg pr_number "$pr_number" -r '.workflow_runs |
+            map(select(.pull_requests[].number == ($pr_number | tonumber))) | map({id: .id, name: .name, created_at: .created_at}) |
+            sort_by(.created_at) | reverse | unique_by(.name) | .[] | "\(.id),\(.name),\(.head_sha)"' > failed_run.txt
+          echo "Failed run (ID, Name, Commit SHA):"
+          cat failed_run.txt
+
+      - name: Re run failed workflows
+        run: |
+          while IFS=, read -r run_id run_name run_sha; do
+            if [[ "$run_name" == "coverage" ]]; then
+              last_run_sha=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=${{ github.head_ref }}" | \
+                jq --arg pr_number "$pr_number" -r '.workflow_runs |
+                map(select(.pull_requests[].number == ($pr_number | tonumber) and .name == "coverage")) |
+                sort_by(.created_at) | .[1] | .head_sha')
+
+              if [[ "$run_sha" == "$last_run_sha" ]]; then
+                echo "Skipping rerun for Coverage workflow as commit SHA has not changed."
+                continue
+              fi
+            fi
+            echo "Re-running workflow: $run_name (ID: $run_id)"
+            curl -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs/$run_id/rerun"
+          done < failed_run.txt
