@@ -107,17 +107,10 @@ SET_NCCL_COMMCONTEXT = """
             "NCCLCommContext is nullptr, collective op should "
             "has ring_id(%d) attr.",
             std::to_string(ring_id)));
-    if (!comm_context->GetDevContext() || !comm_context->GetDevContext()->GetCommContext())
-    {{
-        auto kernel_res = phi::KernelFactory::Instance().SelectKernelOrThrowError(
-            "{}", {{kernel_backend, kernel_layout, kernel_data_type}}, true);
-        if (FLAGS_low_precision_op_list) {{
-        phi::KernelFactory::Instance().AddToLowPrecisionKernelList("{}", kernel_data_type);
-        }}
-        Backend act_kernel_backend = kernel_res.has_fallback_cpu ? Backend::CPU : kernel_backend;
-        auto* dev_context = GetDeviceContextByBackend(act_kernel_backend);
-        dev_context->SetCommContext(comm_context);
-    }}
+    auto* dev_ctx = static_cast<platform::DeviceContext*>(
+            static_cast<phi::distributed::NCCLCommContext*>(comm_context)
+                ->GetDevContext());
+    dev_ctx->SetCommContext(comm_context);
   }}
 #endif
 """

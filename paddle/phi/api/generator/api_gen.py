@@ -451,6 +451,7 @@ def source_include(header_file_path):
 #include "paddle/phi/infermeta/ternary.h"
 #include "paddle/phi/infermeta/fusion.h"
 #include "paddle/phi/infermeta/backward.h"
+#include "paddle/phi/core/platform/device_context.h"
 
 #include "paddle/phi/api/profiler/event_tracing.h"
 #include "paddle/phi/api/profiler/supplement_tracing.h"

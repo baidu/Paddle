@@ -1337,7 +1337,7 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
 {code_indent}      auto target_ptr = static_cast<phi::DenseTensor*>({target_input}.at(i).impl().get());
 {code_indent}      *target_ptr = *{kernel_out}.at(i);
 {code_indent}    }}"""
-        return f"""
+        select_kernel_code = f"""
 {code_indent}  VLOG(6) << "{self.api} API kernel key: [" << kernel_backend << ", " << kernel_layout << ", "<< kernel_data_type << "]";
 {code_indent}  auto kernel_result = phi::KernelFactory::Instance().SelectKernelOrThrowError(
 {code_indent}      "{kernel_name}", {{kernel_backend, kernel_layout, kernel_data_type}}, true);
@@ -1348,7 +1348,6 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
 {code_indent}  VLOG(6) << "{kernel_name} kernel: " << kernel;
 {code_indent}  // add actual_kernel_backend to select actual kernel backend after a potential falling-back to CPU
 {code_indent}  Backend actual_kernel_backend = kernel_result.has_fallback_cpu ? Backend::CPU : kernel_backend;
-{code_indent}  auto* dev_ctx = GetDeviceContextByBackend(actual_kernel_backend);
 {input_tensors}
 {output_create}
 {pre_save_stride}
@@ -1365,13 +1364,38 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
 {code_indent}  phi::RecordEvent* kernel_record_event = nullptr;
 {code_indent}  if(phi::RecordEvent::IsEnabled()){{
 {code_indent}    kernel_record_event = new phi::RecordEvent(\"{kernel_name} kernel launch\", phi::TracerEventType::DygraphKernelLaunch, 1);
-{code_indent}  }}
-{code_indent}    (*kernel_fn)({kernel_args}, {", ".join(outputs_args)});
+{code_indent}  }}"""
+        if "ring_id" in self.attrs["names"]:
+            select_kernel_code += f"""
+{code_indent}  #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
+{code_indent}    if (comm_context_manager.Has(std::to_string(ring_id))) {{
+{code_indent}      comm_context_manager.Get(std::to_string(ring_id));
+{code_indent}      auto* dev_ctx = static_cast<platform::DeviceContext*>(static_cast<phi::distributed::NCCLCommContext*>(comm_context)->GetDevContext());
+{code_indent}      (*kernel_fn)({kernel_args}, {", ".join(outputs_args)});
+{code_indent}      if (FLAGS_benchmark) {{
+{code_indent}        dev_ctx->Wait();
+{code_indent}        std::cout << \"{kernel_name} kernel run finish.\" << std::endl;
+{code_indent}      }}
+{code_indent}      if (kernel_record_event != nullptr) {{
+{code_indent}        delete kernel_record_event;
+{code_indent}      }}
+{code_indent}      if (kernel_result.has_fallback_cpu) {{
+{fallback_kernel_output_trans}
+{self.reset_view_after_fallback(self.outputs['types'], code_indent, inplace_flag)}
+{code_indent}      }}
+{code_indent}      dev_ctx = static_cast<platform::DeviceContext*>(static_cast<phi::distributed::NCCLCommContext*>(comm_context)->GetDevContext());
+{transdata2strided}
+{code_indent}      {self.gene_return_code()}
+{code_indent}    }}
+{code_indent}  #endif"""
+        select_kernel_code += f"""
+{code_indent}  auto* dev_ctx = GetDeviceContextByBackend(actual_kernel_backend);
+{code_indent}  (*kernel_fn)({kernel_args}, {", ".join(outputs_args)});
 {code_indent}  if (FLAGS_benchmark) {{
-{code_indent}      dev_ctx->Wait();
-{code_indent}      std::cout << \"{kernel_name} kernel run finish.\" << std::endl;
+{code_indent}    dev_ctx->Wait();
+{code_indent}    std::cout << \"{kernel_name} kernel run finish.\" << std::endl;
 {code_indent}  }}
-{code_indent}  if(kernel_record_event != nullptr){{
+{code_indent}  if (kernel_record_event != nullptr) {{
 {code_indent}    delete kernel_record_event;
 {code_indent}  }}
 {code_indent}  if (kernel_result.has_fallback_cpu) {{
@@ -1381,6 +1405,7 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
 {code_indent}  dev_ctx = GetDeviceContextByBackend(kernel_backend);
 {transdata2strided}
 {code_indent}  {self.gene_return_code()}"""
+        return select_kernel_code
 
     def get_condition_code(self, kernel_name):
         assert self.kernel['dispatch'][
