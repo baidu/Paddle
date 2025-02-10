@@ -2,6 +2,8 @@
 <img align="center" src="doc/imgs/logo.png", width=1600>
 <p>
 
+bd test pr new
+
 --------------------------------------------------------------------------------
 
 English | [简体中文](./README_cn.md) | [日本語](./README_ja.md)
