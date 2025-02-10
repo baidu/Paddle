@@ -512,5 +512,207 @@ class InstanceNormDecompHelper {
   int64_t x_rank_;
 };
 
+template <typename T>
+class GroupNormDecompHelper {
+ public:
+  GroupNormDecompHelper(const Tensor& x,
+                        const paddle::optional<Tensor>& scale,
+                        const paddle::optional<Tensor>& bias,
+                        int64_t group_num,
+                        const std::string& data_format) {
+    auto x_dims = phi::vectorize(x.dims());
+    x_rank_ = x_dims.size();
+
+    if (data_format == "NCHW") {
+      channel_axis_ = 1;
+      for (int64_t i = channel_axis_ + 1; i < x_rank_ + 1; ++i) {
+        reduce_axis_.push_back(i);
+      }
+    } else if (data_format == "NHWC") {
+      channel_axis_ = x_rank_ - 1;
+      for (int64_t i = 1; i < channel_axis_; ++i) {
+        reduce_axis_.push_back(i);
+      }
+      reduce_axis_.push_back(x_rank_);
+    } else {
+      PADDLE_THROW(
+          common::errors::Unimplemented("Only support NCHW and NHWC format."));
+    }
+
+    scale_bias_new_shape_.push_back(group_num);
+    scale_bias_new_shape_.push_back(-1);
+    for (int64_t i = channel_axis_ + 1; i < x_rank_; ++i) {
+      scale_bias_new_shape_.push_back(1);
+    }
+
+    int64_t channel_dim = x_dims[channel_axis_];
+    if ((channel_dim < 0) && scale) {
+      channel_dim = scale->dims()[0];
+    }
+    if ((channel_dim < 0) && bias) {
+      channel_dim = bias->dims()[0];
+    }
+
+    int unk_count = 0;
+    for (int64_t i = 0; i < x_rank_; ++i) {
+      if ((i != channel_axis_) && (x_dims[i] < 0)) {
+        unk_count++;
+      }
+    }
+
+    if (channel_dim > 0) {
+      // Can use vector<int64> as output shape
+
+      // case 1: axis is the last one
+      // case 2: from axis + 1 to end all positive
+      can_use_vector_int_as_output_shape_ =
+          (channel_axis_ + 1 == x_rank_) ||
+          std::find(x_dims.begin() + channel_axis_ + 1, x_dims.end(), -1) ==
+              x_dims.end();
+
+      // case 3: one ONE unk dim(-1) except axis
+
+      can_use_vector_int_as_output_shape_ =
+          can_use_vector_int_as_output_shape_ || (unk_count <= 1);
+    } else {
+      can_use_vector_int_as_output_shape_ = (unk_count == 0);
+    }
+
+    std::vector<int64_t> split_dim;
+    split_dim.push_back(group_num);
+    split_dim.push_back(channel_dim < 0 ? -1 : channel_dim / group_num);
+
+    if (can_use_vector_int_as_output_shape_) {
+      split_out_shape_.reserve(x_rank_ + 1);
+      for (int64_t i = 0; i < channel_axis_; ++i) {
+        split_out_shape_.push_back(0);
+        merge_out_shape_.push_back(0);
+      }
+
+      split_out_shape_.insert(
+          split_out_shape_.end(), split_dim.begin(), split_dim.end());
+      merge_out_shape_.push_back(channel_dim);
+
+      for (int64_t i = channel_axis_ + 1; i < x_rank_; ++i) {
+        split_out_shape_.push_back(x_dims[i]);
+        merge_out_shape_.push_back(x_dims[i]);
+      }
+    } else {
+      auto x_shape = shape<T>(x);
+      if (channel_axis_ > 0) {
+        split_shape_tensor_.push_back(
+            get_slice_vec<T>(x_shape, 0, channel_axis_));
+        merge_shape_tensor_.push_back(
+            get_slice_vec<T>(x_shape, 0, channel_axis_));
+      }
+
+      split_shape_tensor_.push_back(
+          full<T>({1}, split_dim[0], phi::DataType::INT32));
+      split_shape_tensor_.push_back(
+          full<T>({1}, split_dim[1], phi::DataType::INT32));
+
+      merge_shape_tensor_.push_back(
+          full<T>({1}, channel_dim, phi::DataType::INT32));
+
+      if (channel_axis_ + 1 < x_rank_) {
+        split_shape_tensor_.push_back(
+            get_slice_vec<T>(x_shape, channel_axis_ + 1, x_rank_));
+        merge_shape_tensor_.push_back(
+            get_slice_vec<T>(x_shape, channel_axis_ + 1, x_rank_));
+      }
+    }
+  }
+
+  Tensor Split(const Tensor& s) {
+    if (can_use_vector_int_as_output_shape_) {
+      return reshape<T>(s, split_out_shape_);
+    } else {
+      return backend::reshape<T>(s, concat<T>(split_shape_tensor_, 0));
+    }
+  }
+
+  Tensor Merge(const Tensor& x) {
+    if (can_use_vector_int_as_output_shape_) {
+      return reshape<T>(x, merge_out_shape_);
+    } else {
+      return backend::reshape<T>(x, concat<T>(merge_shape_tensor_, 0));
+    }
+  }
+
+  const std::vector<int64_t>& GetReduceAxis() const { return reduce_axis_; }
+
+  std::vector<int64_t> GetMeanVarSqueezeAxis() const {
+    std::vector<int64_t> output;
+
+    for (int64_t i = 1; i < channel_axis_; ++i) {
+      output.push_back(1);
+    }
+    for (int64_t i = channel_axis_ + 1; i <= x_rank_; ++i) {
+      output.push_back(-1);
+    }
+    return output;
+  }
+
+  const std::vector<int64_t>& GetScaleBiasNewShape() const {
+    return scale_bias_new_shape_;
+  }
+
+  Tensor GetHW(const Tensor& x) {
+    auto x_dims = x.dims();
+    // process reduce axis
+
+    bool static_hw = true;
+    int64_t hwg_numel = 1;
+
+    for (size_t i = 0; i < reduce_axis_.size(); ++i) {
+      if (x_dims[reduce_axis_[i]] < 0) {
+        static_hw = false;
+        break;
+      }
+      hwg_numel *= x_dims[reduce_axis_[i]];
+    }
+
+    if (static_hw) {
+      std::cerr << "static hwg " << hwg_numel << std::endl;
+      return full_scalar<T>(hwg_numel, x.dtype());
+    } else {
+      auto x_shape = shape<T>(x);
+      auto numel = get_slice<T>(x_shape, reduce_axis_.front());
+      for (size_t i = 1; i < reduce_axis_.size(); ++i) {
+        numel = numel * get_slice<T>(x_shape, reduce_axis_[i]);
+      }
+
+      return cast<T>(numel, x.dtype());
+    }
+  }
+
+  std::vector<int64_t> GetReduceAxisExceptChannel() const {
+    std::vector<int64_t> reduce_axis;
+    reduce_axis.reserve(x_rank_ - 1);
+
+    for (int64_t i = 0; i < x_rank_ + 1; ++i) {
+      if (i != channel_axis_ && i != channel_axis_ + 1) {
+        reduce_axis.push_back(i);
+      }
+    }
+
+    return reduce_axis;
+  }
+
+ private:
+  bool can_use_vector_int_as_output_shape_{false};
+  std::vector<int64_t> split_out_shape_;
+  std::vector<Tensor> split_shape_tensor_;
+
+  std::vector<int64_t> merge_out_shape_;
+  std::vector<Tensor> merge_shape_tensor_;
+  std::vector<int64_t> reduce_axis_;
+  std::vector<int64_t> scale_bias_new_shape_;
+
+  int64_t group_num_;
+  int64_t channel_axis_;
+  int64_t x_rank_;
+};
+
 }  // namespace primitive
 }  // namespace paddle
