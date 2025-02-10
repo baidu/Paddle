@@ -17,7 +17,6 @@ import sys
 import unittest
 from os.path import dirname
 
-os.environ['FLAGS_cinn_new_group_scheduler'] = '1'
 os.environ['FLAGS_prim_enable_dynamic'] = 'true'
 
 import numpy as np
