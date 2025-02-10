@@ -60,14 +60,14 @@ def get_current_device_type():
 
 
 def get_align(t):
-    size = np.prod(t.shape) * align[t.dtype]
+    size = np.prod(t.shape) * align[t.dtype.value]
     remaining = size % alignment[get_current_device_type()]
     ali = (
         0
         if remaining == 0
         else alignment[get_current_device_type()] - remaining
     )
-    align_ = ali // align[t.dtype]
+    align_ = ali // align[t.dtype.value]
     return align_
 
 

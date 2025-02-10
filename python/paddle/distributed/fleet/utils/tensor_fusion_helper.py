@@ -115,14 +115,14 @@ def flatten_dense_tensors(
 
     for param in parameters:
         assert param.trainable, "param must be trainable..."
-        size = np.prod(param.shape) * align[dtype]
+        size = np.prod(param.shape) * align[dtype.value]
         remaining = size % alignment[get_current_device_type()]
         ali = (
             0
             if remaining == 0
             else alignment[get_current_device_type()] - remaining
         )
-        align_ = ali // align[dtype]
+        align_ = ali // align[dtype.value]
         _param2offset[param.name] = _buffer_size
         _buffer_size += np.prod(param.shape) + align_
         _param2align[param.name] = align_
@@ -342,7 +342,7 @@ def build_reduce_scatter_buffer(
 
     def get_padded_size(param):
         size = np.prod(param.shape)
-        align_size = alignment[get_current_device_type()] // align[dtype]
+        align_size = alignment[get_current_device_type()] // align[dtype.value]
         align_size = align_size * sharding_degree
         padded_size = ((size + align_size - 1) // align_size) * align_size
         return padded_size
