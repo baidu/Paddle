@@ -1161,7 +1161,11 @@ void TopPSamplingKernel(const Context& dev_ctx,
   T* threshold_data = SafeGetTensorPtr<T>(threshold);
 
   constexpr int TopKMaxLength = 2;
+#ifdef PADDLE_WITH_HIP
+  constexpr int TopPBeamTopK = 5;
+#else
   constexpr int TopPBeamTopK = 20;
+#endif
 
   DispatchKeMatrixTopPBeamTopK<T, Context, TopKMaxLength, TopPBeamTopK>(
       dev_ctx,
