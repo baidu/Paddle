@@ -92,6 +92,14 @@ class MasterGradPass(PassBase):
         super().__init__()
 
     def _check_self(self):
+        if self.get_attr("dist_context") is None:
+            return False
+        dist_context = self.get_attr("dist_context")
+        if dist_context._serial_optimizer._grad_clip is None:
+            logger.warning(
+                "grad_clip not found. now only support master grad with grad clip."
+            )
+            return False
         return True
 
     def _check_conflict(self, other_pass):
@@ -213,6 +221,8 @@ class MasterGradPass(PassBase):
         first_optimize_idx = main_ops_len
         for idx, op in enumerate(main_ops):
             # We don't delete the operators for check_nan_inf
+            if is_optimize_op(op) and first_optimize_idx >= main_ops_len:
+                first_optimize_idx = idx
             if is_optimize_op(op) and is_gradient_clip_op(op):
                 first_optimize_idx = idx
                 break
