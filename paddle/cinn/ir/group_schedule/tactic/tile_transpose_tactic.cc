@@ -103,6 +103,9 @@ class TileTransposeTactic final : public ScheduleTactic {
   void InitUnconditionalLoads(ir::IRSchedule* sch);
   void InitAxisInfo();
 
+  std::vector<int> GetSrcLowAxis(const std::vector<int>& perm);
+  std::vector<int> GetDstLowAxis(const std::vector<int>& perm);
+
   std::string CreateCacheBlock(ir::IRSchedule* sch,
                                const std::string& block_id,
                                int buffer_index,
@@ -178,6 +181,17 @@ std::vector<int> ArangeVec(int count, int begin = 0) {
   std::vector<int> vec(count);
   std::iota(vec.begin(), vec.end(), begin);
   return vec;
+}
+
+int64_t GetLoopRangeProduct(const std::vector<ir::Expr>& loops,
+                            const std::vector<int>& loops_index) {
+  int64_t prod = 1;
+  for (int i : loops_index) {
+    auto* node = loops[i].As<ir::For>();
+    if (!node->extent.is_constant()) return -1;
+    prod *= node->extent.as_int64();
+  }
+  return prod;
 }
 
 void TileTransposeTactic::Init(ScheduleContext* context, ir::IRSchedule* sch) {
@@ -278,11 +292,14 @@ void TileTransposeTactic::InitCandidates(ir::IRSchedule* sch) {
       std::vector<int> perm =
           GetTransposePerm(load.As<ir::Load>()->indices, loops.size());
 
-      // 4. This is a critical transpose, i.e., its dim size equals to the loop
-      //    size (not a broadcast), and its last dim is changed in permutation
-      //    (incurs discrete data movement).
+      // 4. This is a critical transpose, including:
+      // 1) its dim size equals to the loop size (not a broadcast).
+      // 2) its last dim is changed in permutation (incurs discrete access).
+      // 3) both the src/dst_low_axis are non-unit (not a squeeze/unsqueeze).
       if (perm.size() != loops.size()) continue;
       if (perm.back() == perm.size() - 1) continue;
+      if (GetLoopRangeProduct(loops, GetSrcLowAxis(perm)) == 1) continue;
+      if (GetLoopRangeProduct(loops, GetDstLowAxis(perm)) == 1) continue;
 
       // 5. All transposes in this graph should have the same permutation.
       //    Otherwise, it would be too complex to ensure the correctness and
@@ -302,33 +319,39 @@ void TileTransposeTactic::InitCandidates(ir::IRSchedule* sch) {
 }
 
 void TileTransposeTactic::InitAxisInfo() {
-  std::set<int> src_low_axis;
-  std::set<int> dst_low_axis;
+  src_low_axis_ = GetSrcLowAxis(common_perm_);
+  dst_low_axis_ = GetDstLowAxis(common_perm_);
+
   std::set<int> high_axis;
+  for (int i = 0; i < common_perm_.size(); ++i) high_axis.insert(i);
+  for (auto i : src_low_axis_) high_axis.erase(i);
+  for (auto i : dst_low_axis_) high_axis.erase(i);
+  high_axis_.assign(high_axis.begin(), high_axis.end());
+}
 
-  dst_low_axis.insert(common_perm_.size() - 1);
-  for (int i = common_perm_.size() - 2; i >= 0; --i) {
-    if (common_perm_[i] + 1 != common_perm_[i + 1]) break;
-    dst_low_axis.insert(i);
-  }
-
-  for (int i = 0; i < common_perm_.size(); ++i) {
-    if (common_perm_[i] == common_perm_.size() - 1) {
+std::vector<int> TileTransposeTactic::GetSrcLowAxis(
+    const std::vector<int>& perm) {
+  std::set<int> src_low_axis;
+  for (int i = 0; i < perm.size(); ++i) {
+    if (perm[i] == perm.size() - 1) {
       src_low_axis.insert(i);
       for (int j = i - 1; j >= 0; j--) {
-        if (common_perm_[j] + 1 != common_perm_[j + 1]) break;
+        if (perm[j] + 1 != perm[j + 1]) break;
         src_low_axis.insert(j);
       }
     }
   }
+  return {src_low_axis.begin(), src_low_axis.end()};
+}
 
-  for (int i = 0; i < common_perm_.size(); ++i) high_axis.insert(i);
-  for (auto i : src_low_axis) high_axis.erase(i);
-  for (auto i : dst_low_axis) high_axis.erase(i);
-
-  high_axis_.assign(high_axis.begin(), high_axis.end());
-  src_low_axis_.assign(src_low_axis.begin(), src_low_axis.end());
-  dst_low_axis_.assign(dst_low_axis.begin(), dst_low_axis.end());
+std::vector<int> TileTransposeTactic::GetDstLowAxis(
+    const std::vector<int>& perm) {
+  std::set<int> dst_low_axis{perm.size() - 1};
+  for (int i = perm.size() - 2; i >= 0; --i) {
+    if (perm[i] + 1 != perm[i + 1]) break;
+    dst_low_axis.insert(i);
+  }
+  return {dst_low_axis.begin(), dst_low_axis.end()};
 }
 
 void TileTransposeTactic::Apply(ir::IRSchedule* sch,
