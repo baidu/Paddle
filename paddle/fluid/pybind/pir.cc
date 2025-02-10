@@ -287,7 +287,6 @@ void PruneWithInput(const std::vector<pir::Value> &input_vars,
   auto global_block = prog->block();
   std::vector<pir::Value> new_input_vars;
   if (!input_vars.empty()) {
-    std::vector<pir::Value> new_input_vars;
     for (uint64_t idx = 0; idx < input_vars.size(); idx++) {
       auto input = input_vars[idx];
       auto origin_op = input.defining_op();
