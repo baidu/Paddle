@@ -61,8 +61,6 @@ black_ops_list = [
     "sync_batch_norm_",
     "multiply",
     "multiply_grad",
-    "embedding_grad",
-    "cudnn_lstm_grad",
     "scale_grad",
     "pull_sparse_v2_grad",
     "push_gpups_sparse",

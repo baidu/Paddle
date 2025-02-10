@@ -31,12 +31,15 @@ limitations under the License. */
 #include "paddle/phi/infermeta/nullary.h"
 #include "paddle/phi/infermeta/unary.h"
 
+#include "paddle/phi/api/profiler/event_tracing.h"
+#include "paddle/phi/api/profiler/supplement_tracing.h"
 #ifdef PADDLE_WITH_DISTRIBUTE
 #include "paddle/phi/core/distributed/auto_parallel/reshard/reshard_utils.h"
 #include "paddle/phi/infermeta/spmd_rules/rules.h"
 #endif
 
 COMMON_DECLARE_int32(low_precision_op_list);
+COMMON_DECLARE_bool(benchmark);
 
 namespace paddle::experimental {
 
@@ -331,6 +334,723 @@ std::tuple<Tensor, Tensor> fused_gemm_epilogue_impl(
     TransDataBackend(kernel_out_0, kernel_backend, kernel_out_0);
     TransDataBackend(kernel_out_1, kernel_backend, kernel_out_1);
   }
+  return api_output;
+}
+
+// weight_list.size() should be weight_list.get_ptr()->size() but can't modify
+// yaml file
+std::tuple<Tensor, Tensor, Tensor, std::vector<Tensor>> cudnn_lstm_grad_impl(
+    const Tensor& x,
+    const Tensor& init_h,
+    const Tensor& init_c,
+    const paddle::optional<std::vector<Tensor>>& weight_list,
+    const paddle::optional<Tensor>& sequence_length,
+    const Tensor& out,
+    const Tensor& reserve,
+    const Tensor& state_out,
+    const Tensor& out_grad,
+    const Tensor& last_h_grad,
+    const Tensor& last_c_grad,
+    float dropout_prob,
+    bool is_bidirec,
+    int hidden_size,
+    int num_layers,
+    bool is_test,
+    int seed) {
+  // Kernel Key Construction
+  Backend kernel_backend = Backend::UNDEFINED;
+  DataLayout kernel_layout = DataLayout::UNDEFINED;
+  DataType kernel_data_type = DataType::UNDEFINED;
+
+#ifdef PADDLE_WITH_DISTRIBUTE
+  bool run_auto_parallel = AllInputsAreDistTensor(x,
+                                                  init_h,
+                                                  init_c,
+                                                  weight_list,
+                                                  sequence_length,
+                                                  out,
+                                                  reserve,
+                                                  state_out,
+                                                  out_grad,
+                                                  last_h_grad,
+                                                  last_c_grad);
+  bool rank_is_in_current_mesh = true;
+  if (run_auto_parallel) {
+    auto mesh = std::static_pointer_cast<phi::distributed::DistTensor>(
+                    last_c_grad.impl())
+                    ->dist_attr()
+                    .process_mesh();
+    rank_is_in_current_mesh = phi::distributed::IsCurRankInMesh(mesh);
+  }
+  if (rank_is_in_current_mesh) {
+    kernel_data_type = ParseDataType(out_grad);
+
+    if (kernel_backend == Backend::UNDEFINED ||
+        kernel_layout == DataLayout::UNDEFINED ||
+        kernel_data_type == DataType::UNDEFINED) {
+      auto kernel_key_set = ParseKernelKeyByInputArgs(x,
+                                                      init_h,
+                                                      init_c,
+                                                      weight_list,
+                                                      sequence_length,
+                                                      out,
+                                                      reserve,
+                                                      state_out,
+                                                      out_grad,
+                                                      last_h_grad,
+                                                      last_c_grad);
+      auto kernel_key = kernel_key_set.GetHighestPriorityKernelKey();
+      if (kernel_backend == Backend::UNDEFINED) {
+        kernel_backend = kernel_key.backend();
+      }
+      if (kernel_layout == DataLayout::UNDEFINED) {
+        kernel_layout = kernel_key.layout();
+      }
+      if (kernel_data_type == DataType::UNDEFINED) {
+        kernel_data_type = kernel_key.dtype();
+      }
+    }
+  }
+
+  // Kernel Dispatch Body
+  // Auto Parallel condition
+  if (run_auto_parallel) {
+    // 1. InferSpmd (Infer DistAttr of Inputs&Outputs)
+    auto meta_dist_input_x = MakeDistMetaTensor(*x.impl());
+    auto meta_dist_input_init_h = MakeDistMetaTensor(*init_h.impl());
+    auto meta_dist_input_init_c = MakeDistMetaTensor(*init_c.impl());
+    std::vector<phi::distributed::DistMetaTensor> meta_dist_input_weight_list;
+    if (weight_list) {
+      for (auto& e : *weight_list) {
+        meta_dist_input_weight_list.push_back(MakeDistMetaTensor(*e.impl()));
+      }
+    }
+    auto meta_dist_input_sequence_length =
+        sequence_length ? MakeDistMetaTensor(*(*sequence_length).impl())
+                        : phi::distributed::DistMetaTensor();
+    auto meta_dist_input_out = MakeDistMetaTensor(*out.impl());
+    auto meta_dist_input_reserve = MakeDistMetaTensor(*reserve.impl());
+    auto meta_dist_input_state_out = MakeDistMetaTensor(*state_out.impl());
+    auto meta_dist_input_out_grad = MakeDistMetaTensor(*out_grad.impl());
+    auto meta_dist_input_last_h_grad = MakeDistMetaTensor(*last_h_grad.impl());
+    auto meta_dist_input_last_c_grad = MakeDistMetaTensor(*last_c_grad.impl());
+    auto spmd_info = phi::distributed::VariadicReplicatedInferSpmdDynamic(
+        meta_dist_input_x,
+        meta_dist_input_init_h,
+        meta_dist_input_init_c,
+        meta_dist_input_weight_list,
+        meta_dist_input_sequence_length,
+        meta_dist_input_out,
+        meta_dist_input_reserve,
+        meta_dist_input_state_out,
+        meta_dist_input_out_grad,
+        meta_dist_input_last_h_grad,
+        meta_dist_input_last_c_grad);
+    DebugInfoForInferSpmd("cudnn_lstm_grad", spmd_info);
+
+    // 2. Create API Output & Prepare Dist and Dense Output
+    phi::DeviceContext* dev_ctx = nullptr;
+    std::tuple<Tensor, Tensor, Tensor, std::vector<Tensor>> api_output;
+
+    auto dist_out_0 = SetKernelDistOutput(&std::get<0>(api_output));
+    auto dense_out_0 =
+        dist_out_0 ? dist_out_0->unsafe_mutable_value() : nullptr;
+    if (!rank_is_in_current_mesh) {
+      *dense_out_0 =
+          phi::DenseTensor(std::make_shared<phi::Allocation>(
+                               nullptr, 0, phi::distributed::GetDefaultPlace()),
+                           phi::DenseTensorMeta());
+    }
+
+    auto dist_out_1 = SetKernelDistOutput(&std::get<1>(api_output));
+    auto dense_out_1 =
+        dist_out_1 ? dist_out_1->unsafe_mutable_value() : nullptr;
+    if (!rank_is_in_current_mesh) {
+      *dense_out_1 =
+          phi::DenseTensor(std::make_shared<phi::Allocation>(
+                               nullptr, 0, phi::distributed::GetDefaultPlace()),
+                           phi::DenseTensorMeta());
+    }
+
+    auto dist_out_2 = SetKernelDistOutput(&std::get<2>(api_output));
+    auto dense_out_2 =
+        dist_out_2 ? dist_out_2->unsafe_mutable_value() : nullptr;
+    if (!rank_is_in_current_mesh) {
+      *dense_out_2 =
+          phi::DenseTensor(std::make_shared<phi::Allocation>(
+                               nullptr, 0, phi::distributed::GetDefaultPlace()),
+                           phi::DenseTensorMeta());
+    }
+
+    auto dist_out_3 = SetKernelDistOutput(weight_list.get_ptr()->size(),
+                                          &std::get<3>(api_output));
+    std::vector<phi::DenseTensor*> dense_out_3(dist_out_3.size());
+    for (size_t i = 0; i < dist_out_3.size(); ++i) {
+      dense_out_3[i] = const_cast<phi::DenseTensor*>(&dist_out_3[i]->value());
+      if (!rank_is_in_current_mesh) {
+        *dense_out_3[i] = phi::DenseTensor(
+            std::make_shared<phi::Allocation>(
+                nullptr, 0, phi::distributed::GetDefaultPlace()),
+            phi::DenseTensorMeta());
+      }
+    }
+
+    // 3. Infer DistTensor's Global Shape
+    phi::MetaTensor meta_dist_out_0(dist_out_0);
+    phi::MetaTensor meta_dist_out_1(dist_out_1);
+    phi::MetaTensor meta_dist_out_2(dist_out_2);
+    std::vector<phi::MetaTensor> dist_out_3_meta_vec;
+    for (phi::distributed::DistTensor* tmp : dist_out_3) {
+      dist_out_3_meta_vec.emplace_back(phi::MetaTensor(tmp));
+    }
+    std::vector<phi::MetaTensor*> dist_out_3_meta_ptr_vec(dist_out_3.size());
+    for (size_t i = 0; i < dist_out_3_meta_vec.size(); ++i) {
+      dist_out_3_meta_ptr_vec[i] =
+          dist_out_3[i] ? &dist_out_3_meta_vec[i] : nullptr;
+    }
+
+    std::vector<phi::MetaTensor> weight_list_meta_vec_tmp;
+    if (weight_list) {
+      for (auto tmp : *weight_list) {
+        weight_list_meta_vec_tmp.emplace_back(MakeMetaTensor(*tmp.impl()));
+      }
+    }
+    std::vector<const phi::MetaTensor*> weight_list_meta_ptr_vec_tmp(
+        weight_list_meta_vec_tmp.size());
+    for (size_t i = 0; i < weight_list_meta_ptr_vec_tmp.size(); ++i) {
+      weight_list_meta_ptr_vec_tmp[i] = &weight_list_meta_vec_tmp[i];
+    }
+    paddle::optional<std::vector<const phi::MetaTensor*>>
+        weight_list_meta_ptr_vec =
+            weight_list
+                ? paddle::make_optional<std::vector<const phi::MetaTensor*>>(
+                      weight_list_meta_ptr_vec_tmp)
+                : paddle::none;
+
+    phi::CudnnLSTMGradInferMeta(MakeMetaTensor(*x.impl()),
+                                MakeMetaTensor(*init_h.impl()),
+                                MakeMetaTensor(*init_c.impl()),
+                                weight_list_meta_ptr_vec,
+                                dist_out_0 ? &meta_dist_out_0 : nullptr,
+                                dist_out_1 ? &meta_dist_out_1 : nullptr,
+                                dist_out_2 ? &meta_dist_out_2 : nullptr,
+                                dist_out_3_meta_ptr_vec);
+
+    if (rank_is_in_current_mesh) {
+      // 4. Select Kernel
+      VLOG(6) << "cudnn_lstm_grad API dist branch: kernel key: ["
+              << kernel_backend << ", " << kernel_layout << ", "
+              << kernel_data_type << "]";
+      auto kernel_result =
+          phi::KernelFactory::Instance().SelectKernelOrThrowError(
+              "cudnn_lstm_grad",
+              {kernel_backend, kernel_layout, kernel_data_type});
+      const auto& kernel = kernel_result.kernel;
+      VLOG(6) << "cudnn_lstm_grad kernel: " << kernel;
+      dev_ctx = GetDeviceContextByBackend(
+          kernel_result.has_fallback_cpu ? Backend::CPU : kernel_backend);
+
+      // 5. Reshard Input
+      auto dist_input_x =
+          ReshardApiInputToKernelInput(dev_ctx, x, spmd_info.first[0], "x");
+      auto dist_input_init_h = ReshardApiInputToKernelInput(
+          dev_ctx, init_h, spmd_info.first[1], "init_h");
+      auto dist_input_init_c = ReshardApiInputToKernelInput(
+          dev_ctx, init_c, spmd_info.first[2], "init_c");
+      auto dist_input_weight_list = ReshardApiInputToKernelInput(
+          dev_ctx, weight_list, spmd_info.first[3], "weight_list");
+      auto dist_input_sequence_length = ReshardApiInputToKernelInput(
+          dev_ctx, sequence_length, spmd_info.first[4], "sequence_length");
+      auto dist_input_out =
+          ReshardApiInputToKernelInput(dev_ctx, out, spmd_info.first[5], "out");
+      auto dist_input_reserve = ReshardApiInputToKernelInput(
+          dev_ctx, reserve, spmd_info.first[6], "reserve");
+      auto dist_input_state_out = ReshardApiInputToKernelInput(
+          dev_ctx, state_out, spmd_info.first[7], "state_out");
+      auto dist_input_out_grad = ReshardApiInputToKernelInput(
+          dev_ctx, out_grad, spmd_info.first[8], "out_grad");
+      auto dist_input_last_h_grad = ReshardApiInputToKernelInput(
+          dev_ctx, last_h_grad, spmd_info.first[9], "last_h_grad");
+      auto dist_input_last_c_grad = ReshardApiInputToKernelInput(
+          dev_ctx, last_c_grad, spmd_info.first[10], "last_c_grad");
+
+      // 6. PrepareData (DataTransform & Prepare Dense Input)
+      dist_input_x = PrepareDataForDistTensor(
+          dist_input_x,
+          GetKernelInputArgDef(kernel.InputAt(0), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_x = &dist_input_x->value();
+
+      dist_input_init_h = PrepareDataForDistTensor(
+          dist_input_init_h,
+          GetKernelInputArgDef(kernel.InputAt(1), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_init_h = &dist_input_init_h->value();
+
+      dist_input_init_c = PrepareDataForDistTensor(
+          dist_input_init_c,
+          GetKernelInputArgDef(kernel.InputAt(2), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_init_c = &dist_input_init_c->value();
+
+      auto dist_input_weight_list_vec = PrepareDataForDistTensor(
+          dist_input_weight_list,
+          GetKernelInputArgDef(kernel.InputAt(3), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      std::vector<const phi::DenseTensor*> dense_input_weight_list_vec;
+      if (weight_list) {
+        for (auto tmp : *dist_input_weight_list_vec) {
+          dense_input_weight_list_vec.emplace_back(&tmp->value());
+        }
+      }
+      paddle::optional<std::vector<const phi::DenseTensor*>> input_weight_list(
+          dense_input_weight_list_vec);
+      std::vector<phi::MetaTensor> dense_input_weight_list_meta_vec =
+          MakeMetaTensor(dense_input_weight_list_vec);
+      std::vector<const phi::MetaTensor*>
+          dense_input_weight_list_meta_ptr_vec_tmp(
+              dense_input_weight_list_meta_vec.size());
+      for (size_t i = 0; i < dense_input_weight_list_meta_ptr_vec_tmp.size();
+           ++i) {
+        dense_input_weight_list_meta_ptr_vec_tmp[i] =
+            &dense_input_weight_list_meta_vec[i];
+      }
+      paddle::optional<std::vector<const phi::MetaTensor*>>
+          dense_input_weight_list_meta_ptr_vec =
+              weight_list
+                  ? paddle::make_optional<std::vector<const phi::MetaTensor*>>(
+                        dense_input_weight_list_meta_ptr_vec_tmp)
+                  : paddle::none;
+
+      dist_input_sequence_length = PrepareDataForDistTensor(
+          dist_input_sequence_length,
+          GetKernelInputArgDef(kernel.InputAt(4), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      paddle::optional<phi::DenseTensor> input_sequence_length =
+          dist_input_sequence_length
+              ? paddle::make_optional<phi::DenseTensor>(
+                    (*dist_input_sequence_length)->value())
+              : paddle::none;
+
+      dist_input_out = PrepareDataForDistTensor(
+          dist_input_out,
+          GetKernelInputArgDef(kernel.InputAt(5), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_out = &dist_input_out->value();
+
+      dist_input_reserve = PrepareDataForDistTensor(
+          dist_input_reserve,
+          GetKernelInputArgDef(kernel.InputAt(6), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_reserve = &dist_input_reserve->value();
+
+      dist_input_state_out = PrepareDataForDistTensor(
+          dist_input_state_out,
+          GetKernelInputArgDef(kernel.InputAt(7), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_state_out = &dist_input_state_out->value();
+
+      dist_input_out_grad = PrepareDataForDistTensor(
+          dist_input_out_grad,
+          GetKernelInputArgDef(kernel.InputAt(8), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_out_grad = &dist_input_out_grad->value();
+
+      dist_input_last_h_grad = PrepareDataForDistTensor(
+          dist_input_last_h_grad,
+          GetKernelInputArgDef(kernel.InputAt(9), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_last_h_grad = &dist_input_last_h_grad->value();
+
+      dist_input_last_c_grad = PrepareDataForDistTensor(
+          dist_input_last_c_grad,
+          GetKernelInputArgDef(kernel.InputAt(10), kernel_backend),
+          {},
+          kernel_result.is_stride_kernel);
+      auto input_last_c_grad = &dist_input_last_c_grad->value();
+
+      // 7. RecordOpInfoSupplement
+      if (phi::RecordOpInfoSupplement::IsEnabled()) {
+        std::vector<phi::DDim> sequence_length_record_shapes;
+        if (input_sequence_length) {
+          sequence_length_record_shapes.push_back(
+              (*input_sequence_length).dims());
+        }
+        std::vector<std::pair<const char*, std::vector<phi::DDim>>>
+            input_shapes{{"x", {(*input_x).dims()}},
+                         {"init_h", {(*input_init_h).dims()}},
+                         {"init_c", {(*input_init_c).dims()}},
+                         {"sequence_length", sequence_length_record_shapes},
+                         {"out", {(*input_out).dims()}},
+                         {"reserve", {(*input_reserve).dims()}},
+                         {"state_out", {(*input_state_out).dims()}},
+                         {"out_grad", {(*input_out_grad).dims()}},
+                         {"last_h_grad", {(*input_last_h_grad).dims()}},
+                         {"last_c_grad", {(*input_last_c_grad).dims()}}};
+        std::vector<phi::DDim> ddims_vec;
+        ddims_vec.clear();
+        if (input_weight_list) {
+          ddims_vec.reserve(input_weight_list->size());
+          for (size_t i = 0; i < input_weight_list->size(); ++i) {
+            ddims_vec.emplace_back((*input_weight_list->at(i)).dims());
+          }
+        }
+        input_shapes.emplace_back("weight_list", ddims_vec);
+        phi::AttributeMap attrs;
+        attrs["dropout_prob"] = dropout_prob;
+        attrs["is_bidirec"] = is_bidirec;
+        attrs["hidden_size"] = hidden_size;
+        attrs["num_layers"] = num_layers;
+        attrs["is_test"] = is_test;
+        attrs["seed"] = seed;
+        phi::RecordOpInfoSupplement("cudnn_lstm_grad", input_shapes, attrs);
+      }
+      // 8. Infer Local DenseTensor Meta
+      phi::MetaTensor meta_dense_out_0(dense_out_0);
+      phi::MetaTensor meta_dense_out_1(dense_out_1);
+      phi::MetaTensor meta_dense_out_2(dense_out_2);
+      std::vector<phi::MetaTensor> dense_out_3_meta_vec =
+          MakeMetaTensor(dense_out_3);
+      std::vector<phi::MetaTensor*> dense_out_3_meta_ptr_vec(
+          dense_out_3_meta_vec.size());
+      for (size_t i = 0; i < dense_out_3_meta_vec.size(); ++i) {
+        dense_out_3_meta_ptr_vec[i] =
+            dense_out_3[i] ? &dense_out_3_meta_vec[i] : nullptr;
+      }
+
+      phi::CudnnLSTMGradInferMeta(MakeMetaTensor(*input_x),
+                                  MakeMetaTensor(*input_init_h),
+                                  MakeMetaTensor(*input_init_c),
+                                  dense_input_weight_list_meta_ptr_vec,
+                                  dense_out_0 ? &meta_dense_out_0 : nullptr,
+                                  dense_out_1 ? &meta_dense_out_1 : nullptr,
+                                  dense_out_2 ? &meta_dense_out_2 : nullptr,
+                                  dense_out_3_meta_ptr_vec);
+
+      // 9. DenseTensor Kernel Call
+      phi::RecordEvent* kernel_record_event = nullptr;
+      if (phi::RecordEvent::IsEnabled()) {
+        kernel_record_event =
+            new phi::RecordEvent("cudnn_lstm_grad dist compute",
+                                 phi::TracerEventType::DygraphKernelLaunch,
+                                 1);
+      }
+      using kernel_signature = void (*)(
+          const phi::DeviceContext&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const paddle::optional<std::vector<const phi::DenseTensor*>>&,
+          const paddle::optional<phi::DenseTensor>&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          const phi::DenseTensor&,
+          float,
+          bool,
+          int,
+          int,
+          bool,
+          int,
+          phi::DenseTensor*,
+          phi::DenseTensor*,
+          phi::DenseTensor*,
+          std::vector<phi::DenseTensor*>);
+      auto* kernel_fn = kernel.GetVariadicKernelFn<kernel_signature>();
+      (*kernel_fn)(*dev_ctx,
+                   *input_x,
+                   *input_init_h,
+                   *input_init_c,
+                   input_weight_list,
+                   input_sequence_length,
+                   *input_out,
+                   *input_reserve,
+                   *input_state_out,
+                   *input_out_grad,
+                   *input_last_h_grad,
+                   *input_last_c_grad,
+                   dropout_prob,
+                   is_bidirec,
+                   hidden_size,
+                   num_layers,
+                   is_test,
+                   seed,
+                   dense_out_0,
+                   dense_out_1,
+                   dense_out_2,
+                   dense_out_3);
+      if (FLAGS_benchmark) {
+        dev_ctx->Wait();
+        std::cout << "cudnn_lstm_grad kernel run finish." << std::endl;
+      }
+      if (kernel_record_event != nullptr) {
+        delete kernel_record_event;
+      }
+
+      // 10. Fallback
+      if (kernel_result.has_fallback_cpu) {
+        TransDataBackend(dense_out_0, kernel_backend, dense_out_0);
+        TransDataBackend(dense_out_1, kernel_backend, dense_out_1);
+        TransDataBackend(dense_out_2, kernel_backend, dense_out_2);
+        TransDataBackend(dense_out_3, kernel_backend, dense_out_3);
+      }
+    }
+
+    // 11. Set Output Dist Attr For Default Impl
+    auto current_process_mesh =
+        paddle::holds_alternative<phi::distributed::TensorDistAttr>(
+            spmd_info.first[0])
+            ? paddle::get<0>(spmd_info.first[0]).process_mesh()
+            : paddle::get<1>(spmd_info.first[0]).at(0).process_mesh();
+    SetReplicatedDistAttrForOutput(dist_out_0, current_process_mesh);
+    SetReplicatedDistAttrForOutput(dist_out_1, current_process_mesh);
+    SetReplicatedDistAttrForOutput(dist_out_2, current_process_mesh);
+    for (size_t i = 0; i < dist_out_3.size(); ++i) {
+      SetReplicatedDistAttrForOutput(dist_out_3[i], current_process_mesh);
+    }
+
+    // 12. Return
+    return api_output;
+  }
+#endif  // PADDLE_WITH_DISTRIBUTE
+  VLOG(6) << "cudnn_lstm_grad API kernel key: [" << kernel_backend << ", "
+          << kernel_layout << ", " << kernel_data_type << "]";
+  auto kernel_result = phi::KernelFactory::Instance().SelectKernelOrThrowError(
+      "cudnn_lstm_grad",
+      {kernel_backend, kernel_layout, kernel_data_type},
+      true);
+  const auto& kernel = kernel_result.kernel;
+  if (FLAGS_low_precision_op_list) {
+    phi::KernelFactory::Instance().AddToLowPrecisionKernelList(
+        "cudnn_lstm_grad", kernel_data_type);
+  }
+  VLOG(6) << "cudnn_lstm_grad kernel: " << kernel;
+  // add actual_kernel_backend to select actual kernel backend after a potential
+  // falling-back to CPU
+  Backend actual_kernel_backend =
+      kernel_result.has_fallback_cpu ? Backend::CPU : kernel_backend;
+  auto* dev_ctx = GetDeviceContextByBackend(actual_kernel_backend);
+
+  auto input_x = PrepareData(
+      x,
+      GetKernelInputArgDef(kernel.InputAt(0), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_init_h = PrepareData(
+      init_h,
+      GetKernelInputArgDef(kernel.InputAt(1), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_init_c = PrepareData(
+      init_c,
+      GetKernelInputArgDef(kernel.InputAt(2), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_weight_list_vec = PrepareData(
+      weight_list,
+      GetKernelInputArgDef(kernel.InputAt(3), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  paddle::optional<std::vector<const phi::DenseTensor*>> input_weight_list;
+  if (input_weight_list_vec) {
+    input_weight_list = paddle::optional<std::vector<const phi::DenseTensor*>>(
+        input_weight_list_vec->size());
+    for (size_t i = 0; i < input_weight_list_vec->size(); ++i) {
+      input_weight_list->at(i) = &input_weight_list_vec->at(i);
+    }
+  }
+  auto input_sequence_length = PrepareData(
+      sequence_length,
+      GetKernelInputArgDef(kernel.InputAt(4), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_out = PrepareData(
+      out,
+      GetKernelInputArgDef(kernel.InputAt(5), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_reserve = PrepareData(
+      reserve,
+      GetKernelInputArgDef(kernel.InputAt(6), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_state_out = PrepareData(
+      state_out,
+      GetKernelInputArgDef(kernel.InputAt(7), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_out_grad = PrepareData(
+      out_grad,
+      GetKernelInputArgDef(kernel.InputAt(8), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_last_h_grad = PrepareData(
+      last_h_grad,
+      GetKernelInputArgDef(kernel.InputAt(9), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  auto input_last_c_grad = PrepareData(
+      last_c_grad,
+      GetKernelInputArgDef(kernel.InputAt(10), actual_kernel_backend),
+      {},
+      kernel_result.is_stride_kernel);
+  if (phi::RecordOpInfoSupplement::IsEnabled()) {
+    std::vector<phi::DDim> sequence_length_record_shapes;
+    if (input_sequence_length) {
+      sequence_length_record_shapes.push_back((*input_sequence_length).dims());
+    }
+    std::vector<std::pair<const char*, std::vector<phi::DDim>>> input_shapes{
+        {"x", {(*input_x).dims()}},
+        {"init_h", {(*input_init_h).dims()}},
+        {"init_c", {(*input_init_c).dims()}},
+        {"sequence_length", sequence_length_record_shapes},
+        {"out", {(*input_out).dims()}},
+        {"reserve", {(*input_reserve).dims()}},
+        {"state_out", {(*input_state_out).dims()}},
+        {"out_grad", {(*input_out_grad).dims()}},
+        {"last_h_grad", {(*input_last_h_grad).dims()}},
+        {"last_c_grad", {(*input_last_c_grad).dims()}}};
+    std::vector<phi::DDim> ddims_vec;
+    ddims_vec.clear();
+    if (input_weight_list) {
+      ddims_vec.reserve(input_weight_list->size());
+      for (size_t i = 0; i < input_weight_list->size(); ++i) {
+        ddims_vec.emplace_back((*input_weight_list->at(i)).dims());
+      }
+    }
+    input_shapes.emplace_back("weight_list", ddims_vec);
+    phi::AttributeMap attrs;
+    attrs["dropout_prob"] = dropout_prob;
+    attrs["is_bidirec"] = is_bidirec;
+    attrs["hidden_size"] = hidden_size;
+    attrs["num_layers"] = num_layers;
+    attrs["is_test"] = is_test;
+    attrs["seed"] = seed;
+    phi::RecordOpInfoSupplement("cudnn_lstm_grad", input_shapes, attrs);
+  }
+
+  std::tuple<Tensor, Tensor, Tensor, std::vector<Tensor>> api_output;
+  auto kernel_out_0 = SetKernelOutput(&std::get<0>(api_output));
+  auto kernel_out_1 = SetKernelOutput(&std::get<1>(api_output));
+  auto kernel_out_2 = SetKernelOutput(&std::get<2>(api_output));
+  auto kernel_out_3 =
+      SetKernelOutput(weight_list.get_ptr()->size(), &std::get<3>(api_output));
+
+  phi::RecordEvent* infer_shape_record_event = nullptr;
+  if (phi::RecordEvent::IsEnabled()) {
+    infer_shape_record_event = new phi::RecordEvent(
+        "cudnn_lstm_grad infer_meta", phi::TracerEventType::OperatorInner, 1);
+  }
+
+  auto weight_list_meta_vec = MakeMetaTensor(input_weight_list);
+  paddle::optional<std::vector<const phi::MetaTensor*>> weight_list_metas(
+      weight_list_meta_vec.size());
+  for (size_t i = 0; i < weight_list_meta_vec.size(); ++i) {
+    weight_list_metas->at(i) = &weight_list_meta_vec[i];
+  }
+  phi::MetaTensor meta_out_0(kernel_out_0, kernel_result.is_stride_kernel);
+  phi::MetaTensor meta_out_1(kernel_out_1, kernel_result.is_stride_kernel);
+  phi::MetaTensor meta_out_2(kernel_out_2, kernel_result.is_stride_kernel);
+
+  auto kernel_out_3_meta_vec = MakeMetaTensor(kernel_out_3);
+  std::vector<phi::MetaTensor*> kernel_out_3_metas(
+      kernel_out_3_meta_vec.size());
+  for (size_t i = 0; i < kernel_out_3_meta_vec.size(); ++i) {
+    kernel_out_3_metas[i] =
+        kernel_out_3[i] ? &kernel_out_3_meta_vec[i] : nullptr;
+  }
+  phi::CudnnLSTMGradInferMeta(MakeMetaTensor(*input_x),
+                              MakeMetaTensor(*input_init_h),
+                              MakeMetaTensor(*input_init_c),
+                              weight_list_metas,
+                              kernel_out_0 ? &meta_out_0 : nullptr,
+                              kernel_out_1 ? &meta_out_1 : nullptr,
+                              kernel_out_2 ? &meta_out_2 : nullptr,
+                              kernel_out_3_metas);
+
+  if (infer_shape_record_event != nullptr) {
+    delete infer_shape_record_event;
+  }
+  using kernel_signature =
+      void (*)(const phi::DeviceContext&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const paddle::optional<std::vector<const phi::DenseTensor*>>&,
+               const paddle::optional<phi::DenseTensor>&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               const phi::DenseTensor&,
+               float,
+               bool,
+               int,
+               int,
+               bool,
+               int,
+               phi::DenseTensor*,
+               phi::DenseTensor*,
+               phi::DenseTensor*,
+               std::vector<phi::DenseTensor*>);
+  auto* kernel_fn = kernel.GetVariadicKernelFn<kernel_signature>();
+  phi::RecordEvent* kernel_record_event = nullptr;
+  if (phi::RecordEvent::IsEnabled()) {
+    kernel_record_event =
+        new phi::RecordEvent("cudnn_lstm_grad kernel launch",
+                             phi::TracerEventType::DygraphKernelLaunch,
+                             1);
+  }
+  (*kernel_fn)(*dev_ctx,
+               *input_x,
+               *input_init_h,
+               *input_init_c,
+               input_weight_list,
+               input_sequence_length,
+               *input_out,
+               *input_reserve,
+               *input_state_out,
+               *input_out_grad,
+               *input_last_h_grad,
+               *input_last_c_grad,
+               dropout_prob,
+               is_bidirec,
+               hidden_size,
+               num_layers,
+               is_test,
+               seed,
+               kernel_out_0,
+               kernel_out_1,
+               kernel_out_2,
+               kernel_out_3);
+  if (FLAGS_benchmark) {
+    dev_ctx->Wait();
+    std::cout << "cudnn_lstm_grad kernel run finish." << std::endl;
+  }
+  if (kernel_record_event != nullptr) {
+    delete kernel_record_event;
+  }
+  if (kernel_result.has_fallback_cpu) {
+    TransDataBackend(kernel_out_0, kernel_backend, kernel_out_0);
+    TransDataBackend(kernel_out_1, kernel_backend, kernel_out_1);
+    TransDataBackend(kernel_out_2, kernel_backend, kernel_out_2);
+    TransDataBackend(kernel_out_3, kernel_backend, kernel_out_3);
+  }
+  dev_ctx = GetDeviceContextByBackend(kernel_backend);
+
   return api_output;
 }
 

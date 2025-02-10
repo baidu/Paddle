@@ -43,6 +43,24 @@ std::tuple<Tensor, Tensor> fused_gemm_epilogue_impl(
     bool trans_y,
     const std::string& activation);
 
+std::tuple<Tensor, Tensor, Tensor, std::vector<Tensor>> cudnn_lstm_grad_impl(
+    const Tensor& x,
+    const Tensor& init_h,
+    const Tensor& init_c,
+    const paddle::optional<std::vector<Tensor>>& weight_list,
+    const paddle::optional<Tensor>& sequence_length,
+    const Tensor& out,
+    const Tensor& reserve,
+    const Tensor& state_out,
+    const Tensor& out_grad,
+    const Tensor& last_h_grad,
+    const Tensor& last_c_grad,
+    float dropout_prob,
+    bool is_bidirec,
+    int hidden_size,
+    int num_layers,
+    bool is_test,
+    int seed);
 ////////////////// Backward(grad) api impls //////////////////////
 
 void imag_grad_impl(const Tensor& out_grad, Tensor* x_grad);

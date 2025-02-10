@@ -29,9 +29,7 @@ from codegen_utils import (
 skipped_forward_api_names = {
     "scale_grad",
     "push_gpups_sparse",
-    "embedding_grad",
     "multiply_grad",
-    "cudnn_lstm_grad",
     "conv2d_grad",
     "pull_sparse_v2_grad",
 }

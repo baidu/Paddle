@@ -236,10 +236,8 @@ NO_NEED_GEN_STATIC_ONLY_APIS = [
     'push_box_sparse_',
     'send_and_recv',
     'send_and_recv_',
-    'cudnn_lstm_grad',
     'straight_through_estimator',
     "multiply_grad",
-    "embedding_grad",
     "scale_grad",
     "conv2d_grad",
 ]
