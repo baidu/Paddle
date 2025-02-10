@@ -187,6 +187,17 @@
     data_type : x
   optional : bias, x_max, w_max, scale_max, out_max_in
 
+- op : fp8_fp8_fp8_dual_gemm_fused
+  args : (Tensor x, Tensor y0, Tensor y1, Tensor bias0, Tensor bias1, bool transpose_x = false, bool transpose_y = false, float scale0 = 1.0f, float scale1 = 1.0f, float scale_out = 1.0f, str activation_type = "swiglu")
+  output : Tensor(out)
+  infer_meta :
+    func : FP8OutFP8DualGemmFusedInferMeta
+  kernel :
+    func : fp8_fp8_fp8_dual_gemm_fused
+    data_type : x
+  optional : bias0, bias1
+  support_dygraph_mode : true
+
 - op : fp8_fp8_half_gemm_fused
   args : (Tensor x, Tensor y, Tensor bias, bool transpose_x = false, bool transpose_y = false, float scale = 1.0f, str output_dtype = "float16", str activation_type = "identity")
   output : Tensor(out)

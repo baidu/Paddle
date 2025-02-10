@@ -14,6 +14,7 @@ list(
   nvtx.cc
   cufft.cc
   cutlass_conv2d.cc
+  fp8_gemm_fused.cc
   cutlass_gemm_epilogue.cc)
 
 if(NOT WITH_NV_JETSON)

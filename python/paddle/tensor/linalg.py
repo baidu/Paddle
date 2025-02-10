@@ -355,6 +355,70 @@ def matmul(
         return out
 
 
+def fp8_fp8_fp8_dual_gemm_fused(
+    x,
+    y0,
+    y1,
+    transpose_x=False,
+    transpose_y=False,
+    bias0=None,
+    bias1=None,
+    scale0=1.0,
+    scale1=1.0,
+    scale_out=1.0,
+    act="swiglu",
+    name=None,
+):
+    if in_dynamic_or_pir_mode():
+        return _C_ops.fp8_fp8_fp8_dual_gemm_fused(
+            x,
+            y0,
+            y1,
+            bias0,
+            bias1,
+            transpose_x,
+            transpose_y,
+            scale0,
+            scale1,
+            scale_out,
+            act,
+        )
+    else:
+        attrs = {
+            'transpose_x': transpose_x,
+            'transpose_y': transpose_y,
+            'scale0': scale0,
+            'scale1': scale1,
+            'scale_out': scale_out,
+            'act': act,
+        }
+
+        def __check_input(x, y0, y1):
+            var_names = {'x': x, 'y0': y0, 'y1': y1}
+            for name, val in var_names.items():
+                check_variable_and_dtype(
+                    val,
+                    name,
+                    [
+                        'float8_e5m2',
+                        'float8_e4m3fn',
+                    ],
+                    'fp8_fp8_fp8_dual_gemm_fused',
+                )
+
+        __check_input(x, y0, y1)
+
+        helper = LayerHelper('fp8_fp8_fp8_dual_gemm_fused', **locals())
+        out = helper.create_variable_for_type_inference(dtype='float8_e4m3fn')
+        helper.append_op(
+            type='fp8_fp8_fp8_dual_gemm_fused',
+            inputs={'x': x, 'y0': y0, 'y1': y1, 'bias0': bias0, 'bias1': bias1},
+            outputs={'out': out},
+            attrs=attrs,
+        )
+        return out
+
+
 def fp8_fp8_half_gemm_fused(
     x,
     y,

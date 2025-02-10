@@ -36,8 +36,23 @@ file(
   "selected_rows/gpu/*.cu"
   "sparse/gpu/*.cu"
   "strings/gpu/*.cu"
-  "fusion/fp8_gemm/fp8_gemm_with_cublasLt/*.cu"
   "fusion/gpu/*.cu")
+
+if(WITH_FP8_CUTLASS)
+  file(
+    GLOB fp8_cutlass
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "fusion/fp8_gemm/fp8_gemm_with_cutlass/*.cu")
+  message("Using cublass for FP8")
+  list(APPEND kernel_cu ${fp8_cutlass})
+else()
+  file(
+    GLOB fp8_cublasLt
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "fusion/fp8_gemm/fp8_gemm_with_cublasLt/*.cu")
+  message("Using cublasLt for FP8")
+  list(APPEND kernel_cu ${fp8_cublasLt})
+endif()
 
 file(
   GLOB kernel_gpu

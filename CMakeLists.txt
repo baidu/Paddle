@@ -70,6 +70,9 @@ option(WITH_PIP_TENSORRT "Paddle uses the tensorrt provided by NVIDIA" OFF)
 option(WITH_NIGHTLY_BUILD
        "Compile nightly paddle whl package of the develop branch" OFF)
 option(WITH_CPP_TEST "Compile PaddlePaddle skip cpp test" ON)
+option(WITH_FP8_CUTLASS "Compile PaddlePaddle with cutlass3.0 for FP8 kernels"
+       OFF)
+
 find_package(Git REQUIRED)
 
 # config GIT_URL with github mirrors to speed up dependent repos clone

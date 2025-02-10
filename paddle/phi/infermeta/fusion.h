@@ -1150,6 +1150,20 @@ void FP8OutHalfGemmFusedInferMeta(
     const std::string& activation_type,
     MetaTensor* out);
 
+void FP8OutFP8DualGemmFusedInferMeta(
+    const MetaTensor& x,
+    const MetaTensor& y0,
+    const MetaTensor& y1,
+    const MetaTensor& bias0,
+    const MetaTensor& bias1,
+    const bool trans_x,
+    const bool trans_y,
+    const float scale0,     // only support per-tensor quantization
+    const float scale1,     // only support per-tensor quantization
+    const float scale_out,  // only support per-tensor quantization
+    const std::string& activation_type,
+    MetaTensor* out);
+
 void FusedEmbeddingFcLstmInferMeta(const MetaTensor& ids,
                                    const MetaTensor& embeddings,
                                    const MetaTensor& weight_h,
