@@ -427,11 +427,18 @@ void CodeGenC::VisitBlock(const ir::stmt::BlockRef &stmt) {
     for (int i = 0; i < stmt->stmts().size() - 1; i++) {
       DoIndent();
       IrPrinter::VisitStmt(stmt->stmts()[i]);
-      str_ += ";\n";
+      if (!(stmt->stmts()[i]).isa<ir::stmt::IfThenElse>() &&
+          !(stmt->stmts()[i]).isa<ir::stmt::For>()) {
+        str_ += ";";
+      }
+      str_ += "\n";
     }
     DoIndent();
     IrPrinter::VisitStmt(stmt->stmts().back());
-    str_ += ";";
+    if (!(stmt->stmts().back()).isa<ir::stmt::IfThenElse>() &&
+        !(stmt->stmts().back()).isa<ir::stmt::For>()) {
+      str_ += ";";
+    }
   }
 
   DecIndent();
