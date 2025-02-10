@@ -156,5 +156,57 @@ class TestBmmAPIError(unittest.TestCase):
         self.assertRaises(ValueError, paddle.bmm, x_data, y_data_wrong3)
 
 
+class TestBmmOpCaseComplex64(TestBmmOp):
+    def setUp(self):
+        self.op_type = "bmm"
+        self.python_api = paddle.tensor.bmm
+        self.public_python_api = paddle.tensor.bmm
+        self.dtype = np.complex64
+        X = (
+            np.random.uniform(1, 5, (10, 3, 4))
+            + 1j * np.random.uniform(1, 5, (10, 3, 4))
+        ).astype("complex64")
+        Y = (
+            np.random.uniform(1, 5, (10, 4, 2))
+            + 1j * np.random.uniform(1, 5, (10, 4, 2))
+        ).astype("complex64")
+        self.inputs = {'X': X, 'Y': Y}
+        Out = np.matmul(X, Y)
+        self.outputs = {'Out': Out}
+
+    def test_check_output(self):
+        self.check_output(check_pir=True, check_prim=False)
+        # pass
+
+    def test_checkout_grad(self):
+        self.check_grad(['X', 'Y'], 'Out', check_pir=True, check_prim=False)
+
+
+class TestBmmOpCaseComplex128(TestBmmOp):
+    def setUp(self):
+        self.op_type = "bmm"
+        self.python_api = paddle.tensor.bmm
+        self.public_python_api = paddle.tensor.bmm
+        self.dtype = np.complex128
+        X = (
+            np.random.uniform(1, 5, (10, 3, 4))
+            + 1j * np.random.uniform(1, 5, (10, 3, 4))
+        ).astype("complex128")
+        Y = (
+            np.random.uniform(1, 5, (10, 4, 2))
+            + 1j * np.random.uniform(1, 5, (10, 4, 2))
+        ).astype("complex128")
+        self.inputs = {'X': X, 'Y': Y}
+        Out = np.matmul(X, Y)
+        self.outputs = {'Out': Out}
+
+    def test_check_output(self):
+        self.check_output(check_pir=True, check_prim=False)
+        # pass
+
+    def test_checkout_grad(self):
+        self.check_grad(['X', 'Y'], 'Out', check_pir=True, check_prim=False)
+
+
 if __name__ == "__main__":
     unittest.main()

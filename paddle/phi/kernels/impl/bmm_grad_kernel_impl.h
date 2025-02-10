@@ -61,11 +61,16 @@ void BmmGradKernel(const Context& dev_ctx,
       &x_help, &y_help, &out_grad_help, false, false);
 
   phi::DDim dx_dims;
+  // for complex
+  DenseTensor x_conj;
+  DenseTensor y_conj;
   if (x_grad) {
     dx_dims = x_grad->dims();
     if (dx_dims != x_help.dims()) {
       x_grad->Resize(x_help.dims());
     }
+
+    y_conj = Conj<T>(dev_ctx, y_help);
   }
 
   phi::DDim dy_dims;
@@ -74,12 +79,14 @@ void BmmGradKernel(const Context& dev_ctx,
     if (dy_dims != y_help.dims()) {
       y_grad->Resize(y_help.dims());
     }
+
+    x_conj = Conj<T>(dev_ctx, x_help);
   }
 
   CalcInputGrad<T, Context>(
-      dev_ctx, out_grad_help, false, y_help, true, x_grad);
+      dev_ctx, out_grad_help, false, y_conj, true, x_grad);
   CalcInputGrad<T, Context>(
-      dev_ctx, x_help, true, out_grad_help, false, y_grad);
+      dev_ctx, x_conj, true, out_grad_help, false, y_grad);
 
   if (x_grad) {
     if (dx_dims != x_help.dims()) {

@@ -18,4 +18,11 @@
 #include "paddle/phi/core/kernel_registry.h"
 #include "paddle/phi/kernels/impl/bmm_kernel_impl.h"
 
-PD_REGISTER_KERNEL(bmm, CPU, ALL_LAYOUT, phi::BmmKernel, float, double) {}
+PD_REGISTER_KERNEL(bmm,
+                   CPU,
+                   ALL_LAYOUT,
+                   phi::BmmKernel,
+                   float,
+                   double,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {}
