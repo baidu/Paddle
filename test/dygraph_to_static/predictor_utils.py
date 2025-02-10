@@ -20,6 +20,8 @@ from paddle import base
 from paddle.base.core import AnalysisConfig, create_paddle_predictor
 from paddle.framework import use_pir_api
 
+os.environ['NVIDIA_TF32_OVERRIDE'] = '0'
+
 
 class PredictorTools:
     '''
@@ -55,7 +57,7 @@ class PredictorTools:
         config.switch_specify_input_names(True)
         config.switch_use_feed_fetch_ops(False)
         config.enable_memory_optim()
-        config.disable_glog_info()
+        # config.disable_glog_info()
         # TODO: set it to True after PaddleInference fix the precision error
         # in CUDA11
         config.switch_ir_optim(False)
