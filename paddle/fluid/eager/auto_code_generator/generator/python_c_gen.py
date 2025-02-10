@@ -124,7 +124,7 @@ PyObject * eager_api_{}(PyObject *self, PyObject *args, PyObject *kwargs) {{
   PyThreadState *tstate = nullptr;
   try {{
     VLOG(6) << "Running Eager Final State API: {}";
-
+    print_mem_info_guard guard("{}");
     VLOG(8) << "args count: " << (PyTuple_Size(args) / 2);
     // Get EagerTensors from args
 {}
@@ -529,6 +529,7 @@ class PythonCSingleFunctionGenerator(FunctionGeneratorBase):
             forward_api_name,
             pythonc_record_event_str,
             forward_api_name,
+            forward_api_name,
             get_eager_tensor_str,
             parse_attributes_str,
             set_device_str,
@@ -585,6 +586,7 @@ class PythonCSingleFunctionGenerator(FunctionGeneratorBase):
             python_c_inplace_func_str = PYTHON_C_FUNCTION_TEMPLATE.format(
                 inplaced_forward_api_name,
                 pythonc_record_event_str,
+                inplaced_forward_api_name,
                 inplaced_forward_api_name,
                 get_eager_tensor_str,
                 parse_attributes_str,

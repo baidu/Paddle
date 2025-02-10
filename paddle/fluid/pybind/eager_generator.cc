@@ -2702,6 +2702,11 @@ static std::string GenerateGradNodeCCContents(
   std::string generated_grad_function_body =
       paddle::string::Sprintf(EAGER_LOG_TEMPLATE, fwd_op_type);
 
+  const char* MEM_INFO_TEMPLATE =
+      "  egr::print_mem_info_guard3 guard(\"%s_grad\");\n";
+  generated_grad_function_body +=
+      paddle::string::Sprintf(MEM_INFO_TEMPLATE, fwd_op_type);
+
   // This is a Copy
   auto op_base_infos = bwd_info.GetOpBaseInfos();
 

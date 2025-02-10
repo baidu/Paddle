@@ -228,5 +228,17 @@ ssize_t GetIdxFromCoreOpsInfoMap(
     const std::string& op_type,
     const std::string& name);
 
+void print_mem_info(const std::string& info);
+
+class print_mem_info_guard {
+ public:
+  explicit print_mem_info_guard(const std::string& op_type) {
+    print_mem_info(op_type + " begin");
+    op_type_ = op_type;
+  }
+  ~print_mem_info_guard() { print_mem_info(op_type_ + " end"); }
+  std::string op_type_;
+};
+
 }  // namespace pybind
 }  // namespace paddle

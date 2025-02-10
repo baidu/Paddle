@@ -28,6 +28,7 @@
 #include "paddle/fluid/framework/data_layout.h"
 #include "paddle/fluid/framework/phi_utils.h"
 #include "paddle/fluid/framework/variable.h"
+#include "paddle/phi/common/memory_utils.h"
 
 namespace egr {
 
@@ -1096,4 +1097,13 @@ void ConvertToDistTensor(paddle::Tensor* x,
         dense_t, *mesh, placements));
   }
 }
+
+void print_mem_info3(const std::string& info) {
+  auto allocated = paddle::memory::DeviceMemoryStatCurrentValue("Allocated", 0);
+  // auto reserved = paddle::memory::DeviceMemoryStatCurrentValue("Reserved",
+  // 0);
+  std::cout << info << ", allocated = " << allocated << std::endl;
+  // << ", reserved = " << reserved << std::endl;
+}
+
 }  // namespace egr

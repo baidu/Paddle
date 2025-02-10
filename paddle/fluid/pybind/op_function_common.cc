@@ -34,6 +34,7 @@
 #include "paddle/fluid/pybind/eager_utils.h"
 #include "paddle/fluid/pybind/imperative.h"
 #include "paddle/phi/common/complex.h"
+#include "paddle/phi/common/memory_utils.h"
 #include "paddle/pir/include/core/block.h"
 #include "paddle/pir/include/core/op_result.h"
 #include "paddle/pir/include/core/value.h"
@@ -1290,6 +1291,13 @@ ssize_t GetIdxFromCoreOpsInfoMap(
     }
   }
   return -1;
+}
+void print_mem_info(const std::string& info) {
+  auto allocated = paddle::memory::DeviceMemoryStatCurrentValue("Allocated", 0);
+  // auto reserved = paddle::memory::DeviceMemoryStatCurrentValue("Reserved",
+  // 0);
+  std::cout << info << ", allocated = " << allocated << std::endl;
+  // << ", reserved = " << reserved << std::endl;
 }
 
 }  // namespace paddle::pybind
