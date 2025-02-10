@@ -14,8 +14,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 #include "paddle/phi/common/int_array.h"
 #include "paddle/phi/common/scalar.h"
 #include "paddle/phi/core/dense_tensor.h"
@@ -290,7 +288,7 @@ void SetValueKernel(const Context& dev_ctx,
       shape.size() == 1 && shape[0] == 1 && assign_values.size() == 1) {
     is_full_set_one_value = true;
   }
-  if (is_full_set_one_value && std::is_same<T, float>::value) {
+  if (is_full_set_one_value) {
     dev_ctx.template Alloc<T>(out);
     phi::funcs::set_constant(
         dev_ctx, out, static_cast<float>(assign_values[0]));
