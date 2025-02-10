@@ -8,14 +8,19 @@ if(WIN32)
 endif()
 
 if(WITH_RCCL)
-  set(RCCL_ROOT
-      ${ROCM_PATH}/rccl
-      CACHE PATH "RCCL ROOT")
-  find_path(
-    RCCL_INCLUDE_DIR rccl.h
-    PATHS ${RCCL_ROOT} ${RCCL_ROOT}/include ${RCCL_ROOT}/local/include
-          $ENV{RCCL_ROOT} $ENV{RCCL_ROOT}/include $ENV{RCCL_ROOT}/local/include
-    NO_DEFAULT_PATH)
+  if(ROCM_6)
+    set(RCCL_INCLUDE_DIR ${ROCM_PATH}/include/rccl)
+  else()
+    set(RCCL_ROOT
+        ${ROCM_PATH}/rccl
+        CACHE PATH "RCCL ROOT")
+    find_path(
+      RCCL_INCLUDE_DIR rccl.h
+      PATHS ${RCCL_ROOT} ${RCCL_ROOT}/include ${RCCL_ROOT}/local/include
+            $ENV{RCCL_ROOT} $ENV{RCCL_ROOT}/include
+            $ENV{RCCL_ROOT}/local/include
+      NO_DEFAULT_PATH)
+  endif()
 
   file(READ ${RCCL_INCLUDE_DIR}/rccl.h RCCL_VERSION_FILE_CONTENTS)
 

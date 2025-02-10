@@ -50,7 +50,11 @@ phi::Place GetPlaceFromPtr(void* data) {
 #else
   hipPointerAttribute_t attr = {};
   hipError_t status = hipPointerGetAttributes(&attr, data);
+#if HIP_VERSION >= 60000000
+  if (status == hipSuccess && attr.type == hipMemoryTypeDevice) {
+#else
   if (status == hipSuccess && attr.memoryType == hipMemoryTypeDevice) {
+#endif
     return phi::GPUPlace(attr.device);
   }
 #endif

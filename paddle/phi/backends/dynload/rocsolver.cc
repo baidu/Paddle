@@ -23,4 +23,7 @@ void *rocsolver_dso_handle;
 
 ROCSOLVER_ROUTINE_EACH(DEFINE_WRAP);
 
+#ifdef ROCSOLVER_ROUTINE_EACH1
+ROCSOLVER_ROUTINE_EACH1(DEFINE_WRAP);
+#endif
 }  // namespace phi::dynload

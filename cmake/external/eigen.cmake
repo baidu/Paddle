@@ -52,6 +52,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(EIGEN_PATCH_COMMAND
       ${EIGEN_PATCH_COMMAND} && patch -Nd
       ${SOURCE_DIR}/Eigen/src/Core/arch/SSE/ < ${complex_header})
+  file(TO_NATIVE_PATH ${PADDLE_SOURCE_DIR}/patches/eigen/Half.h.patch
+       half_header)
+  set(EIGEN_PATCH_COMMAND
+      ${EIGEN_PATCH_COMMAND} && patch -Nd
+      ${SOURCE_DIR}/Eigen/src/Core/arch/Default/ < ${half_header})
 endif()
 
 set(EIGEN_INCLUDE_DIR ${SOURCE_DIR})

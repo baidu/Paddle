@@ -24,6 +24,8 @@ void* rocm_dso_handle = nullptr;
 
 ROCM_ROUTINE_EACH(DEFINE_WRAP);
 
+ROCM_ROUTINE_EACH_VVM(DEFINE_WRAP);
+
 bool HasCUDADriver() {
   std::call_once(rocm_dso_flag, []() { rocm_dso_handle = GetCUDADsoHandle(); });
   return rocm_dso_handle != nullptr;

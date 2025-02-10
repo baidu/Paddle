@@ -39,6 +39,10 @@ if(WITH_ROCM)
   set(WARPRNNT_PATCH_ROCM_COMMAND
       patch -p1 <
       ${PADDLE_SOURCE_DIR}/patches/warprnnt/CMakeLists.txt.rocm.patch)
+  if(ROCM_6)
+    set(WARPRNNT_PATCH_ROCM_COMMAND
+        patch -p1 < ${PADDLE_SOURCE_DIR}/patches/warprnnt/hip.cmake.patch)
+  endif()
 endif()
 if(NOT WIN32 AND WITH_GPU)
   if(${CMAKE_CUDA_COMPILER_VERSION} LESS 12.0 AND ${CMAKE_CXX_COMPILER_VERSION}

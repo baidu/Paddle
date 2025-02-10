@@ -1,0 +1,16 @@
+diff --git a/Eigen/src/Core/arch/Default/Half.h b/Eigen/src/Core/arch/Default/Half.h
+index 56ff7cec3..d71526e2f 100644
+--- a/Eigen/src/Core/arch/Default/Half.h
++++ b/Eigen/src/Core/arch/Default/Half.h
+@@ -666,7 +666,11 @@ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC half expm1(const half& a) {
+ EIGEN_STRONG_INLINE EIGEN_DEVICE_FUNC half log(const half& a) {
+ #if (defined(EIGEN_HAS_CUDA_FP16) && EIGEN_CUDA_SDK_VER >= 80000 && defined(EIGEN_CUDA_ARCH) && EIGEN_CUDA_ARCH >= 530) || \
+   (defined(EIGEN_HAS_HIP_FP16) && defined(EIGEN_HIP_DEVICE_COMPILE))
++#if HIP_VERSION >= 60000000
++  return half(hlog(a));
++#else
+   return half(::hlog(a));
++#endif
+ #else
+   return half(::logf(float(a)));
+ #endif
