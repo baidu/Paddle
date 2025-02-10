@@ -964,10 +964,21 @@ struct CBlas<phi::dtype::float16> {
     PADDLE_THROW(common::errors::Unimplemented(
         "float16 SMM_GEMM not supported on CPU, please check your code"));
   }
+
+  static void VADD(int n,
+                   const phi::dtype::float16 *x,
+                   const phi::dtype::float16 *y,
+                   phi::dtype::float16 *z) {
+    for (int i = 0; i < n; ++i) {
+      z[i] = x[i] + y[i];
+    }
+  }
+
   static void VMUL(...) {
     PADDLE_THROW(common::errors::Unimplemented(
         "float16 VMUL not supported on CPU, please check your code"));
   }
+
   static void VEXP(...) {
     PADDLE_THROW(common::errors::Unimplemented(
         "float16 VEXP not supported on CPU, please check your code"));

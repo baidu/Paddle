@@ -614,6 +614,38 @@ class TestElementwiseAddOp_same_shape_ysize_large(TestElementwiseAddOp):
     def init_axis(self):
         self.axis = 0
 
+# --------------------------- Add fp16 cpu ---------------------------
+def create_test_fp16_cpu(parent):
+    class TestAddFloat16_CPU(parent):
+        def init_dtype(self):
+            self.dtype = np.float16
+
+        def test_check_output(self):
+            place = core.CPUPlace()
+            self.check_output_with_place(
+                place,
+                atol=1e-3,
+                check_dygraph=self.check_dygraph(),
+                check_pir=self.check_dygraph(),
+            )
+
+create_test_fp16_cpu(TestFP16ElementwiseAddOp)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_scalar)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_scalar2)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_Vector)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_0)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_1)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_2)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_3)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_4)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_5)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_broadcast_6)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_rowwise_add_0)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_rowwise_add_1)
+create_test_fp16_cpu(TestFP16ElementwiseAddOp_channelwise_add)
+create_test_fp16_cpu(TestElementwiseFP16AddOp_commonuse_add1)
+
+# --------------------------------------------------------------------
 
 class TestAddApi(unittest.TestCase):
     def _executed_api(self, x, y, name=None):
