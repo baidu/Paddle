@@ -631,6 +631,10 @@ void ShapeConstraintIRAnalysis::InferShapeOrDataForValue(Value val) {
   });
 }
 
+bool ShapeConstraintIRAnalysis::HasShapeOrDataForValue(Value val) const {
+  return context_.HasShapeOrDataForValue(val);
+}
+
 const symbol::ShapeOrDataDimExprs&
 ShapeConstraintIRAnalysis::GetShapeOrDataForValue(Value val) {
   if (!val || !val.type()) {

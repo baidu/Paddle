@@ -260,13 +260,14 @@ int64_t GetOpCount(const ::pir::Operation* op) {
 void ApplyCinnPass(
     ::pir::Program* program,
     const std::function<std::shared_ptr<pir::PassManager>()>& CreatePassManager,
-    bool is_train_mode) {
+    bool is_train_mode,
+    bool need_infer_symbolic_shape) {
   const uint32_t origin_num_ops = program->num_ops();
   PirToPyCodeConverter(program)
       .file_name("original_programs.py")
       .dump_symbolic_shape(FLAGS_logging_pir_py_code_dump_symbolic_dims)
       .SaveIfFlagEnabled();
-  if (is_train_mode) {
+  if (is_train_mode && need_infer_symbolic_shape) {
     // Skip infer symbol shape in inference, because we have run this pass in
     // the previous process
     ApplyShapeOptimizationPass(program, CreatePassManager);

@@ -29,6 +29,7 @@ namespace cinn::dialect::ir {
 void ApplyCinnPass(
     ::pir::Program* program,
     const std::function<std::shared_ptr<pir::PassManager>()>& CreatePassManager,
-    bool is_train_mode = true);
+    bool is_train_mode = true,
+    bool need_infer_symbolic_shape = true);
 
 }  // namespace cinn::dialect::ir

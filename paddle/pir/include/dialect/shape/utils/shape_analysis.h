@@ -194,6 +194,8 @@ class IR_API ShapeConstraintIRAnalysis final
 
   const std::string GetNextSymName();
 
+  bool HasShapeOrDataForValue(Value val) const;
+
   const symbol::ShapeOrDataDimExprs& GetShapeOrDataForValue(Value val);
 
   void SetShapeOrDataForValue(Value val,
