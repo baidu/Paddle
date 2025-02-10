@@ -94,6 +94,8 @@ DEFINE_GENERAL_PATTERN(Flip, paddle::dialect::FlipOp)
 DEFINE_GENERAL_PATTERN(Mish, paddle::dialect::MishOp)
 DEFINE_GENERAL_PATTERN(AssignValue, paddle::dialect::AssignValueOp)
 DEFINE_GENERAL_PATTERN(AssignValue_, paddle::dialect::AssignValue_Op)
+DEFINE_GENERAL_PATTERN(LeakyRelu, paddle::dialect::LeakyReluOp)
+DEFINE_GENERAL_PATTERN(LeakyRelu_, paddle::dialect::LeakyRelu_Op)
 DEFINE_GENERAL_PATTERN(Anchor_Generator, paddle::dialect::AnchorGeneratorOp)
 DEFINE_GENERAL_PATTERN(Exp, paddle::dialect::ExpOp)
 DEFINE_GENERAL_PATTERN(Abs, paddle::dialect::AbsOp)
@@ -2388,6 +2390,25 @@ class AffineChannelOpPattern
   }
 };
 
+class PreluOpPattern : public pir::OpRewritePattern<paddle::dialect::PreluOp> {
+ public:
+  using pir::OpRewritePattern<paddle::dialect::PreluOp>::OpRewritePattern;
+  bool MatchAndRewrite(paddle::dialect::PreluOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op.attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+    pir::Value alpha_var = op.operand_source(1);
+    if (!alpha_var) {
+      VLOG(3) << "Variable Alpha of prelu TRT converter not found.";
+      return false;
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
+
 class YoloBoxOpPattern
     : public pir::OpRewritePattern<paddle::dialect::YoloBoxOp> {
  public:
@@ -2498,6 +2519,8 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ADD_PATTERN(Mish)
     ADD_PATTERN(AssignValue)
     ADD_PATTERN(AssignValue_)
+    ADD_PATTERN(LeakyRelu)
+    ADD_PATTERN(LeakyRelu_)
     ADD_PATTERN(Anchor_Generator)
     ADD_PATTERN(Exp)
     ADD_PATTERN(Abs)
@@ -2608,6 +2631,7 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<EinsumOpPattern>(context));
     ps.Add(std::make_unique<PNormOpPattern>(context));
     ps.Add(std::make_unique<AffineChannelOpPattern>(context));
+    ps.Add(std::make_unique<PreluOpPattern>(context));
     ps.Add(
         std::make_unique<FusedBiasDropoutResidualLayerNormOpPattern>(context));
     ps.Add(std::make_unique<YoloBoxOpPattern>(context));

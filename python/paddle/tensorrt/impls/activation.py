@@ -16,7 +16,9 @@ import numpy as np
 import tensorrt as trt
 
 from paddle.tensorrt.converter_utils import (
+    add_1D_constant_layer,
     add_constant_layer,
+    trt_concat,
     trt_div,
     trt_min,
     trt_pow,
@@ -276,6 +278,16 @@ def thresholded_relu_converter(network, paddle_op, inputs):
     return thresholded_relu_layer.get_output(0)
 
 
+@converter_registry.register("pd_op.leaky_relu", trt_version="8.x")
+@converter_registry.register("pd_op.leaky_relu_", trt_version="8.x")
+def leaky_relu_converter(network, paddle_op, inputs):
+    x = inputs[0]
+    negative_slope = paddle_op.attrs()["negative_slope"]
+    leaky_relu_layer = network.add_activation(x, trt.ActivationType.LEAKY_RELU)
+    leaky_relu_layer.alpha = negative_slope
+    return leaky_relu_layer.get_output(0)
+
+
 @converter_registry.register("pd_op.selu", trt_version="8.x")
 def selu_converter(network, paddle_op, inputs):
     x = inputs[0]
@@ -285,3 +297,44 @@ def selu_converter(network, paddle_op, inputs):
     selu_layer.alpha = alpha
     selu_layer.beta = scale
     return selu_layer.get_output(0)
+
+
+@converter_registry.register("pd_op.prelu", trt_version="8.x")
+def prelu_converter(network, paddle_op, inputs):
+    input, alpha_data = inputs
+    input_dims = input.shape
+    mode = paddle_op.attrs()["mode"]
+    data_format = paddle_op.attrs().get("data_format", "NCHW")
+    w_dims = trt.Dims(alpha_data.numpy().shape)
+    trt_w_dims = w_dims
+    alpha_tensor = network.add_constant(trt_w_dims, alpha_data).get_output(0)
+    alpha_dims = alpha_tensor.shape
+    real_alpha_tensor = alpha_tensor
+    if len(alpha_dims) != len(input_dims):
+        reshape_layer = network.add_shuffle(alpha_tensor)
+        c = alpha_dims[0]
+        n_tensor = add_1D_constant_layer(network, [1])
+        c_tensor = add_1D_constant_layer(network, [c])
+        hw_tensor = None
+        if len(input_dims) - 2 > 0:
+            hw_tensor = add_1D_constant_layer(
+                network, [1] * (len(input_dims) - 2)
+            )
+        if data_format == "NCHW":
+            if hw_tensor:
+                shape_tensor = trt_concat(
+                    network, [n_tensor, c_tensor, hw_tensor]
+                )
+            else:
+                shape_tensor = trt_concat(network, [n_tensor, c_tensor])
+        else:
+            if hw_tensor:
+                shape_tensor = trt_concat(
+                    network, [n_tensor, hw_tensor, c_tensor]
+                )
+            else:
+                shape_tensor = trt_concat(network, [n_tensor, c_tensor])
+        reshape_layer.set_input(1, shape_tensor)
+        real_alpha_tensor = reshape_layer.get_output(0)
+    layer = network.add_parametric_relu(input, real_alpha_tensor)
+    return layer.get_output(0)
