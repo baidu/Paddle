@@ -183,6 +183,12 @@ def as_numpy(tensor, copy=False):
             return DenseTensor itself directly."
         )
     if tensor._is_initialized():
+        # Note: if dtype of tensor is bf16, np.array(tensor) or np.asarray(tensor) will return a ndarray which dtype is uint16.
+        # binary is the same, but the value is incorrect, so we need to cast it to fp32 to return correct value.
+        # e.g. when tensor is Tensor(shape=[], dtype=bfloat16, 1.00781), np.array(tensor) will return array(16257, dtype=uint16)
+        # but when tensor is Tensor(shape=[], dtype=float32, 1.00781), np.array(tensor) will return array(1.00781, dtype=float32)
+        if tensor._dtype() == core.VarDesc.VarType.BF16:
+            tensor = tensor._as_type(core.VarDesc.VarType.FP32)
         if copy:
             return np.array(tensor)
         else:
