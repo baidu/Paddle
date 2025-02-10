@@ -38,24 +38,22 @@ class TestCollectiveSendRecv(TestCollectiveRunnerBase):
             tindata.desc.set_need_check_feed(False)
             if self.rank == 0:
                 main_prog.global_block().append_op(
-                    type="send_v2",
-                    inputs={'X': tindata},
+                    type="p_send",
+                    inputs={'x': tindata},
                     attrs={
                         'ring_id': ring_id,
                         'peer': 1,
-                        'use_calc_stream': True,
                     },
                 )
             else:
                 main_prog.global_block().append_op(
-                    type="recv_v2",
-                    outputs={'Out': tindata},
+                    type="p_recv",
+                    outputs={'out': tindata},
                     attrs={
                         'peer': 0,
                         'ring_id': ring_id,
                         'dtype': tindata.dtype,
                         'out_shape': tindata.shape,
-                        'use_calc_stream': True,
                     },
                 )
             return tindata

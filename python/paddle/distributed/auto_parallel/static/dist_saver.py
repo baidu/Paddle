@@ -174,11 +174,12 @@ class DistributedSaver:
         for idx, op in enumerate(ops):
             if op.attr(op_role_key) != op_role_forward:
                 continue
-            if op.type == "read" or op.type == "feed" or op.type == 'recv_v2':
+            if op.type == "read" or op.type == "feed":
                 feed_vars_names += op.output("Out")
-            if op.type == "send_v2":
-                fetch_vars_names += op.input("X")
-                last_idx = max(idx, last_idx)
+            if op.type == 'p_recv':
+                feed_vars_names += op.output("out")
+            if op.type == "p_send":
+                fetch_vars_names += op.input("x")
             for out_name in op.output_arg_names:
                 if out_name in fetch_vars_names:
                     last_idx = max(idx, last_idx)

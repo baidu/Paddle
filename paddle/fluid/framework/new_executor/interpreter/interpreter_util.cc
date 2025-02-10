@@ -134,8 +134,8 @@ bool IsCommunicationOp(const OperatorBase* op) {
   const std::set<std::string> special_comm_op_set = {
       "send",
       "recv",
-      "send_v2",
-      "recv_v2",
+      "p_send",
+      "p_recv",
   };
   const std::string communication_op_prefix = "c_";
   if (op_name.find(communication_op_prefix) != std::string::npos ||
@@ -162,8 +162,8 @@ bool IsCommunicationOp(const ::pir::Operation* op) {
         op->attributes().at("op_name").dyn_cast<pir::StrAttribute>().AsString();
   }
   const std::set<std::string> special_comm_op_set = {
-      paddle::dialect::SendV2Op::name(),
-      paddle::dialect::RecvV2Op::name(),
+      paddle::dialect::PSendOp::name(),
+      paddle::dialect::PRecvOp::name(),
   };
   const std::string communication_op_prefix = "c_";
   if (op_name.find(communication_op_prefix) != std::string::npos ||
@@ -834,7 +834,7 @@ void BuildOpFuncList(const phi::Place& place,
         op_func_node.type_ =
             AnalyseOpFuncType(op_func_node, kernel_type.place_);
 
-        VLOG(3) << op_with_kernel->Type()
+        VLOG(0) << op_with_kernel->Type()
                 << " : finally selected kernel_key: " << kernel_type;
 
         // step 3. data transform
@@ -875,13 +875,37 @@ void BuildOpFuncList(const phi::Place& place,
             auto ring_id_attr = attrs.at("ring_id");
             int ring_id = PADDLE_GET(int, ring_id_attr);
             auto map = distributed::ProcessGroupMapFromGid::getInstance();
-            if (map->has(ring_id)) {
-              auto original_stream =
-                  static_cast<phi::GPUContext*>(dev_ctx)->cuda_stream();
+            const auto& comm_context_manager =
+                phi::distributed::CommContextManager::GetInstance();
+            if (op_type == "p_send" || op_type == "p_recv") {
+              if (comm_context_manager.Has(std::to_string(ring_id))) {
+                auto comm_context =
+                    comm_context_manager.Get(std::to_string(ring_id));
+                auto original_stream =
+                    static_cast<phi::GPUContext*>(dev_ctx)->cuda_stream();
+                dev_ctx = static_cast<phi::distributed::NCCLCommContext*>(
+                              comm_context)
+                              ->GetDevContext();
+                dev_ctx->SetCommContext(comm_context);
+
+                static_cast<phi::GPUContext*>(dev_ctx)->SetCUDAStream(
+                    original_stream, false);
+                auto& instance =
+                    paddle::memory::allocation::AllocatorFacade::Instance();
+                dev_ctx->SetAllocator(
+                    instance
+                        .GetAllocator(
+                            place,
+                            static_cast<phi::GPUContext*>(dev_ctx)->stream())
+                        .get());
+              }
+            } else if (map->has(ring_id)) {
               distributed::ProcessGroup* pg = map->get(ring_id);
               auto comm_context =
                   static_cast<paddle::distributed::ProcessGroupNCCL*>(pg)
                       ->GetOrCreateCommContext(place);
+              auto original_stream =
+                  static_cast<phi::GPUContext*>(dev_ctx)->cuda_stream();
               dev_ctx =
                   static_cast<phi::distributed::NCCLCommContext*>(comm_context)
                       ->GetDevContext();

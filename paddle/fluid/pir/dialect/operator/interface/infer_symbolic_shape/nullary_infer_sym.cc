@@ -513,8 +513,8 @@ bool ReadFileOpInferSymbolicShape(
   return true;
 }
 
-bool RecvV2OpInferSymbolicShape(pir::Operation *op,
-                                pir::InferSymbolicShapeContext *infer_context) {
+bool PRecvOpInferSymbolicShape(pir::Operation *op,
+                               pir::InferSymbolicShapeContext *infer_context) {
   const int ring_id = op->attribute<pir::Int32Attribute>("ring_id").data();
   const bool dynamic_shape =
       op->attribute<pir::BoolAttribute>("dynamic_shape").data();
@@ -524,13 +524,13 @@ bool RecvV2OpInferSymbolicShape(pir::Operation *op,
       peer,
       0,
       common::errors::InvalidArgument(
-          "The peer (%d) for recv_v2 op must be non-negative.", peer));
+          "The peer (%d) for p_recv op must be non-negative.", peer));
 
   PADDLE_ENFORCE_GE(
       ring_id,
       0,
       common::errors::InvalidArgument(
-          "The ring_id (%d) for recv_v2 op must be non-negative.", ring_id));
+          "The ring_id (%d) for p_recv op must be non-negative.", ring_id));
 
   const std::vector<int> out_shape =
       paddle::dialect::details::GetVectorAttr<int>(op, "out_shape");
@@ -547,10 +547,10 @@ bool RecvV2OpInferSymbolicShape(pir::Operation *op,
       PADDLE_ENFORCE_GE(out_shape[i],
                         1,
                         common::errors::InvalidArgument(
-                            "The shape attribute for recv_v2 must be set "
+                            "The shape attribute for p_recv must be set "
                             "explicitly, but the %dth element is %d which "
                             "is less than 1. Or dynamic_shape should be set to "
-                            "True for both send_v2 and recv_v2.",
+                            "True for both p_send and p_recv.",
                             i,
                             out_shape[i]));
       output_shape.push_back(symbol::DimExpr(out_shape[i]));

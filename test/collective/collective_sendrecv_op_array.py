@@ -49,24 +49,22 @@ class TestCollectiveSendRecv(TestCollectiveRunnerBase):
             paddle.tensor.array_write(data2, i + 1, tensor_array)
             if self.rank == 0:
                 main_prog.global_block().append_op(
-                    type="send_v2",
-                    inputs={'X': tensor_array},
+                    type="p_send",
+                    inputs={'x': tensor_array},
                     attrs={
                         'ring_id': ring_id,
                         'peer': 1,
-                        'use_calc_stream': True,
                     },
                 )
             else:
                 main_prog.global_block().append_op(
-                    type="recv_v2",
-                    outputs={'Out': tensor_array},
+                    type="p_recv",
+                    outputs={'out': tensor_array},
                     attrs={
                         'peer': 0,
                         'ring_id': ring_id,
                         'dtype': data1.dtype,
                         'out_shape': [1, 3],
-                        'use_calc_stream': True,
                     },
                 )
             return tensor_array

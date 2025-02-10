@@ -4475,10 +4475,6 @@
   outputs :
     out : Out
 
-- op: recv_v2
-  outputs :
-    out : Out
-
 - op: reindex_graph (graph_reindex)
   inputs :
     {x : X, neighbors : Neighbors, count : Count, hashtable_value : HashTable_Value, hashtable_index : HashTable_Index}
@@ -4492,10 +4488,6 @@
     {out: Out, noise: Noise}
   extra:
     outputs: [noise]
-
-- op: send_v2
-  inputs :
-    x : X
 
 - op: sequence_conv
   backward: sequence_conv_grad

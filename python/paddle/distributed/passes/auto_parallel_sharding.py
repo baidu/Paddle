@@ -56,7 +56,7 @@ _skip_ops = [
     'slice',
     'split',
     'assign',
-    "send_v2",
+    "p_send",
 ]
 # update here to support new optimizers
 _supported_optimizer_type = [

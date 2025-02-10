@@ -181,7 +181,7 @@ class IdentityOpCost(CommOpCost):
 
 @register_op_cost
 class RecvOpCost(CommOpCost):
-    OP_TYPE = "recv_v2"
+    OP_TYPE = "p_recv"
 
     def __init__(self, op=None, op_desc=None, comm_context=None):
         super().__init__(op=op, op_desc=op_desc, comm_context=comm_context)
@@ -198,11 +198,43 @@ class RecvOpCost(CommOpCost):
         beta = self.comm_context.get_max_beta(self.group_ranks)
         time = alpha + self.comm_count * beta
         return time
+
+    @property
+    def comm_count(self):
+        from ..reshard import get_var_with_recursion
+
+        if self._comm_count is None:
+            dtype = None
+            shape = None
+            if self.op is not None:
+                vars = self.op.block.vars
+                try:
+                    var_name = self.op.input("x")[0]
+                except:
+                    var_name = self.op.output("out")[0]
+                var = get_var_with_recursion(
+                    var_name, self.op.block, self.op.block.program
+                )
+                dtype = var.dtype
+                shape = var.shape
+            elif self.op_desc is not None:
+                dtype = self.op_desc["inputs"]["X"][0][0]
+                shape = self.op_desc["inputs"]["X"][0][1]
+
+            factor = None
+            if dtype == paddle.float32 or dtype == paddle.int32:
+                factor = 4
+            else:
+                raise ValueError(f"Unsupported comm dtype {dtype}")
+            comm_count = int(np.prod(shape)) * factor
+            self._comm_count = comm_count
+
+        return self._comm_count
 
 
 @register_op_cost
 class SendOpCost(CommOpCost):
-    OP_TYPE = "send_v2"
+    OP_TYPE = "p_send"
 
     def __init__(self, op=None, op_desc=None, comm_context=None):
         super().__init__(op=op, op_desc=op_desc, comm_context=comm_context)
@@ -220,3 +252,35 @@ class SendOpCost(CommOpCost):
         time = alpha + self.comm_count * beta
 
         return time
+
+    @property
+    def comm_count(self):
+        from ..reshard import get_var_with_recursion
+
+        if self._comm_count is None:
+            dtype = None
+            shape = None
+            if self.op is not None:
+                vars = self.op.block.vars
+                try:
+                    var_name = self.op.input("x")[0]
+                except:
+                    var_name = self.op.output("out")[0]
+                var = get_var_with_recursion(
+                    var_name, self.op.block, self.op.block.program
+                )
+                dtype = var.dtype
+                shape = var.shape
+            elif self.op_desc is not None:
+                dtype = self.op_desc["inputs"]["X"][0][0]
+                shape = self.op_desc["inputs"]["X"][0][1]
+
+            factor = None
+            if dtype == paddle.float32 or dtype == paddle.int32:
+                factor = 4
+            else:
+                raise ValueError(f"Unsupported comm dtype {dtype}")
+            comm_count = int(np.prod(shape)) * factor
+            self._comm_count = comm_count
+
+        return self._comm_count

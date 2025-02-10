@@ -565,8 +565,6 @@ void PushDenseInferMeta(const std::vector<const MetaTensor*>& ids,
                         float scale_data_norm,
                         const std::vector<std::string>& input_names);
 
-void SendV2InferMeta(const int peer, const int ring_id);
-
 void QrInferMeta(const MetaTensor& x,
                  const std::string& mode,
                  MetaTensor* q,

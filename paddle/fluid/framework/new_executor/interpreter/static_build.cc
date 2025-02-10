@@ -55,7 +55,7 @@ std::set<std::string> OpsCanSkippedFakeAllocInStaticBuild = {
     "depend",
     "fetch_v2",
     "print",
-    "send_v2",
+    "p_send",
     "nop"};
 
 std::set<std::string> StaticBuildBlackList = {

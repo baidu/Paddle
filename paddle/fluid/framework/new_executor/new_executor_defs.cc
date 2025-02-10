@@ -325,12 +325,11 @@ void Instruction::UpdateRecordStreamForGcInfo() {
   need_record_stream_for_gc_ = true;
 
   stream_ = reinterpret_cast<const phi::GPUContext&>(DeviceContext()).stream();
-// TODO(lizhiyu): Only analyse the 'send_v2' for GPT pp strategy right now.
+// TODO(lizhiyu): Only analyse the 'p_send' for GPT pp strategy right now.
 // To support all the operators for communicating in the future.
 #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
   auto operator_base_ptr = OpBase();
-  if ((operator_base_ptr->Type() == "send_v2") &&
-      (operator_base_ptr->Attr<bool>("use_calc_stream") == false)) {
+  if (operator_base_ptr->Type() == "p_send") {
     int ring_id = operator_base_ptr->Attr<int>("ring_id");
     if (FLAGS_dynamic_static_unified_comm) {
       const auto& comm_context_manager =

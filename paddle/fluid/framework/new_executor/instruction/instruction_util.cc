@@ -81,7 +81,8 @@ phi::DeviceContext* ParseDeviceContext(pir::Operation* op,
   if (phi::is_gpu_place(place) || phi::is_custom_place(place)) {
     VLOG(6) << "Parse DeviceContext for " << op_name
             << ", execution stream = " << execution_stream;
-    if (execution_stream != kDefaultStream) {
+    if (execution_stream != kDefaultStream && op_name != "pd_op.p_send" &&
+        op_name != "pd_op.p_send") {
       dev_ctx = ctx_manager
                     .Get(std::string(kCustomStream) + "-" + execution_stream,
                          place,
@@ -171,6 +172,8 @@ phi::DeviceContext* ParseDeviceContext(pir::Operation* op,
             op_name.compare(paddle::dialect::Broadcast_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::BroadcastOp::name()) == 0 ||
             op_name.compare(paddle::dialect::AllGatherOp::name()) == 0 ||
+            op_name.compare(paddle::dialect::PSendOp::name()) == 0 ||
+            op_name.compare(paddle::dialect::PRecvOp::name()) == 0 ||
             op_name.compare(paddle::dialect::MpAllreduceSum_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::CIdentity_Op::name()) == 0 ||
             op_name.compare(paddle::dialect::CConcatOp::name()) == 0) {

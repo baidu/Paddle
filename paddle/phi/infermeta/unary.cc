@@ -3412,7 +3412,6 @@ void Pool2DInferMeta(const MetaTensor& x,
 }
 
 void PSendInferMeta(const MetaTensor& x, int peer) {
-  LOG(INFO) << "SendBaseInferMeta begin";
   PADDLE_ENFORCE_GE(
       peer,
       0,
@@ -3435,19 +3434,6 @@ void SetInferMeta(const MetaTensor& x,
   out->set_dtype(x.dtype());
   out->set_dims(common::make_ddim(shape));
   out->set_strides(common::make_ddim(stride));
-}
-
-void SendV2InferMeta(const int peer, const int ring_id) {
-  PADDLE_ENFORCE_GE(
-      peer,
-      0,
-      errors::InvalidArgument(
-          "The peer (%d) for send_v2 op must be non-negative.", peer));
-  PADDLE_ENFORCE_GE(
-      ring_id,
-      0,
-      errors::InvalidArgument(
-          "The ring_id (%d) for send_v2 op must be non-negative.", ring_id));
 }
 
 void PoolInferMeta(const MetaTensor& x,

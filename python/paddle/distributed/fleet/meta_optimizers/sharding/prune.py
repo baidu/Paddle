@@ -143,7 +143,7 @@ class ProgramDeps:
         op = self._block.ops[op_idx]
 
         # NOTE: At present, it is found that the OP without output is
-        # only send_v2 and partial_send op, which will be used in
+        # only p_send and partial_send op, which will be used in
         # all device
         if len(op.desc.output_arg_names()) == 0:
             return False
