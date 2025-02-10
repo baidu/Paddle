@@ -1,6 +1,6 @@
 add_subdirectory(adt)
 add_subdirectory(ast_gen_ius)
-# add_subdirectory(common)
+add_subdirectory(common)
 # add_subdirectory(hlir)
 add_subdirectory(ir)
 add_subdirectory(lang)
