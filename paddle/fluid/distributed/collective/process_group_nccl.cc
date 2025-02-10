@@ -1122,6 +1122,7 @@ std::shared_ptr<ProcessGroupNCCL> ProcessGroupNCCL::CreateProcessGroupNCCL(
     int gid,
     int64_t timeout,
     int nccl_comm_init_option) {
+  return nullptr;
   auto process_group = std::make_shared<ProcessGroupNCCL>(
       store, rank, size, gid, timeout, nccl_comm_init_option);
   ProcessGroupIdMap::GetInstance().emplace(gid, process_group);
