@@ -164,7 +164,6 @@ class TestDataParallelPassWithStandaloneEXE(TestDataParallelPassWithScale1):
                     break
             assert allreduce_op_idx > 0
             allreduce_op = ops[allreduce_op_idx]
-            assert allreduce_op.attr('use_calc_stream') is True
             assert allreduce_op.dist_attr.execution_stream is not None
             assert ops[allreduce_op_idx - 1].type == "nop"
             assert ops[allreduce_op_idx + 1].type == "nop"

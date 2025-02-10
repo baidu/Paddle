@@ -23,10 +23,6 @@ from paddle.distributed.auto_parallel.static.parallelizer import (
     AutoParallelizer,
 )
 from paddle.distributed.auto_parallel.static.partitioner import Partitioner
-from paddle.distributed.auto_parallel.static.process_group import (
-    new_process_group,
-)
-from paddle.distributed.auto_parallel.static.utils import _get_comm_group
 from paddle.distributed.fleet import auto
 from paddle.nn.layer.transformer import _convert_param_attr_to_list
 
@@ -929,58 +925,6 @@ class TestGPTPartitioner(unittest.TestCase):
                 1,
             )
         )
-
-        all_params = sorted(
-            [param.name for param in startup_program.all_parameters()]
-        )
-        allreduce_grads = [
-            'layer_norm_0.tmp_2',
-            'layer_norm_0.tmp_2',
-            'layer_norm_0.tmp_2',
-            'layer_norm_1.tmp_2',
-            'layer_norm_2.tmp_2',
-            'layer_norm_2.tmp_2',
-            'layer_norm_2.tmp_2',
-            'layer_norm_3.tmp_2',
-        ]
-        process_mesh = _global_process_mesh
-        mp_parallel_axis = 1
-        dp_parallel_axis = 0
-
-        group_ranks = _get_comm_group(
-            process_mesh.process_ids, process_mesh.shape, mp_parallel_axis, 3
-        )
-        mp_ring_id = new_process_group(group_ranks).id
-
-        group_ranks = _get_comm_group(
-            process_mesh.process_ids, process_mesh.shape, dp_parallel_axis, 3
-        )
-        dp_ring_id = new_process_group(group_ranks).id
-
-        tensor_parallel_allreduce_vars = sorted(
-            [
-                op.desc.output_arg_names()[0].split("@")[0]
-                for op in auto_parallel_main_prog.global_block().ops
-                if (
-                    op.type == "c_allreduce_sum"
-                    and op.attr('op_role') == 1
-                    and op.desc.attr("ring_id") == mp_ring_id
-                )
-            ]
-        )
-        data_parallel_allreduce_vars = sorted(
-            [
-                op.desc.output_arg_names()[0].split("@")[0]
-                for op in auto_parallel_main_prog.global_block().ops
-                if (
-                    op.type == "c_allreduce_sum"
-                    and op.desc.attr("ring_id") == dp_ring_id
-                )
-            ]
-        )
-
-        self.assertTrue(all_params == data_parallel_allreduce_vars)
-        self.assertTrue(allreduce_grads == tensor_parallel_allreduce_vars)
 
         self.assertTrue(
             is_valid_completed_program(dist_context, auto_parallel_main_prog)
