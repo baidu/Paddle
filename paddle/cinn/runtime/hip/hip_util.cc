@@ -77,6 +77,16 @@ void infer_shape_set_value(int row, int col, int64_t value, int64_t **v) {
   v[row][col] = value;
 }
 
+int64_t cinn_get_value_in_hip_kernel_args(void *v_args, int idx) {
+  cinn_pod_value_t *args = static_cast<cinn_pod_value_t *>(v_args);
+  return args[idx].operator int64_t();
+}
+
+void *cinn_get_item_in_hip_kernel_args(void *v_args, int idx) {
+  cinn_pod_value_t *args = static_cast<cinn_pod_value_t *>(v_args);
+  return static_cast<void *>(&args[idx]);
+}
+
 }  // namespace hip
 }  // namespace runtime
 }  // namespace cinn

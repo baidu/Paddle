@@ -69,6 +69,9 @@ void cinn_call_hip_kernel(void *kernel_fn,
 
 void infer_shape_set_value(int row, int col, int64_t value, int64_t **v);
 
+int64_t cinn_get_value_in_hip_kernel_args(void *v_args, int idx);
+void *cinn_get_item_in_hip_kernel_args(void *v_args, int idx);
+
 }  // namespace hip
 }  // namespace runtime
 }  // namespace cinn

@@ -48,6 +48,7 @@ ir::Module CreateSwitchWithBroadcastConditionModule(
   const auto &symbolic_arg_define = [&]() -> std::vector<ir::Expr> {
     std::vector<ir::Expr> arg_defs;
     for (const auto &item : symbolic_shape_var_index) {
+#ifdef CINN_WITH_CUDA
       ir::Expr call_get_value_in_kernel_args =
           ir::Call::Make(Int(64),
                          runtime::intrinsic::get_value_in_cuda_kernel_args,
@@ -56,6 +57,18 @@ ir::Module CreateSwitchWithBroadcastConditionModule(
                          ir::CallType::Extern,
                          ir::FunctionRef(),
                          0);
+#elif defined(CINN_WITH_HIP)
+      ir::Expr call_get_value_in_kernel_args =
+          ir::Call::Make(Int(64),
+                         runtime::intrinsic::get_value_in_hip_kernel_args,
+                         {kernel_args, ir::Expr(item.first)},
+                         {},
+                         ir::CallType::Extern,
+                         ir::FunctionRef(),
+                         0);
+#else
+      CINN_NOT_IMPLEMENTED
+#endif
       ir::Expr let_symbol = ir::Expr(item.second);
       let_symbol->set_type(type_of<int64_t>());
       ir::Expr stmt = ir::Let::Make(let_symbol, call_get_value_in_kernel_args);
@@ -327,6 +340,7 @@ void detail::CollectBucketStrategyHostFunctionVisitor::ProcessArgs(
   const std::vector<ir::Argument> &args = func->args;
   for (int i = 0; i < args.size(); ++i) {
     if (args[i].is_var()) {
+#ifdef CINN_WITH_CUDA
       ir::Expr call_get_value_in_kernel_args =
           ir::Call::Make(Int(64),
                          runtime::intrinsic::get_value_in_cuda_kernel_args,
@@ -335,6 +349,18 @@ void detail::CollectBucketStrategyHostFunctionVisitor::ProcessArgs(
                          ir::CallType::Extern,
                          ir::FunctionRef(),
                          0);
+#elif defined(CINN_WITH_HIP)
+      ir::Expr call_get_value_in_kernel_args =
+          ir::Call::Make(Int(64),
+                         runtime::intrinsic::get_value_in_hip_kernel_args,
+                         {kernel_args_, ir::Expr(i)},
+                         {},
+                         ir::CallType::Extern,
+                         ir::FunctionRef(),
+                         0);
+#else
+      CINN_NOT_IMPLEMENTED
+#endif
       ir::Expr let_symbol = ir::Expr(args[i].var_arg());
       let_symbol->set_type(type_of<int64_t>());
       ir::stmt::StmtRef stmt =
