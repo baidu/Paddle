@@ -827,7 +827,11 @@ class DygraphShardingOptimizerV2:
                         p.grad._clear()
                         p.grad = None
                 else:
-                    p.clear_gradient(set_to_zero)
+                    if set_to_zero:
+                        p.grad.zero_()
+                    else:
+                        p.grad._clear()
+                        p.grad = None
 
         for p in self._parameter_list:
             clear_grad_func(p)
