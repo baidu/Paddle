@@ -40,17 +40,16 @@ RUN bash /build_scripts/install_trt.sh
 # # https://github.com/NixOS/patchelf/commit/ba2695a8110abbc8cc6baf0eea819922ee5007fa
 # # So install a newer version here.
 RUN bash /build_scripts/install_patchelf.sh
-RUN bash /build_scripts/install_gcc.sh gcc121
+RUN apt-get install -y gcc-8 g++-8
 RUN cp gcc gcc.bak && cp g++ g++.bak && rm gcc && rm g++
-RUN ln -s /usr/local/gcc-12.1/bin/gcc /usr/local/bin/gcc
-RUN ln -s /usr/local/gcc-12.1/bin/g++ /usr/local/bin/g++
-RUN ln -s /usr/local/gcc-12.1/bin/gcc /usr/bin/gcc
-RUN ln -s /usr/local/gcc-12.1/bin/g++ /usr/bin/g++
-ENV PATH=/usr/local/gcc-12.1/bin:$PATH
+RUN ln -s /usr/bin/gcc-8 /usr/local/bin/gcc
+RUN ln -s /usr/bin/g++-8 /usr/local/bin/g++
+RUN ln -s /usr/bin/gcc-8 /usr/bin/gcc
+RUN ln -s /usr/bin/g++-8 /usr/bin/g++
+ENV PATH=/usr/local/gcc-8/bin:$PATH
 
 RUN bash /build_scripts/install_cudnn.sh cudnn841
 ENV CUDNN_VERSION=8.4.1
-#RUN bash /build_scripts/install_nccl2.sh
 RUN rm -rf /build_script
 
 # install cmake
@@ -63,17 +62,36 @@ RUN apt-get update && \
   python3.9 python3.9-dev python3.9-distutils \
   python3.10 python3.10-dev python3.10-distutils \
   python3.11 python3.11-dev python3.11-distutils \
-  python3.12 python3.12-dev python3.12-distutils \
+  python3.12 python3.12-dev \
   python3.13 python3.13-dev python3.13-nogil && \
-  apt-get install python-is-python3 && \
-  rm /usr/bin/python && ln -s /usr/bin/python3.9 /usr/bin/python && \
-  rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
+  apt-get install python-is-python3
+RUN rm /usr/bin/python && ln -s /usr/bin/python3.9 /usr/bin/python && \
+    rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
 
+WORKDIR /home
+RUN wget -q https://files.pythonhosted.org/packages/a7/e0/30642b9c2df516506d40b563b0cbd080c49c6b3f11a70b4c7a670f13a78b/setuptools-50.3.2.zip && unzip setuptools-50.3.2.zip
+WORKDIR /home/setuptools-50.3.2
+
+RUN python3.8 setup.py build && python3.8 setup.py install && \
+    python3.9 setup.py build && python3.9 setup.py install
+
+WORKDIR /home
+RUN wget https://files.pythonhosted.org/packages/ac/e0/4ccbb616e5f30d3595fa44ccc66ba5ac38e68885bcd888916d39f8ba480a/setuptools-68.2.0.tar.gz && tar xf setuptools-68.2.0.tar.gz
+WORKDIR /home/setuptools-68.2.0
+RUN python3.10 setup.py build && python3.10 setup.py install && \
+    python3.11 setup.py build && python3.11 setup.py install && \
+    python3.12 setup.py build && python3.12 setup.py install
+
+WORKDIR /home
+RUN wget https://files.pythonhosted.org/packages/76/6c/a1e240d85b63e04b2f6786a39e32ea78ad9ec7a9e8193b5510b63b5add94/setuptools-69.5.0.tar.gz && tar xf setuptools-69.5.0.tar.gz
+WORKDIR /home/setuptools-69.5.0
+RUN python3.13 setup.py build && python3.13 setup.py install && \
+    python3.13t setup.py build && python3.13t setup.py install
 
 WORKDIR /home
 RUN wget -q https://bootstrap.pypa.io/get-pip.py
-RUN python3.9 get-pip.py && \
-  python3.8 get-pip.py && \
+RUN python3.8 get-pip.py && \
+  python3.9 get-pip.py && \
   python3.10 get-pip.py && \
   python3.11 get-pip.py && \
   python3.12 get-pip.py
@@ -82,16 +100,10 @@ RUN python3.13t get-pip.py && \
   mv /usr/local/bin/pip3.13 /usr/local/bin/pip3.13t && \
   python3.13 get-pip.py
 
-RUN python3.8 -m pip install setuptools==69.5.1 && \
-  python3.9 -m pip install setuptools==69.5.1 && \
-  python3.10 -m pip install setuptools==69.5.1 && \
-  python3.11 -m pip install setuptools==69.5.1 && \
-  python3.12 -m pip install --break-system-packages setuptools==69.5.1 && \
-  python3.13 -m pip install setuptools==69.5.1 && \
-  python3.13t -m pip install setuptools==69.5.1
-
 WORKDIR /home
-# remove them when apt-get support 2.27 and higher version
+RUN rm setuptools-50.3.2.zip setuptools-68.2.0.tar.gz setuptools-69.5.0.tar.gz && \
+    rm -r setuptools-50.3.2 setuptools-68.2.0 setuptools-69.5.0
+
 RUN wget -q https://ftp.gnu.org/gnu/binutils/binutils-2.33.1.tar.gz && \
     tar -xzf binutils-2.33.1.tar.gz && \
     cd binutils-2.33.1 && \
@@ -129,9 +141,10 @@ RUN pip3.8 --no-cache-dir install ipython==5.3.0 && \
     pip3.11 --no-cache-dir install ipykernel==4.6.0 wheel && \
     pip3.12 --no-cache-dir install ipython==5.3.0 && \
     pip3.12 --no-cache-dir install ipykernel==4.6.0 wheel && \
-    pip3.13 --no-cache-dir install ipython==5.3.0 && \
-    pip3.13 --no-cache-dir install ipykernel==4.6.0 wheel && \
-    pip3.13t --no-cache-dir install wheel
+    python3.13 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.13 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.13t -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.13 -m pip --no-cache-dir install ipykernel==4.6.0 wheel
 
 # For PaddleTest CE
 RUN pip3.8 --no-cache-dir install pytest && \
@@ -139,21 +152,24 @@ RUN pip3.8 --no-cache-dir install pytest && \
     pip3.10 --no-cache-dir install pytest && \
     pip3.11 --no-cache-dir install pytest && \
     pip3.12 --no-cache-dir install pytest && \
-    pip3.13 --no-cache-dir install pytest
+    python3.13 -m pip --no-cache-dir install pytest && \
+    python3.13t -m pip --no-cache-dir install pytest
 
 RUN pip3.8 --no-cache-dir install pre-commit==2.17.0 && \
-    pip3.9 --no-cache-dir install pre-commit==2.17.0 && \
-    pip3.10 --no-cache-dir install pre-commit==2.17.0 && \
     pip3.8 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    pip3.9 --no-cache-dir install pre-commit==2.17.0 && \
     pip3.9 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    pip3.10 --no-cache-dir install pre-commit==2.17.0 && \
     pip3.10 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
     pip3.11 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
     pip3.12 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
-    pip3.13 --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0
+    python3.13 -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.13t -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0
 
 COPY ./python/requirements.txt /root/
 COPY ./python/unittest_py/requirements.txt /home/
-RUN pip3.8 --no-cache-dir install -r  /root/requirements.txt && \
+
+RUN pip3.8 --no-cache-dir install -r /root/requirements.txt && \
     pip3.9 --no-cache-dir install -r  /root/requirements.txt && \
     pip3.9 --no-cache-dir install -r  /home/requirements.txt && \
     pip3.10 --no-cache-dir install -r /root/requirements.txt && \
@@ -162,8 +178,20 @@ RUN pip3.8 --no-cache-dir install -r  /root/requirements.txt && \
     pip3.11 --no-cache-dir install -r /home/requirements.txt && \
     pip3.12 --no-cache-dir install -r /root/requirements.txt && \
     pip3.12 --no-cache-dir install -r /home/requirements.txt && \
-    pip3.13 --no-cache-dir install -r /root/requirements.txt
+    python3.13 -m pip --no-cache-dir install -r /root/requirements.txt && \
+    python3.13 -m pip --no-cache-dir install -r /home/requirements.txt && \
+    python3.13t -m pip --no-cache-dir install -r /root/requirements.txt
+    # python3.13t -m pip --no-cache-dir install -r /home/requirements.txt
 
+
+RUN apt-get install pkg-config -y
+
+# clang12
+RUN apt-get update &&\
+    apt install -y clang-12
+
+ARG CC=/usr/bin/clang-12 
+ARG CXX=/usr/bin/clang++-12
 
 # ccache 4.2.0
 RUN wget -q https://paddle-ci.gz.bcebos.com/ccache-4.8.2.tar.gz && \
@@ -173,9 +201,5 @@ RUN wget -q https://paddle-ci.gz.bcebos.com/ccache-4.8.2.tar.gz && \
     make -j8 && make install && \
     ln -s /usr/local/ccache-4.8.2/bin/ccache /usr/local/bin/ccache && \
     cd ../../ && rm -rf ccache-4.8.2.tar.gz
-
-# clang12
-RUN apt-get update &&\
-    apt install -y clang-12
 
 EXPOSE 22

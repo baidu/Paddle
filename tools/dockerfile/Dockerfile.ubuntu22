@@ -1,0 +1,174 @@
+# A image for building paddle binaries
+# Use cuda devel base image for both cpu and gpu environment
+# When you modify it, please be aware of cudnn-runtime version
+FROM <baseimg>
+MAINTAINER PaddlePaddle Authors <paddle-dev@baidu.com>
+
+# ENV variables
+ARG WITH_GPU
+ARG WITH_AVX
+
+ENV WITH_GPU=${WITH_GPU:-ON}
+ENV WITH_AVX=${WITH_AVX:-ON}
+ENV DEBIAN_FRONTEND=noninteractive
+<setcuda>
+
+ENV HOME /root
+# Add bash enhancements
+COPY paddle/scripts/docker/root/ /root/
+
+RUN chmod 777 /tmp
+
+RUN mv /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list.bak
+RUN apt-get update && apt-get install -y curl
+RUN curl https://developer.download.nvidia.cn/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub | gpg --dearmor | tee /usr/share/keyrings/cuda-archive-keyring.gpg
+RUN mv /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list.bak /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list
+RUN sed -i 's#deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64 /#deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64 /#' /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list
+
+RUN apt-get update --allow-unauthenticated && \
+  apt-get install -y software-properties-common && \
+  add-apt-repository ppa:deadsnakes/ppa && \
+  apt-get update && \
+  apt-get install -y build-essential curl wget vim git unzip pigz zstd unrar tar xz-utils libssl-dev bzip2 gzip \
+    coreutils ntp language-pack-zh-hans libsm6 libxext6 libxrender-dev libgl1 libglx-mesa0 \
+    bison graphviz libjpeg-dev zlib1g-dev automake locales swig net-tools libtool kmod
+<install_cpu_package>
+
+WORKDIR /usr/bin
+COPY tools/dockerfile/build_scripts /build_scripts
+RUN bash /build_scripts/install_trt.sh
+# Older versions of patchelf limited the size of the files being processed and were fixed in this pr.
+# # https://github.com/NixOS/patchelf/commit/ba2695a8110abbc8cc6baf0eea819922ee5007fa
+# # So install a newer version here.
+RUN bash /build_scripts/install_patchelf.sh
+RUN apt-get install -y gcc-12 g++-12
+RUN cp gcc gcc.bak && cp g++ g++.bak && rm gcc && rm g++
+RUN ln -s /usr/bin/gcc-12 /usr/local/bin/gcc
+RUN ln -s /usr/bin/g++-12 /usr/local/bin/g++
+RUN ln -s /usr/bin/gcc-12 /usr/bin/gcc
+RUN ln -s /usr/bin/g++-12 /usr/bin/g++
+ENV PATH=/usr/local/gcc-12/bin:$PATH
+
+<install_cudnn>
+RUN rm -rf /build_script
+
+# install cmake && ccache
+RUN apt-get remove --purge cmake && apt-get install -y cmake
+# ccache version 4.9.1
+RUN apt-get install -y ccache
+
+RUN apt-get update && \
+  apt-get install -y python3.8 python3.8-dev python3.8-distutils \
+  python3.9 python3.9-dev python3.9-distutils \
+  python3.10 python3.10-dev python3.10-distutils \
+  python3.11 python3.11-dev python3.11-distutils \
+  python3.12 python3.12-dev \
+  python3.13 python3.13-dev python3.13-nogil && \
+  apt-get install python-is-python3
+RUN rm /usr/bin/python && ln -s /usr/bin/python3.9 /usr/bin/python && \
+    rm /usr/bin/python3 && ln -s /usr/bin/python3.9 /usr/bin/python3
+
+WORKDIR /home
+RUN wget -q https://bootstrap.pypa.io/get-pip.py
+RUN sed -i 's#"install", "--upgrade", "--force-reinstall"#"install", "--upgrade", "--force-reinstall", "--break-system-packages"#' get-pip.py
+
+RUN python3.8 get-pip.py && \
+  python3.9 get-pip.py && \
+  python3.10 get-pip.py && \
+  python3.11 get-pip.py && \
+  python3.12 get-pip.py
+
+RUN python3.13t get-pip.py && \
+  mv /usr/local/bin/pip3.13 /usr/local/bin/pip3.13t && \
+  python3.13 get-pip.py
+
+RUN python3.8 -m pip install setuptools==50.3.2 && \
+  python3.9 -m pip install setuptools==50.3.2 && \
+  python3.10 -m pip install setuptools==68.2.0 && \
+  python3.11 -m pip install setuptools==68.2.0 && \
+  python3.12 -m pip install --break-system-packages setuptools==68.2.0 && \
+  python3.13 -m pip install setuptools==69.5.0 && \
+  python3.13t -m pip install setuptools==69.5.0
+
+# binutils >= 2.27
+RUN apt-get install -y binutils
+
+# Install Go and glide
+RUN wget --no-check-certificate -qO- https://paddle-ci.gz.bcebos.com/go1.17.2.linux-amd64.tar.gz | \
+    tar -xz -C /usr/local && \
+    mkdir /root/gopath && \
+    mkdir /root/gopath/bin && \
+    mkdir /root/gopath/src
+ENV GOROOT=/usr/local/go GOPATH=/root/gopath
+# should not be in the same line with GOROOT definition, otherwise docker build could not find GOROOT.
+ENV PATH=${PATH}:${GOROOT}/bin:${GOPATH}/bin
+# install glide
+# RUN apt-get install -y golang-glide
+
+# git credential to skip password typing
+RUN git config --global credential.helper store
+
+# Fix locales to en_US.UTF-8
+RUN localedef -i en_US -f UTF-8 en_US.UTF-8
+
+#For pre-commit
+RUN rm -f /usr/local/bin/pip && ln -s /usr/local/bin/pip3.9 /usr/local/bin/pip && \
+    rm -f /usr/local/bin/pip3 && ln -s /usr/local/bin/pip3.9 /usr/local/bin/pip3
+
+RUN python3.8 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.8 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.9 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.9 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.10 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.10 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.11 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.11 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages ipython==5.3.0 && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages ipykernel==4.6.0 wheel && \
+    python3.13 -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.13 -m pip --no-cache-dir install ipykernel==4.6.0 wheel && \
+    python3.13t -m pip --no-cache-dir install ipython==5.3.0 && \
+    python3.13t -m pip --no-cache-dir install ipykernel==4.6.0 wheel
+
+# For PaddleTest CE
+RUN python3.8  -m pip --no-cache-dir install pytest && \
+    python3.9  -m pip --no-cache-dir install pytest && \
+    python3.10 -m pip --no-cache-dir install pytest && \
+    python3.11 -m pip --no-cache-dir install pytest && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages pytest && \
+    python3.13 -m pip --no-cache-dir install pytest && \
+    python3.13t -m pip --no-cache-dir install pytest
+
+RUN python3.8  -m pip --no-cache-dir install pre-commit==2.17.0 && \
+    python3.9  -m pip --no-cache-dir install pre-commit==2.17.0 && \
+    python3.10 -m pip --no-cache-dir install pre-commit==2.17.0 && \
+    python3.8  -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.9  -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.10 -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.11 -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.13 -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0 && \
+    python3.13t -m pip --no-cache-dir install cpplint==1.6.0 clang-format==13.0.0
+
+COPY ./python/requirements.txt /root/
+COPY ./python/unittest_py/requirements.txt /home/
+
+RUN python3.8  -m pip --no-cache-dir install -r  /root/requirements.txt && \
+    python3.8  -m pip --no-cache-dir install -r  /home/requirements.txt && \
+    python3.9  -m pip --no-cache-dir install -r  /root/requirements.txt && \
+    python3.9  -m pip --no-cache-dir install -r  /home/requirements.txt && \
+    python3.10 -m pip --no-cache-dir install -r /root/requirements.txt && \
+    python3.10 -m pip --no-cache-dir install -r /home/requirements.txt && \
+    python3.11 -m pip --no-cache-dir install -r /root/requirements.txt && \
+    python3.11 -m pip --no-cache-dir install -r /home/requirements.txt && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages -r /root/requirements.txt && \
+    python3.12 -m pip --no-cache-dir install --break-system-packages -r /home/requirements.txt && \
+    python3.13 -m pip --no-cache-dir install -r /root/requirements.txt && \
+    python3.13 -m pip --no-cache-dir install -r /home/requirements.txt && \
+    python3.13t -m pip --no-cache-dir install -r /root/requirements.txt
+
+# clang14
+RUN apt-get update &&\
+    apt install -y clang-14
+
+EXPOSE 22
