@@ -221,8 +221,9 @@ void SetKernelArgsDef(const std::vector<std::type_index>& args_type,
     } else if (arg_type == std::type_index(typeid(ExtendedTensor*)) ||
                arg_type ==
                    std::type_index(typeid(std::vector<ExtendedTensor*>)) ||
+               arg_type == std::type_index(typeid(std::vector<Vocab*>)) ||
                arg_type ==
-                   std::type_index(typeid(std::vector<Vocab*>))) {  // NOLINT
+                   std::type_index(typeid(phi::FetchList*))) {  // NOLINT
       args_def->AppendOutput(default_key.backend(),
                              default_tensor_layout,
                              default_key.dtype(),

@@ -174,23 +174,23 @@ class FetchV2Kernel {
       }
       fetch_list->at(col) = src_item;
     } else {
-      auto &src_item = fetch_var->Get<phi::TensorArray>();
-      phi::TensorArray tmp(src_item.size());
-      fetch_list->at(col) = tmp;
-      auto &dst_item = PADDLE_GET(phi::TensorArray, fetch_list->at(col));
-      for (size_t i = 0; i < src_item.size(); ++i) {
-        PADDLE_ENFORCE_EQ(
-            src_item[i].place().GetType() == phi::AllocationType::CPU,
-            true,
-            common::errors::InvalidArgument(
-                "Tensor's place of input(X) must be CPUPlace."));
-        if (deepcopy) {
-          DeepCopy(src_item[i], fetch_var_name, &dst_item[i]);
-        } else {
-          dst_item[i].ShareDataWith(src_item[i]);
-          dst_item[i].set_lod(src_item[i].lod());
-        }
-      }
+      // auto &src_item = fetch_var->Get<phi::TensorArray>();
+      // phi::TensorArray tmp(src_item.size());
+      // fetch_list->at(col) = tmp;
+      // auto &dst_item = PADDLE_GET(phi::TensorArray, fetch_list->at(col));
+      // for (size_t i = 0; i < src_item.size(); ++i) {
+      //   PADDLE_ENFORCE_EQ(
+      //       src_item[i].place().GetType() == phi::AllocationType::CPU,
+      //       true,
+      //       common::errors::InvalidArgument(
+      //           "Tensor's place of input(X) must be CPUPlace."));
+      //   if (deepcopy) {
+      //     DeepCopy(src_item[i], fetch_var_name, &dst_item[i]);
+      //   } else {
+      //     dst_item[i].ShareDataWith(src_item[i]);
+      //     dst_item[i].set_lod(src_item[i].lod());
+      //   }
+      // }
     }
   }
 };

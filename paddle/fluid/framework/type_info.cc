@@ -49,5 +49,4 @@ template class TypeInfoTraits<phi::TensorBase,
                               paddle::dialect::IrSparseCooTensor>;
 template class TypeInfoTraits<phi::TensorBase,
                               paddle::dialect::IrSparseCsrTensor>;
-template class TypeInfoTraits<phi::TensorBase, paddle::framework::FetchList>;
 }  // namespace phi

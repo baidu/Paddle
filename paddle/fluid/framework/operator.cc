@@ -3317,6 +3317,9 @@ void OperatorWithKernel::BuildPhiKernelContext(
                    !var->IsInitialized()) {
           tensor_out = var->template GetMutable<phi::RawTensor>();
           phi_kernel_context->EmplaceBackOutputWithoutSetRange(tensor_out);
+        } else if (var->template IsType<phi::FetchList>()) {
+          tensor_out = var->template GetMutable<phi::FetchList>();
+          phi_kernel_context->EmplaceBackOutputWithoutSetRange(tensor_out);
         } else {
           PADDLE_THROW(common::errors::Unimplemented(
               "Unsupported output `%s` type when call pt kernel.",
