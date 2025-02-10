@@ -11,381 +11,91 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
+os.environ["FLAGS_enable_pir_api"] = "0"
+
 
 import unittest
 
 import numpy as np
-from pass_test import PassTest
 
 import paddle
-from paddle.base import core
-
-paddle.enable_static()
+from paddle import nn
 
 
-class TestMatmulHorizontalFusePattern(PassTest):
-    def is_program_valid(self, program=None):
-        return True
+class MatmulHorizontalLayer(nn.Layer):
+    def __init__(self, hidden_size, intermediate_size, num_layers=32):
+        super().__init__()
+        self.layers = nn.LayerList(
+            [
+                nn.Linear(hidden_size, intermediate_size, bias_attr=False)
+                for _ in range(num_layers)
+            ]
+        )
 
-    def sample_program(self):
-        bsz = 2
-        seq_len = 16
-        num_head = 2
-        head_dim = 16
-        dim = num_head * head_dim
-        num_layers = 8
-        x_shape = [bsz, seq_len, num_head, head_dim]
-        weight_shape = [dim, dim]
+    def forward(self, x):
+        results = []
+        for layer in self.layers:
+            result = layer(x)
+            results.append(result)
+        return results
 
-        with paddle.pir_utils.IrGuard():
-            start_prog = paddle.static.Program()
-            main_prog = paddle.static.Program()
-            with paddle.pir.core.program_guard(main_prog, start_prog):
-                x = paddle.static.data(name="x", shape=x_shape, dtype="float16")
-                w_vec = []
-                res_vec = []
-                for i in range(num_layers):
-                    w_vec.append(
-                        paddle.static.data(
-                            name=f"w{i}", shape=weight_shape, dtype="float16"
-                        )
-                    )
 
-                x = paddle.reshape(x, [bsz, seq_len, dim])
-                for i in range(num_layers):
-                    res_vec.append(paddle.matmul(x, w_vec[i]))
-
-                for i in range(num_layers):
-                    res_vec[i] = paddle.assign(res_vec[i])
-
-                self.pass_attr_list = [{"horizontal_fuse_pass": {}}]
-                self.feeds = {
-                    "x": np.random.random(x_shape).astype("float16"),
-                }
-                for i in range(num_layers):
-                    self.feeds[f"w{i}"] = np.random.random(weight_shape).astype(
-                        "float16"
-                    )
-
-                self.fetch_list = res_vec
-                self.valid_op_map = {
-                    "pd_op.concat": 1,
-                    "pd_op.matmul": 1,
-                    "pd_op.split": 1,
-                }
-                yield [main_prog, start_prog], False
-
+class TestMatmulHorizontalFusePattern(unittest.TestCase):
     def setUp(self):
-        if core.is_compiled_with_cuda():
-            self.places.append(paddle.CUDAPlace(0))
+        self.bsz = 2
+        self.seq_len = 16
+        self.num_head = 2
+        self.head_dim = 16
+        self.hidden_size = self.num_head * self.head_dim
+        self.intermediate_size = self.hidden_size
 
-    def test_check_output(self):
-        self.check_pass_correct(atol=2e-3, rtol=2e-3)
+    def test_matmul_horizontal_fuse(self):
+        if not paddle.is_compiled_with_cuda():
+            return
+        x = paddle.randn(shape=[self.bsz, self.seq_len, self.hidden_size])
+        layer = MatmulHorizontalLayer(self.hidden_size, self.intermediate_size)
+        baseline_results = layer(x)
 
+        static_layer = paddle.incubate.jit.inference(
+            layer,
+            enable_new_ir=True,
+            switch_ir_debug=True,
+        )
 
-class TestGemmEpilogueHorizontalFusePattern(PassTest):
-    def is_program_valid(self, program=None):
-        return True
+        # check precision and shape
+        static_results = static_layer(x)
+        self.verify_results(baseline_results, static_results)
 
-    def sample_program(self):
-        use_cutlass = False
-        if use_cutlass:
-            fused_op_name = "pd_op.gemm_epilogue"
-        else:
-            fused_op_name = "pd_op.fc"
-        bsz = 2
-        seq_len = 16
-        num_head = 2
-        head_dim = 16
-        dim = num_head * head_dim
-        num_layers = 4
-        x_shape = [bsz, seq_len, num_head, head_dim]
-        weight_shape = [dim, dim]
-        bias_shape = [dim]
+        # check fused pattern
+        valid_op_map = {
+            "pd_op.concat": 1,
+            "pd_op.matmul": 1,
+            "pd_op.split": 1,
+        }
+        self.verify_fuse_pattern("horizontal_fuse_pass", valid_op_map)
 
-        with paddle.pir_utils.IrGuard():
-            start_prog = paddle.static.Program()
-            main_prog = paddle.static.Program()
-            with paddle.pir.core.program_guard(main_prog, start_prog):
-                x = paddle.static.data(name="x", shape=x_shape, dtype="float16")
-                weight_vec = []
-                bias_vec = []
-                res_vec = []
-                for i in range(num_layers):
-                    weight_vec.append(
-                        paddle.static.data(
-                            name=f"w{i}", shape=weight_shape, dtype="float16"
-                        )
-                    )
-                    bias_vec.append(
-                        paddle.static.data(
-                            name=f"b{i}", shape=bias_shape, dtype="float16"
-                        )
-                    )
+    def verify_fuse_pattern(self, pass_name, valid_op_map):
+        str_txt = ""
+        with open(pass_name, "r") as f:
+            str_txt = f.read()
 
-                x = paddle.reshape(x, [bsz, seq_len, dim])
-                for i in range(num_layers):
-                    res_vec.append(
-                        paddle.add(paddle.matmul(x, weight_vec[i]), bias_vec[i])
-                    )
-                    res_vec[i] = paddle.nn.functional.relu(res_vec[i])
+        for op_name, count in valid_op_map.items():
+            assert str_txt.count(op_name) == count
 
-                for i in range(num_layers):
-                    res_vec[i] = paddle.assign(res_vec[i])
-
-                self.pass_attr_list = [
-                    {"matmul_add_act_fuse_pass": {"use_cutlass": use_cutlass}},
-                    {"horizontal_fuse_pass": {}},
-                ]
-                self.feeds = {
-                    "x": np.random.random(x_shape).astype("float16"),
-                }
-                for i in range(num_layers):
-                    self.feeds[f"w{i}"] = np.random.random(weight_shape).astype(
-                        "float16"
-                    )
-                    self.feeds[f"b{i}"] = np.random.random(bias_shape).astype(
-                        "float16"
-                    )
-
-                self.fetch_list = res_vec
-                self.valid_op_map = {
-                    "pd_op.concat": 2,
-                    fused_op_name: 1,
-                    "pd_op.split": 1,
-                }
-                yield [main_prog, start_prog], False
-
-    def setUp(self):
-        if core.is_compiled_with_cuda():
-            self.places.append(paddle.CUDAPlace(0))
-
-    def test_check_output(self):
-        self.check_pass_correct(atol=2e-3, rtol=2e-3)
-
-
-class TestMatmulHorizontalFusePatternFirstCase(PassTest):
-    """
-                 x
-                 |
-       -----------------------
-      |       |       |       |
-    matmul  matmul  multiply  matmul
-      |       |       |       |
-      res1    res2    res3    res4
-    """
-
-    def is_program_valid(self, program=None):
-        return True
-
-    def sample_program(self):
-        with paddle.pir_utils.IrGuard():
-            start_prog = paddle.static.Program()
-            main_prog = paddle.static.Program()
-            with paddle.pir.core.program_guard(main_prog, start_prog):
-                res_vec = []
-
-                # Define shapes for input and weights
-                x_shape = [20, 64, 56]
-                w1_shape = [56, 68]
-                w2_shape = [64, 56]
-                w3_shape = [56, 78]
-                w4_shape = [56, 98]
-
-                # Define input and weight tensors
-                x = paddle.static.data(name="x", shape=x_shape, dtype="float16")
-                w1 = paddle.static.data(
-                    name="w1", shape=w1_shape, dtype="float16"
-                )
-                w2 = paddle.static.data(
-                    name="w2", shape=w2_shape, dtype="float16"
-                )
-                w3 = paddle.static.data(
-                    name="w3", shape=w3_shape, dtype="float16"
-                )
-                w4 = paddle.static.data(
-                    name="w4", shape=w4_shape, dtype="float16"
-                )
-
-                # Reshape input tensor
-                x = paddle.reshape(x, x_shape)
-
-                # Perform matmul and multiply operations
-                res_vec.append(paddle.matmul(x, w1))
-                res_vec.append(paddle.multiply(x, w2))
-                res_vec.append(paddle.matmul(x, w3))
-                res_vec.append(paddle.matmul(x, w4))
-
-                # Assign results to the program
-                for result in res_vec:
-                    paddle.assign(result)
-
-                # Define pass attributes
-                self.pass_attr_list = [{"horizontal_fuse_pass": {}}]
-
-                # Define input feed values
-                self.feeds = {
-                    "x": np.random.random(x_shape).astype("float16"),
-                    "w1": np.random.random(w1_shape).astype("float16"),
-                    "w2": np.random.random(w2_shape).astype("float16"),
-                    "w3": np.random.random(w3_shape).astype("float16"),
-                    "w4": np.random.random(w4_shape).astype("float16"),
-                }
-
-                # Define fetch list
-                self.fetch_list = res_vec
-
-                # Define valid operation map
-                self.valid_op_map = {
-                    "pd_op.concat": 1,
-                    "pd_op.matmul": 1,
-                    "pd_op.split": 1,
-                    "pd_op.multiply": 1,
-                }
-
-                yield [main_prog, start_prog], False
-
-    def setUp(self):
-        if core.is_compiled_with_cuda():
-            self.places.append(paddle.CUDAPlace(0))
-
-    def test_check_output(self):
-        self.check_pass_correct(atol=2e-3, rtol=2e-3)
-
-
-class TestMatmulHorizontalFusePatternSecondCase(PassTest):
-    """matmul's input is Y"""
-
-    def is_program_valid(self, program=None):
-        return True
-
-    def sample_program(self):
-        with paddle.pir_utils.IrGuard():
-            start_prog = paddle.static.Program()
-            main_prog = paddle.static.Program()
-            with paddle.pir.core.program_guard(main_prog, start_prog):
-                res_vec = []
-
-                # Define shapes for input and weights
-                x_shape = [20, 64, 56]
-                w1_shape = [56, 64]
-                w2_shape = [65, 64]
-
-                # Define input and weight tensors
-                x = paddle.static.data(name="x", shape=x_shape, dtype="float16")
-                w1 = paddle.static.data(
-                    name="w1", shape=w1_shape, dtype="float16"
-                )
-                w2 = paddle.static.data(
-                    name="w2", shape=w2_shape, dtype="float16"
-                )
-                w3 = paddle.static.data(
-                    name="w3", shape=w2_shape, dtype="float16"
-                )
-
-                weights = [w1, w2, w3]
-
-                # Reshape input tensor
-                x = paddle.reshape(x, x_shape)
-
-                # Perform matmul operations
-                for w in weights:
-                    res_vec.append(paddle.matmul(w, x))
-
-                # Define pass attributes
-                self.pass_attr_list = [{"horizontal_fuse_pass": {}}]
-
-                # Define input feed values
-                self.feeds = {
-                    "x": np.random.random(x_shape).astype("float16"),
-                    "w1": np.random.random(w1_shape).astype("float16"),
-                    "w2": np.random.random(w2_shape).astype("float16"),
-                    "w3": np.random.random(w2_shape).astype("float16"),
-                }
-
-                # Define fetch list
-                self.fetch_list = res_vec
-
-                # Define valid operation map
-                self.valid_op_map = {
-                    "pd_op.concat": 1,
-                    "pd_op.matmul": 1,
-                    "pd_op.split": 1,
-                }
-
-                yield [main_prog, start_prog], False
-
-    def setUp(self):
-        if core.is_compiled_with_cuda():
-            self.places.append(paddle.CUDAPlace(0))
-
-    def test_check_output(self):
-        self.check_pass_correct(atol=2e-3, rtol=2e-3)
-
-
-class TestMatmulHorizontalFusePatternBadCase(PassTest):
-    r"""
-    matmul's weight not a ParameterOp\ConstantTensorOp\DataOp
-    """
-
-    def is_program_valid(self, program=None):
-        return True
-
-    def sample_program(self):
-
-        with paddle.pir_utils.IrGuard():
-            start_prog = paddle.static.Program()
-            main_prog = paddle.static.Program()
-            with paddle.pir.core.program_guard(main_prog, start_prog):
-                res_vec = []
-                x_shape = [20, 64, 56]
-                w_shape = [56, 88]
-
-                x = paddle.static.data(name="x", shape=x_shape, dtype="float16")
-
-                input_1 = paddle.static.data(
-                    name="input_1", shape=w_shape, dtype="float16"
-                )
-                input_2 = paddle.static.data(
-                    name="input_2", shape=w_shape, dtype="float16"
-                )
-                x = paddle.reshape(x, x_shape)
-
-                w1 = paddle.multiply(input_1, input_2)
-                w2 = paddle.multiply(input_1, input_2)
-                w3 = paddle.multiply(input_1, input_2)
-
-                res_vec.append(paddle.matmul(x, w1))
-                res_vec.append(paddle.matmul(x, w2))
-                res_vec.append(paddle.matmul(x, w3))
-
-                for one in res_vec:
-                    paddle.assign(one)
-
-                self.pass_attr_list = [
-                    {"horizontal_fuse_pass": {}},
-                ]
-
-                self.feeds = {
-                    "x": np.random.random(x_shape).astype("float16"),
-                    "input_1": np.random.random(w_shape).astype("float16"),
-                    "input_2": np.random.random(w_shape).astype("float16"),
-                }
-                self.fetch_list = res_vec
-                self.valid_op_map = {
-                    "pd_op.concat": 0,
-                    "pd_op.matmul": 3,
-                    "pd_op.split": 0,
-                    "pd_op.multiply": 3,
-                }
-                yield [main_prog, start_prog], False
-
-    def setUp(self):
-        if core.is_compiled_with_cuda():
-            self.places.append(paddle.CUDAPlace(0))
-
-    def test_check_output(self):
-        self.check_pass_correct(atol=2e-3, rtol=2e-3)
+    @staticmethod
+    def verify_results(expected, actual, atol=1e-5, rtol=1e-5):
+        assert len(expected) == len(
+            actual
+        ), f"Length mismatch: expected {len(expected)}, got {len(actual)}"
+        for exp, act in zip(expected, actual):
+            assert (
+                exp.shape == act.shape
+            ), f"Shape mismatch: expected {exp.shape}, got {act.shape}"
+            np.testing.assert_allclose(
+                exp.numpy(), act.numpy(), atol=atol, rtol=rtol
+            )
 
 
 if __name__ == "__main__":

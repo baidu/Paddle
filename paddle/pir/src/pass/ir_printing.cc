@@ -74,6 +74,13 @@ class IRPrinting : public PassInstrumentation {
       PrintIR(op, option_->print_module(), oss);
       oss << "\n";
       std::cout << oss.str() << std::endl;
+
+      FILE *fp = fopen(pass->name().c_str(), "w");
+      if (fp == nullptr) {
+        return;
+      }
+      fwrite(oss.str().c_str(), 1, oss.str().length(), fp);
+      fclose(fp);
     });
   }
 
