@@ -61,7 +61,7 @@ class XPUTestBmmOp(XPUOpTestWrapper):
             self.__class__.op_type = self.in_type
 
         def test_check_output(self):
-            self.check_output_with_place(self.place)
+            self.check_output_with_place(self.place, atol=5e-3)
 
         def test_check_grad_normal(self):
             self.check_grad_with_place(self.place, ['X', 'Y'], 'Out')

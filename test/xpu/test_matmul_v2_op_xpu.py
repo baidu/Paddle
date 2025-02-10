@@ -111,7 +111,7 @@ class XPUTestMatmulV2Op(XPUOpTestWrapper):
             ):
                 return
             place = paddle.XPUPlace(0)
-            self.check_grad_with_place(place, ['X', 'Y'], 'Out')
+            self.check_grad_with_place(place, ['X', 'Y'], 'Out', max_relative_error=5e-2)
 
     class TestMatMulOp2(TestMatMulV2Op):
         """

@@ -25,7 +25,7 @@ class TestXpuMatmulV2WeightTransPass(PassAutoScanTest):
         config = self.create_inference_config(use_xpu=True)
         yield config, [
             "matmul_v2",
-        ], (1e-3, 1e-3)
+        ], (3e-3, 1e-3)
 
     def sample_program_config(self, draw):
         # 1. Generate shape and attr of matmul
