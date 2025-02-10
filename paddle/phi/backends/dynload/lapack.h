@@ -29,6 +29,26 @@ extern "C" void dgetrf_(
 extern "C" void sgetrf_(
     int *m, int *n, float *a, int *lda, int *ipiv, int *info);
 
+// getrs_
+extern "C" void sgetrs_(char *trans,
+                        int *n,
+                        int *nrhs,
+                        float *a,
+                        int *lda,
+                        int *ipiv,
+                        float *b,
+                        int *ldb,
+                        int *info);
+extern "C" void dgetrs_(char *trans,
+                        int *n,
+                        int *nrhs,
+                        double *a,
+                        int *lda,
+                        int *ipiv,
+                        double *b,
+                        int *ldb,
+                        int *info);
+
 // evd
 extern "C" void zheevd_(char *jobz,
                         char *uplo,
@@ -339,6 +359,8 @@ extern void *lapack_dso_handle;
 #define LAPACK_ROUTINE_EACH(__macro) \
   __macro(dgetrf_);                  \
   __macro(sgetrf_);                  \
+  __macro(sgetrs_);                  \
+  __macro(dgetrs_);                  \
   __macro(zheevd_);                  \
   __macro(cheevd_);                  \
   __macro(dsyevd_);                  \
