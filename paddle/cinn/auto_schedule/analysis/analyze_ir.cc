@@ -76,7 +76,7 @@ void AnalyzeScheduleBlockReadWriteBuffer(ir::ScheduleBlock* sche_block) {
 
 bool ContainsNodeType(ir::Expr expr,
                       const std::unordered_set<ir::IrNodeTy>& node_types) {
-  std::set<ir::Expr> collection =
+  std::vector<ir::Expr> collection =
       ir::ir_utils::CollectIRNodesWithoutTensor(expr, [&](const Expr* x) {
         return node_types.find(x->node_type()) != node_types.end();
       });

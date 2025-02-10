@@ -177,7 +177,7 @@ class VarsDistributed:
         get distributed var by conditions.
 
         Args:
-            var_name(str): slice var name, such as "w.traier0.block1"
+            var_name(str): slice var name, such as "w.trainer0.block1"
         Returns:
             VarDistributed: distributed var.
         """

@@ -135,8 +135,9 @@ if(WITH_DISTRIBUTE)
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${dist_api_gen_file} --api_yaml_path
-      ${api_yaml_file} ${legacy_api_yaml_file} --api_header_path
-      ${api_header_file_tmp} --api_source_path ${api_source_file_tmp})
+      ${api_yaml_file} ${legacy_api_yaml_file} ${bw_api_yaml_file}
+      ${legacy_bw_api_yaml_file} --api_header_path ${api_header_file_tmp}
+      --api_source_path ${api_source_file_tmp})
 
   # generate dist backward api
   execute_process(
@@ -150,8 +151,9 @@ else()
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${api_gen_file} --api_yaml_path ${api_yaml_file}
-      ${legacy_api_yaml_file} --api_header_path ${api_header_file_tmp}
-      --api_source_path ${api_source_file_tmp})
+      ${legacy_api_yaml_file} ${bw_api_yaml_file} ${legacy_bw_api_yaml_file}
+      --api_header_path ${api_header_file_tmp} --api_source_path
+      ${api_source_file_tmp})
 
   # generate backward api
   execute_process(
@@ -167,8 +169,8 @@ if(WITH_DISTRIBUTE)
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${dist_api_gen_file} --api_yaml_path
-      ${fused_api_yaml_file} --is_fused_ops_yaml --api_header_path
-      ${fused_api_header_file_tmp} --api_source_path
+      ${fused_api_yaml_file} ${fused_bw_api_yaml_file} --is_fused_ops_yaml
+      --api_header_path ${fused_api_header_file_tmp} --api_source_path
       ${fused_api_source_file_tmp})
 
   # generate fused_op backward api
@@ -183,8 +185,8 @@ else()
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${api_gen_file} --api_yaml_path
-      ${fused_api_yaml_file} --is_fused_ops_yaml --api_header_path
-      ${fused_api_header_file_tmp} --api_source_path
+      ${fused_api_yaml_file} ${fused_bw_api_yaml_file} --is_fused_ops_yaml
+      --api_header_path ${fused_api_header_file_tmp} --api_source_path
       ${fused_api_source_file_tmp})
 
   # generate fused_op backward api
@@ -200,8 +202,9 @@ endif()
 execute_process(
   COMMAND
     ${PYTHON_EXECUTABLE} ${sparse_api_gen_file} --api_yaml_path
-    ${sparse_api_yaml_file} --api_header_path ${sparse_api_header_file_tmp}
-    --api_source_path ${sparse_api_source_file_tmp})
+    ${sparse_api_yaml_file} ${sparse_bw_api_yaml_file} --api_header_path
+    ${sparse_api_header_file_tmp} --api_source_path
+    ${sparse_api_source_file_tmp})
 
 # generate backward sparse api
 execute_process(
@@ -223,7 +226,8 @@ if(WITH_DISTRIBUTE)
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${im_api_gen_file} --api_yaml_path ${api_yaml_file}
-      ${legacy_api_yaml_file} --sparse_api_yaml_path ${sparse_api_yaml_file}
+      ${bw_api_yaml_file} ${legacy_api_yaml_file} ${legacy_bw_api_yaml_file}
+      --sparse_api_yaml_path ${sparse_api_yaml_file} ${sparse_bw_api_yaml_file}
       --dygraph_api_header_path ${dygraph_api_header_file_tmp}
       --dygraph_api_source_path ${dygraph_api_source_file_tmp}
       --gen_dist_branch)
@@ -231,7 +235,8 @@ else()
   execute_process(
     COMMAND
       ${PYTHON_EXECUTABLE} ${im_api_gen_file} --api_yaml_path ${api_yaml_file}
-      ${legacy_api_yaml_file} --sparse_api_yaml_path ${sparse_api_yaml_file}
+      ${bw_api_yaml_file} ${legacy_api_yaml_file} ${legacy_bw_api_yaml_file}
+      --sparse_api_yaml_path ${sparse_api_yaml_file} ${sparse_bw_api_yaml_file}
       --dygraph_api_header_path ${dygraph_api_header_file_tmp}
       --dygraph_api_source_path ${dygraph_api_source_file_tmp})
 endif()

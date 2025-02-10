@@ -51,6 +51,27 @@ def send_parambase(queue, event, device, dtype):
     event.wait()
 
 
+def check_ipc_tensor(event, ipc_metas):
+    ground_truth1 = paddle.to_tensor([1, 2, 3])
+    ground_truth2 = paddle.to_tensor([3, 4, 5])
+    shared_ipc_tensor = paddle.to_tensor(
+        paddle.base.core.LoDTensor._new_shared_cuda(ipc_metas)
+    )
+
+    def tensor_equal(t1, t2):
+        return (t1 == t2).all().item()
+
+    # Step1: Check initial value of ipc tensor
+    while not tensor_equal(ground_truth1, shared_ipc_tensor):
+        time.sleep(0.1)
+    event.set()
+
+    # Step2: Check ipc tensor after update
+    while not tensor_equal(ground_truth2, shared_ipc_tensor):
+        time.sleep(0.1)
+    event.set()
+
+
 class leak_checker:
     def __init__(self, test_case):
         self.checked_pids = [os.getpid()]
@@ -207,6 +228,30 @@ class TestMultiprocessingGpu(TestMultiprocessingBase):
 
     def test_pass_tensor(self):
         self.func_test_pass_tensor()
+
+    def test_ipc_tensor(self):
+        paddle.device.set_device("gpu")
+        initial_tensor = paddle.to_tensor([1, 2, 3])
+        bonus = paddle.to_tensor([2])
+        ipc_metas = initial_tensor.value().get_tensor()._share_cuda()
+        ctx = mp.get_context("spawn")
+        event = ctx.Event()
+        process = ctx.Process(target=check_ipc_tensor, args=(event, ipc_metas))
+        process.daemon = True
+        process.start()
+
+        # Step1: Check initial value of ipc tensor
+        event.wait(30)
+        self.assertTrue(event.is_set())
+
+        # Step2: Check ipc tensor after update
+        event.clear()
+        initial_tensor.add_(bonus)
+        event.wait(30)
+        self.assertTrue(event.is_set())
+
+        process.join(10)
+        self.assertFalse(process.is_alive())
 
 
 if __name__ == "__main__":

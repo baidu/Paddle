@@ -49,7 +49,6 @@ from .auto_parallel_master_grad import (  # noqa: F401
     MasterGradPass,
     get_output_in_varlist,
 )
-from .auto_parallel_pipeline import PipelinePass, is_reshard_op  # noqa: F401
 from .auto_parallel_quantization import QuantizationPass  # noqa: F401
 from .auto_parallel_recompute import (  # noqa: F401
     RecomputePass,

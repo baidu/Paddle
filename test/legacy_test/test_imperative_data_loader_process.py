@@ -80,7 +80,7 @@ class TestDygraphDataLoaderProcess(unittest.TestCase):
             clear_process.start()
 
     def test_reader_process_loop_simple_none(self):
-        def none_sample_genarator(batch_num):
+        def none_sample_generator(batch_num):
             def __reader__():
                 for _ in range(batch_num):
                     yield None
@@ -92,7 +92,7 @@ class TestDygraphDataLoaderProcess(unittest.TestCase):
                 capacity=self.batch_num + 1, use_multiprocess=True
             )
             loader.set_batch_generator(
-                none_sample_genarator(self.batch_num), places=base.CPUPlace()
+                none_sample_generator(self.batch_num), places=base.CPUPlace()
             )
             loader._data_queue = queue.Queue(self.batch_num + 1)
             exception = None

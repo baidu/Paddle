@@ -48,7 +48,7 @@ class ArgMaxMinOpInferSymbolicShapeTest(TestBase):
     def prepare_data(self):
         self.cases = [np.random.rand(4, 5, 6)]
         self.expected = [
-            ['shape[0], data[NULL]'],
+            ['shape[], data[NULL]'],
             ['shape[S0, S1], data[NULL]'],
         ]
 

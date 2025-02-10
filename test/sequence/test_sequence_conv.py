@@ -105,7 +105,7 @@ class TestSeqProject(OpTest):
             1,
             [
                 self.context_length * self.input_size[1],
-                self.output_represention,
+                self.output_representation,
             ],
         ).astype('float32')
 
@@ -230,7 +230,7 @@ class TestSeqProject(OpTest):
         # convert from offset-based lod to length-based lod
         for i in range(len(offset_lod[0]) - 1):
             self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-        self.output_represention = 8  # output feature size
+        self.output_representation = 8  # output feature size
 
 
 class TestSeqProjectCase1(TestSeqProject):
@@ -247,7 +247,7 @@ class TestSeqProjectCase1(TestSeqProject):
         # convert from offset-based lod to length-based lod
         for i in range(len(offset_lod[0]) - 1):
             self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-        self.output_represention = 8  # output feature size
+        self.output_representation = 8  # output feature size
 
 
 class TestSeqProjectCase2Len0(TestSeqProject):
@@ -264,7 +264,7 @@ class TestSeqProjectCase2Len0(TestSeqProject):
         # convert from offset-based lod to length-based lod
         for i in range(len(offset_lod[0]) - 1):
             self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-        self.output_represention = 8  # output feature size
+        self.output_representation = 8  # output feature size
 
 
 class TestSeqProjectCase3(TestSeqProject):
@@ -285,7 +285,7 @@ class TestSeqProjectCase3(TestSeqProject):
         # convert from offset-based lod to length-based lod
         for i in range(len(offset_lod[0]) - 1):
             self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-        self.output_represention = 8  # output feature size
+        self.output_representation = 8  # output feature size
 
 
 if __name__ == '__main__':

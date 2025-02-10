@@ -101,7 +101,7 @@ class TestPPAdaptor(TestMultipleAccelerators):
                     f"{sub_expected_model_dir}/model_state.pdopt"
                 )
                 check_names(opt_1, opt_2)
-                # check master wieghts
+                # check master weights
                 if "master_weights" in opt_2:
                     self.assertTrue("master_weights" in opt_1)
                     check_names(

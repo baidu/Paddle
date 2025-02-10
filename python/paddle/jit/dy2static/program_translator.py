@@ -136,7 +136,7 @@ def check_view_api_used_by_inplace(program: paddle.pir.Program) -> None:
     skipped_inplace_ops = [
         "pd_op.set_value_",
         "pd_op.set_value_with_tensor_",
-        # It willn't change tensor imdeiately,but it's ouput is dangerous.
+        # It willn't change tensor imdeiately,but it's output is dangerous.
         "pd_op.share_data_",
     ]
 
@@ -152,17 +152,17 @@ def check_view_api_used_by_inplace(program: paddle.pir.Program) -> None:
 
     all_vars_list = program.list_vars()
     for value in all_vars_list:
-        uesd_by_stride_ops = []
+        used_by_stride_ops = []
         for op in reversed(value.all_used_ops()):
             inplace_info = paddle.core.pir.get_op_inplace_info(op)
             if val_is_used_by_stride_op(op, value):
-                uesd_by_stride_ops.append(op)
+                used_by_stride_ops.append(op)
             if is_used_by_inplace_op(op, value, inplace_info):
                 if op.name() in skipped_inplace_ops:
                     continue
                 if value.get_defining_op().name() in framework.stride_ops:
                     show_op_callstack(op)
-                if len(uesd_by_stride_ops) == 0:
+                if len(used_by_stride_ops) == 0:
                     continue
                 show_op_callstack(op)
 
@@ -1059,7 +1059,7 @@ class ASTStaticFunction(StaticFunction[_InputT, _RetT]):
                 )
                 if cached_program_len > 1:
                     logging_utils.warn(
-                        f"Current {self._function_spec} has more than one cached programs: {cached_program_len}, the last traced progam will be return by default."
+                        f"Current {self._function_spec} has more than one cached programs: {cached_program_len}, the last traced program will be return by default."
                     )
 
                 cache_key = self._program_cache._recent_cache_key
@@ -1266,16 +1266,22 @@ class ConcreteProgram:
                 is_to_static=True
             ), static_op_arg_cast_guard(_convert_into_value):
                 # 1. Adds `paddle.static.data` layers for input if needed
-                static_inputs = func_spec.pir_to_static_inputs_with_spec(
-                    input_spec, main_program
+                static_inputs, program_inputs = (
+                    func_spec.pir_to_static_inputs_with_spec(
+                        input_spec, main_program
+                    )
                 )
-                _kwargs = func_spec.pir_to_static_inputs_with_spec(
+                _kwargs, _ = func_spec.pir_to_static_inputs_with_spec(
                     input_kwargs_spec, main_program
                 )
                 if class_instance:
                     static_inputs = (
                         class_instance,
                         *list(static_inputs),
+                    )
+                    program_inputs = (
+                        class_instance,
+                        *list(program_inputs),
                     )
 
                 # 2. Builds program only once and returns the output Variables.
@@ -1319,7 +1325,7 @@ class ConcreteProgram:
             check_view_api_used_by_inplace(main_program)
 
         return ConcreteProgram(
-            inputs=static_inputs,
+            inputs=program_inputs,
             outputs=outputs,
             parameters=all_parameters_and_buffers,
             function=dygraph_function,
@@ -1883,7 +1889,7 @@ def _to_prim(
     start_idx=-1,
     backward_length=-1,
 ):
-    """Swith to static graph and call to_prim."""
+    """Switch to static graph and call to_prim."""
     # TODO(Aurelius84): Fix this cycle import problem
     from paddle.incubate.autograd import primapi
 

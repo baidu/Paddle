@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+os.environ['FLAGS_enable_pir_api'] = '0'
+
 from legacy_test.test_collective_base import (
     TestCollectiveRunnerBase,
     runtime_main,

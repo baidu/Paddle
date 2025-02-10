@@ -40,7 +40,7 @@ def git_commit() -> str:
     return str(git_commit)
 
 def _get_version_detail(idx):
-    assert idx < 3, "vesion info consists of %(major)d.%(minor)d.%(patch)d, \
+    assert idx < 3, "version info consists of %(major)d.%(minor)d.%(patch)d, \
         so detail index must less than 3"
 
     if re.match(r'@TAG_VERSION_REGEX@', '@PADDLE_VERSION@'):
@@ -808,8 +808,6 @@ packages=['paddle',
           'paddle.quantization.imperative',
           'paddle.tensor',
           'paddle.onnx',
-          'paddle.tensorrt',
-          'paddle.tensorrt.impls',
           'paddle.autograd',
           'paddle.device',
           'paddle.device.cuda',
@@ -823,7 +821,15 @@ packages=['paddle',
           'paddle.decomposition',
           'paddle._typing',
           'paddle._typing.libs',
+          'paddle.api_tracer',
         ]
+
+if '@WITH_TENSORRT@' =='ON':
+    packages.extend([
+        'paddle.tensorrt',
+        'paddle.tensorrt.impls',
+    ])
+
 
 with open('@PADDLE_SOURCE_DIR@/python/requirements.txt') as f:
     setup_requires = f.read().splitlines()
@@ -1166,11 +1172,23 @@ headers = (
     #pir headers
     list(find_files('lexer.h','@PADDLE_SOURCE_DIR@/paddle/pir/src/core/parser/'))+
     list(find_files('token.h','@PADDLE_SOURCE_DIR@/paddle/pir/src/core/parser/'))+
+    #pir ops and dependency
+    list(find_files('pd_op.h','@PADDLE_BINARY_DIR@/paddle/fluid/pir/dialect/operator/ir/'))+
+    list(find_files('utils.h','@PADDLE_SOURCE_DIR@/paddle/fluid/ir_adaptor/translator/'))+
+    list(find_files('*.h','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/dialect/operator/interface/'))+
+    list(find_files('*.hpp','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/dialect/operator/interface/'))+
+    list(find_files('*.h','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/dialect/operator/trait/'))+
+    list(find_files('*.h','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/dialect/operator/utils/'))+
+    list(find_files('*.h','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/dialect/kernel/ir/'))+
+    list(find_files('*.h','@PADDLE_SOURCE_DIR@/paddle/pir/include/core/'))+
+    list(find_files('pd_op_to_kernel_pass.h','@PADDLE_SOURCE_DIR@/paddle/fluid/pir/utils/'))+
     #custom_engine
     list(find_files('custom_engine_ext.h','@PADDLE_SOURCE_DIR@/paddle/fluid/custom_engine/'))+
     #new_executor headers
     list(find_files('pir_adaptor_util.h','@PADDLE_SOURCE_DIR@/paddle/fluid/framework/new_executor/pir_adaptor/'))+
-    list(find_files('custom_engine_instruction.h','@PADDLE_SOURCE_DIR@/paddle/fluid/framework/new_executor/instruction/')))
+    list(find_files('custom_engine_instruction.h','@PADDLE_SOURCE_DIR@/paddle/fluid/framework/new_executor/instruction/'))+
+    list(find_files('new_executor_defs.h','@PADDLE_SOURCE_DIR@/paddle/fluid/framework/new_executor/'))+
+    list(find_files('instruction_base.h','@PADDLE_SOURCE_DIR@/paddle/fluid/framework/new_executor/instruction/')))
 jit_layer_headers = ['layer.h', 'serializer.h', 'serializer_utils.h', 'all.h', 'function.h']
 for f in jit_layer_headers:
     headers += list(find_files(f, '@PADDLE_SOURCE_DIR@/paddle/fluid/jit', recursive=True))
@@ -1341,7 +1359,7 @@ def install_cpp_dist_and_build_test(paddle_install_dir, paddle_lib_test_dir):
     """install cpp distribution and build test target
 
     TODO(huangjiyi):
-    1. This function will be moved when seperating C++ distribution
+    1. This function will be moved when separating C++ distribution
     installation from python package installation.
     2. Reduce the header and library files to be installed.
     """

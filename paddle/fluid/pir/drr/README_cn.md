@@ -64,7 +64,7 @@ DRR PASS 包含以下三个部分：
 		<td> <pre> virtual void operator()(
         paddle::drr::DrrPatternContext* ctx) const </pre></td>
 		<td> 实现 DRR PASS 的入口函数 </td>
-		<td> ctx: 创建 Patten 所需要的 Context 参数</td>
+		<td> ctx: 创建 Pattern 所需要的 Context 参数</td>
 	</tr>
 	<tr>
 		<td rowspan="6"> SourcePattern</td>

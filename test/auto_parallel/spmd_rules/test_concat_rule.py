@@ -50,27 +50,27 @@ class TestConcatSPMDRule(unittest.TestCase):
     def test_infer_forward(self):
         inputs = self.build_inputs()
         rule = core.get_phi_spmd_rule("concat")
-        infered_dist_attrs = rule.infer_forward(inputs, 0)
-        infered_input_dist_attrs = infered_dist_attrs[0]
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        infered_output_dist_attrs = infered_dist_attrs[1]
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        for input_dist_attr in infered_input_dist_attrs[0]:
+        inferred_dist_attrs = rule.infer_forward(inputs, 0)
+        inferred_input_dist_attrs = inferred_dist_attrs[0]
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        inferred_output_dist_attrs = inferred_dist_attrs[1]
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        for input_dist_attr in inferred_input_dist_attrs[0]:
             self.assertEqual(input_dist_attr.dims_mapping, [-1, 1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 1, 0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, 1, 0])
 
     def test_infer_backward(self):
         inputs = self.build_inputs()
         output = self.build_outputs()
         rule = core.get_phi_spmd_rule("concat")
-        infered_dist_attrs = rule.infer_backward(inputs, output, 0)
-        infered_input_dist_attrs = infered_dist_attrs[0]
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        infered_output_dist_attrs = infered_dist_attrs[1]
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        for input_dist_attr in infered_input_dist_attrs[0]:
+        inferred_dist_attrs = rule.infer_backward(inputs, output, 0)
+        inferred_input_dist_attrs = inferred_dist_attrs[0]
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        inferred_output_dist_attrs = inferred_dist_attrs[1]
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        for input_dist_attr in inferred_input_dist_attrs[0]:
             self.assertEqual(input_dist_attr.dims_mapping, [-1, 1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 1, 0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, 1, 0])
 
 
 if __name__ == "__main__":

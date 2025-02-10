@@ -23,7 +23,7 @@
 #include <utility>
 
 #include "paddle/common/macros.h"
-#include "paddle/fluid/distributed/common/afs_warpper.h"
+#include "paddle/fluid/distributed/common/afs_wrapper.h"
 #include "paddle/fluid/distributed/ps/table/accessor.h"
 #include "paddle/fluid/distributed/ps/table/depends/sparse_utils.h"
 #include "paddle/fluid/distributed/ps/table/graph/graph_node.h"

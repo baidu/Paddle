@@ -118,7 +118,10 @@ def ReadFwdFile(filepath):
     contents = yaml.load(f, Loader=yaml.FullLoader)
     f.close()
     # not all fused ops support dygraph
-    if filepath.endswith("fused_ops.yaml") is True:
+    if (
+        filepath.endswith("fused_ops.yaml") is True
+        or filepath.endswith("fused_backward.yaml") is True
+    ):
         new_apis = [
             api
             for api in contents
@@ -295,8 +298,8 @@ def ParseYamlArgs(string):
     # attrs_list = [ [arg_name, arg_type, default_value, orig_position], ...]
     attrs_list = []
 
-    patten = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
-    args = re.split(patten, string.strip())
+    pattern = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
+    args = re.split(pattern, string.strip())
     args = [x.strip() for x in args]
     atype = r'((const )?\S+) '
     aname = r'(.*)'
@@ -542,20 +545,27 @@ class FunctionGeneratorBase:
 
     def CollectOriginalForwardInfo(self):
         forward_api_contents = self.forward_api_contents
-
-        self.forward_api_name = forward_api_contents['op']
-        forward_args_str = forward_api_contents['args']
-        forward_returns_str = forward_api_contents['output']
-
         assert (
             'op' in forward_api_contents.keys()
+            or 'backward_op' in forward_api_contents.keys()
         ), 'Unable to find "op" in forward_api_contents keys'
+
+        if 'op' in forward_api_contents.keys():
+            self.forward_api_name = forward_api_contents['op']
+        elif 'backward_op' in forward_api_contents.keys():
+            self.forward_api_name = forward_api_contents['backward_op']
+
         assert (
             'args' in forward_api_contents.keys()
         ), 'Unable to find "args" in forward_api_contents keys'
+
+        forward_args_str = forward_api_contents['args']
+
         assert (
             'output' in forward_api_contents.keys()
         ), 'Unable to find "output" in forward_api_contents keys'
+
+        forward_returns_str = forward_api_contents['output']
 
         # Collect Original Forward Inputs/Outputs and then perform validation checks
         (

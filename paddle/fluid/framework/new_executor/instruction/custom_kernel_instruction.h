@@ -59,12 +59,12 @@ class CustomKernelInstruction : public InstructionBase {
   std::unordered_map<std::string, int> input_name2id_map_;
   std::unordered_map<std::string, int> vec_input_name2id_map_;
 
-  // use for runing infershape
+  // use for running infershape
   std::vector<std::vector<int64_t>> input_shapes_;
   std::vector<std::vector<std::vector<int64_t>>> vec_input_shapes_;
   std::vector<paddle::any> custom_attrs_;
 
-  // use for runing inferdtype
+  // use for running inferdtype
   std::vector<DataType> input_dtypes_;
   std::vector<std::vector<DataType>> vec_input_dtypes_;
 

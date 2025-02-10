@@ -136,7 +136,7 @@ class Conv2dTransposeBnOneDNNFusePattern : public paddle::drr::DrrPatternBase {
 
     //--- deal with filter ---
 
-    // ConvTranpose weight is gIOHW, conv is gOIHW
+    // ConvTranspose weight is gIOHW, conv is gOIHW
     // We transpose IOHW to IOHW first, then multiply scale, and transpose it to
     // IOHW again
     const auto &new_conv2d_filter_shape = res.ComputeAttr(
@@ -328,7 +328,7 @@ class Conv2dTransposeEltwiseBnOneDNNFusePattern
 
     //--- deal with filter ---
 
-    // ConvTranpose weight is gIOHW, conv is gOIHW
+    // ConvTranspose weight is gIOHW, conv is gOIHW
     // We transpose IOHW to IOHW first, then multiply scale, and transpose it to
     // IOHW again
     const auto &new_conv2d_filter_shape = res.ComputeAttr(

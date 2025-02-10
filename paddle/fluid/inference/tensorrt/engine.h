@@ -203,7 +203,7 @@ class TensorRTEngine {
     dy::initLibNvInferPlugins(&logger_, "");
     static std::once_flag trt_plugin_registered;
     std::call_once(trt_plugin_registered, []() {
-      tensorrt::plugin::TrtPluginRegistry::Global()->RegistToTrt();
+      tensorrt::plugin::TrtPluginRegistry::Global()->RegisterToTrt();
     });
   }
 

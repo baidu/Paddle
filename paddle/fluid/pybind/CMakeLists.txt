@@ -32,7 +32,6 @@ set(PYBIND_DEPS
     ps_gpu_wrapper
     custom_operator
     cost_model
-    fleet_executor
     global_utils
     phi_utils
     phi
@@ -115,7 +114,6 @@ set(PYBIND_SRCS
     pir.cc
     pir_utils.cc
     graph.cc
-    bind_fleet_executor.cc
     reader_py.cc
     protobuf.cc
     exception.cc

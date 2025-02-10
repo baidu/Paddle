@@ -237,7 +237,7 @@ class WMT14(Dataset):
         Get the source and target dictionary.
 
         Args:
-            reverse (bool): wether to reverse key and value in dictionary,
+            reverse (bool): whether to reverse key and value in dictionary,
                 i.e. key: value to value: key.
 
         Returns:

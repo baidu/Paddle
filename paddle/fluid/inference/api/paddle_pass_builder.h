@@ -24,7 +24,7 @@
 ///
 /// \file paddle_pass_builder.h
 ///
-/// \brief Class Paddle Passs Builder and its subclasses(pass strategies).
+/// \brief Class Paddle Pass Builder and its subclasses(pass strategies).
 /// \section sec_intro Introduction
 /// This class aims to build passes for paddle and define passes' strategies.
 ///

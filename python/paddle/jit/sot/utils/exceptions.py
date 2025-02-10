@@ -69,3 +69,28 @@ def inner_error_default_handler(func, message_fn):
 
 class ExportError(SotErrorBase):
     pass
+
+
+class SotExtraInfo:
+    SOT_EXTRA_INFO_ATTR_NAME = "__SOT_EXTRA_INFO__"
+
+    def __init__(self, *, need_breakgraph: bool = False):
+        self.need_breakgraph = need_breakgraph
+
+    def set_need_breakgraph(self, need_breakgraph: bool):
+        self.need_breakgraph = need_breakgraph
+
+    def attach(self, err: BaseException):
+        setattr(err, SotExtraInfo.SOT_EXTRA_INFO_ATTR_NAME, self)
+
+    @staticmethod
+    def default() -> SotExtraInfo:
+        return SotExtraInfo()
+
+    @staticmethod
+    def from_exception(err: BaseException) -> SotExtraInfo:
+        info = getattr(
+            err, SotExtraInfo.SOT_EXTRA_INFO_ATTR_NAME, SotExtraInfo.default()
+        )
+        setattr(err, SotExtraInfo.SOT_EXTRA_INFO_ATTR_NAME, info)
+        return info

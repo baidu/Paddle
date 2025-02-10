@@ -261,15 +261,15 @@ class AutoParallelCEmbeddingPass(PassBase):
                             input_specs.append(inputs)
                             for attr_name in attr_names:
                                 input_specs.append(op.attrs()[attr_name])
-                            infered_dist_attrs = rule.infer_forward(
+                            inferred_dist_attrs = rule.infer_forward(
                                 *input_specs
                             )
-                            dims_mapping_new_out = infered_dist_attrs[1][
+                            dims_mapping_new_out = inferred_dist_attrs[1][
                                 0
                             ].dims_mapping
                             partial_status = {}
-                            if infered_dist_attrs[1][0]._is_partial():
-                                partial_dims = infered_dist_attrs[1][
+                            if inferred_dist_attrs[1][0]._is_partial():
+                                partial_dims = inferred_dist_attrs[1][
                                     0
                                 ]._partial_dims()
                                 for i in partial_dims:

@@ -41,7 +41,7 @@ class DistributedLookupTableKernel : public framework::OpKernel<T> {
     } else {
       PADDLE_THROW(common::errors::InvalidArgument(
           "Expected type of `W` must be Tensor, SelectedRows.But got "
-          "unsupport type: %s.",
+          "unsupported type: %s.",
           framework::ToTypeName(var->Type())));
     }
 

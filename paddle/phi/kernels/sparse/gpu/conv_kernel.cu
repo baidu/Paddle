@@ -223,14 +223,14 @@ void Conv3dCooGPUKernel(const GPUContext& dev_ctx,
       int* unique_value_ptr = unique_value.data<int>();
       phi::backends::gpu::GpuMemsetAsync(
           out_index_ptr, 0, sizeof(int) * rulebook_len, dev_ctx.stream());
-      GroupIndexs<<<config.block_per_grid,
-                    config.thread_per_block,
-                    0,
-                    dev_ctx.stream()>>>(rulebook_len,
-                                        kernel_size,
-                                        rulebook_ptr + rulebook_len,
-                                        out_index_ptr,
-                                        unique_value_ptr);
+      GroupIndices<<<config.block_per_grid,
+                     config.thread_per_block,
+                     0,
+                     dev_ctx.stream()>>>(rulebook_len,
+                                         kernel_size,
+                                         rulebook_ptr + rulebook_len,
+                                         out_index_ptr,
+                                         unique_value_ptr);
     }
     // 2. gather
     phi::DenseTensor in_features =

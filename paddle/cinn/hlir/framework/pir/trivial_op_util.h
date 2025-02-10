@@ -91,11 +91,11 @@ bool CheckIterEq(const std::vector<ir::Var>& up_iter,
 ir::Expr CopiedReplaceExpr(const Expr& source,
                            const std::vector<Var>& replaced,
                            const std::vector<Expr>& candidates);
-void SubstitudeTargetExprWithDestExpr(const ir::Expr& source,
+void SubstituteTargetExprWithDestExpr(const ir::Expr& source,
                                       const ir::Expr& dest,
                                       ir::Expr* body);
 
-ir::Expr SubstitudeIndexVector(const Expr& source,
+ir::Expr SubstituteIndexVector(const Expr& source,
                                const std::vector<Var>& load_vars,
                                const std::vector<ir::Expr>& indices);
 
@@ -104,9 +104,9 @@ void ReplaceDownstreamLoadExprWithUpstreamComputeBody(
     const FusionOp& upstream,
     const ir::Expr& downstream_load_expr,
     ir::Expr* downstream_body) {
-  ComposeUtils::SubstitudeTargetExprWithDestExpr(
+  ComposeUtils::SubstituteTargetExprWithDestExpr(
       downstream_load_expr,
-      ComposeUtils::SubstitudeIndexVector(
+      ComposeUtils::SubstituteIndexVector(
           GetComputeBody(upstream),
           GetOutputIters(upstream),
           downstream_load_expr.As<ir::Load>()->indices),
@@ -249,7 +249,7 @@ ExprTransformer UnsqueezeForTransformer(
     const ExprSetFinderUtils::ExprSetFinder& followed_finder,
     const ir::Var& to_append_var);
 
-ExprTransformer SubstitudeByScheduleBlockRealize(const ir::Expr& realize);
+ExprTransformer SubstituteByScheduleBlockRealize(const ir::Expr& realize);
 
 ExprTransformer WrapScheduleRealizer(const std::vector<ir::Var>& block_vars,
                                      const std::string& tensor_name);

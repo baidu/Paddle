@@ -25,8 +25,11 @@ from paddle.tensorrt.converter_utils import (
     get_shape_tensor_element,
     get_trt_plugin,
     trt_concat,
+    trt_div,
+    trt_gather,
     trt_prod,
     trt_shape,
+    trt_sub,
     trt_sum,
 )
 from paddle.tensorrt.register import converter_registry
@@ -274,6 +277,112 @@ def share_data_converter(network, paddle_op, inputs):
     return identity_layer.get_output(0)
 
 
+@converter_registry.register("pd_op.temporal_shift", trt_version="8.x")
+def temporal_shift_converter(network, paddle_op, inputs):
+    input_tensor = inputs[0]
+    shift_ratio = paddle_op.attrs()["shift_ratio"]
+    T = paddle_op.attrs()["seg_num"]
+    data_format = paddle_op.attrs().get("data_format", "NCHW")
+
+    if data_format == "NHWC":
+        # Transpose input to [N, C, H, W]
+        transpose_layer = network.add_shuffle(input_tensor)
+        transpose_layer.first_transpose = trt.Permutation([0, 3, 1, 2])
+        input_tensor = transpose_layer.get_output(0)
+
+    input_dims = input_tensor.shape
+    C, H, W = input_dims[1], input_dims[2], input_dims[3]
+
+    # Reshape input to [N, T, C, H, W]
+    reshape_layer = network.add_shuffle(input_tensor)
+    reshape_layer.reshape_dims = trt.Dims([-1, T, C, H, W])
+    input_tensor = reshape_layer.get_output(0)
+
+    # Pad input to [N, T + 2, C, H, W]
+    pre_pad = add_1D_constant_layer(network, [0, 1, 0, 0, 0])
+    post_pad = add_1D_constant_layer(network, [0, 1, 0, 0, 0])
+    dims = 5
+    zeros = add_1D_constant_layer(network, [0] * dims)
+    start = trt_sub(network, zeros, pre_pad)
+    total_padding = trt_sum(network, pre_pad, post_pad)
+    input_shape = trt_shape(network, input_tensor)
+    size = trt_sum(network, input_shape, total_padding)
+    stride = [1] * dims
+    dummy = stride
+
+    slice_layer = network.add_slice(input_tensor, dummy, dummy, stride)
+    slice_layer.set_input(1, start)
+    slice_layer.set_input(2, size)
+
+    trt_version = trt.__version__.split('.')
+    if int(trt_version[0]) > 8 or (
+        int(trt_version[0]) == 8 and int(trt_version[1]) >= 5
+    ):
+        slice_layer.mode = trt.SampleMode.FILL
+    else:
+        slice_layer.mode = trt.SliceMode.FILL
+
+    slice_c = int(C * shift_ratio)
+    slice_c2 = int(C * shift_ratio * 2)
+
+    slice_start1 = zeros
+    slice_start2 = add_1D_constant_layer(network, [0, 2, slice_c, 0, 0])
+    slice_start3 = add_1D_constant_layer(network, [0, 1, slice_c2, 0, 0])
+
+    slice_size_base = trt_shape(network, input_tensor)
+    sub_size1 = add_1D_constant_layer(network, [0, 0, C - slice_c, 0, 0])
+    sub_size2 = add_1D_constant_layer(
+        network, [0, 0, C + slice_c - slice_c2, 0, 0]
+    )
+    sub_size3 = add_1D_constant_layer(network, [0, 0, slice_c2, 0, 0])
+
+    slice_size1 = trt_sub(network, slice_size_base, sub_size1)
+    slice_size2 = trt_sub(network, slice_size_base, sub_size2)
+    slice_size3 = trt_sub(network, slice_size_base, sub_size3)
+
+    slice1_layer = network.add_slice(
+        slice_layer.get_output(0), start=dummy, shape=dummy, stride=stride
+    )
+    slice1_layer.set_input(1, slice_start1)
+    slice1_layer.set_input(2, slice_size1)
+    slice2_layer = network.add_slice(
+        slice_layer.get_output(0), start=dummy, shape=dummy, stride=stride
+    )
+    slice2_layer.set_input(1, slice_start2)
+    slice2_layer.set_input(2, slice_size2)
+    slice3_layer = network.add_slice(
+        slice_layer.get_output(0), start=dummy, shape=dummy, stride=stride
+    )
+    slice3_layer.set_input(1, slice_start3)
+    slice3_layer.set_input(2, slice_size3)
+
+    concat_inputs = [slice2_layer.get_output(0), slice3_layer.get_output(0)]
+    if slice_c == 0:
+        concat_layer = network.add_concatenation(concat_inputs)
+        concat_layer.axis = 2
+    else:
+        concat_inputs = [
+            slice1_layer.get_output(0),
+            slice2_layer.get_output(0),
+            slice3_layer.get_output(0),
+        ]
+        concat_layer = network.add_concatenation(concat_inputs)
+        concat_layer.axis = 2
+
+    # Reshape output to [N*T,C,H,W]
+    reshape_layer3 = network.add_shuffle(concat_layer.get_output(0))
+    reshape_layer3.reshape_dims = trt.Dims([-1, C, H, W])
+
+    if data_format == "NHWC":
+        transpose_layer2 = network.add_shuffle(reshape_layer3.get_output(0))
+        transpose_layer2.first_transpose = trt.Permutation([0, 2, 3, 1])
+        output_tensor = transpose_layer2.get_output(0)
+    else:
+        output_tensor = reshape_layer3.get_output(0)
+
+    return output_tensor
+
+
 @converter_registry.register("pd_op.anchor_generator", trt_version="8.x")
 def anchor_generator_converter(network, paddle_op, inputs):
     inputs = inputs[0]
@@ -383,3 +492,77 @@ def affine_channel_converter(network, paddle_op, inputs):
         out_tensor = shuffle_layer2.get_output(0)
 
     return out_tensor
+
+
+@converter_registry.register("pd_op.shuffle_channel", trt_version="8.x")
+def shuffle_channel_converter(network, paddle_op, inputs):
+    input = inputs[0]
+    group = paddle_op.attrs().get("group")
+    input_shape_tensor = trt_shape(network, input)
+    batch_shape_tensor = get_shape_tensor_element(
+        network, input_shape_tensor, 0
+    )
+    channel_shape_tensor = get_shape_tensor_element(
+        network, input_shape_tensor, 1
+    )
+    group_tensor = add_1D_constant_layer(network, group)
+    new_channel_shape_tensor = trt_div(
+        network, channel_shape_tensor, group_tensor
+    )
+    shape_dim2 = [2, 3]
+    shape_dim2_tensor = trt_gather(network, input_shape_tensor, shape_dim2)
+    itensors = [
+        batch_shape_tensor,
+        group_tensor,
+        new_channel_shape_tensor,
+        shape_dim2_tensor,
+    ]
+    reshape_tensor = trt_concat(network, itensors)
+    layer = network.add_shuffle(input)
+    layer.set_input(1, reshape_tensor)
+    transpose_embed = trt.Permutation([0, 2, 1, 3, 4])
+    layer.second_transpose = transpose_embed
+    output = layer.get_output(0)
+    output_layer = network.add_shuffle(output)
+    output_layer.set_input(1, input_shape_tensor)
+    return output_layer.get_output(0)
+
+
+@converter_registry.register("pd_op.full_batch_size_like", trt_version="8.x")
+def full_batch_size_like_converter(network, paddle_op, inputs):
+    input = inputs[0]
+    input_dim_idx = paddle_op.attrs().get("input_dim_idx")
+    output_dim_idx = paddle_op.attrs().get("output_dim_idx")
+    value = paddle_op.attrs().get("value")
+    shape = paddle_op.attrs().get("shape")
+    value = float(value)
+
+    input_shape_tensor = trt_shape(network, input)
+    batch_tensor = get_shape_tensor_element(
+        network, input_shape_tensor, input_dim_idx
+    )
+
+    shape_attr_tensor = add_1D_constant_layer(network, shape)
+
+    gather_output_shape_indices = [
+        len(shape) if i == output_dim_idx else i for i in range(len(shape))
+    ]
+
+    concat_inputs = [shape_attr_tensor, batch_tensor]
+    concat_tensor = trt_concat(network, concat_inputs)
+    out_shape_tensor = trt_gather(
+        network, concat_tensor, gather_output_shape_indices
+    )
+
+    layer = network.add_fill(shape=(), op=trt.FillOperation.LINSPACE)
+
+    value_tensor = add_1D_constant_layer(network, [value], is_scalar=True)
+
+    beta_vec = [0.0] * len(shape)
+    beta_tensor = add_1D_constant_layer(network, beta_vec, is_scalar=False)
+
+    layer.set_input(0, out_shape_tensor)
+    layer.set_input(1, value_tensor)
+    layer.set_input(2, beta_tensor)
+
+    return layer.get_output(0)

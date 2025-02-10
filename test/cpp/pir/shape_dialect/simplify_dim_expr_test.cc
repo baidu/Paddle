@@ -182,6 +182,14 @@ TEST(Simplify, FoldBroadcast) {
   ASSERT_TRUE(simplify_broadcast3 == add);
 }
 
+TEST(Simplify, FoldRedundantBroadcast) {
+  DimExpr S0{"S0"};
+  DimExpr S1{"S1"};
+  DimExpr bc{Broadcast<DimExpr>{{S0, S0, S1, S1}}};
+  DimExpr simplify_bc = SimplifyDimExpr(bc);
+  ASSERT_TRUE((simplify_bc == Broadcast<DimExpr>{{S0, S1}}));
+}
+
 TEST(Simplify, Case1) {
   // Mul(Broadcast(S11, S8), Broadcast(S10, S13, S4, S7), Broadcast(S12, S3, S6,
   // S9), 1 / (S0), 16, 1 / (49))

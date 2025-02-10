@@ -731,10 +731,10 @@ void TensorRTEngineInstruction::RunTrt() {
     }
   }
 
-  VLOG(4) << "Start Runing trt engine...";
+  VLOG(4) << "Start running trt engine...";
   // Execute the engine.
   trt_engine_->Execute(runtime_batch, &buffers, stream);
-  VLOG(4) << "End Runing trt engine and deal with output";
+  VLOG(4) << "End running trt engine and deal with output";
   for (const auto &index_name_pair : output_names_) {
     size_t i = index_name_pair.first;
     auto type = outputs_dtype_[i];

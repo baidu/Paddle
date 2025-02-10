@@ -76,16 +76,17 @@ void CodeGenGpuDev::Compile(const ir::LoweredFunc &func) {
   Visit(func.As<ir::_LoweredFunc_>());
 }
 
-std::vector<Expr> CodeGenGpuDev::GenerateBufferAliasExprs(
+std::vector<ir::stmt::StmtRef> CodeGenGpuDev::GenerateBufferAliasStmts(
     const ir::_LoweredFunc_ *op, const std::vector<ir::Buffer> &temp_buffers) {
   std::set<ir::Buffer> temp_buffer_set(temp_buffers.begin(),
                                        temp_buffers.end());
   // prepare temp buffer alias
-  std::vector<Expr> buffer_alias;
-  auto tensors = ir::ir_utils::CollectIRNodes(op->body, [&](const Expr *x) {
-    return x->as_tensor() && x->as_tensor()->buffer.defined() &&
-           temp_buffer_set.count(x->as_tensor()->buffer);
-  });
+  std::vector<ir::stmt::StmtRef> buffer_alias;
+  auto tensors =
+      ir::ir_utils::CollectIRNodes(op->body_block, [&](const Expr *x) {
+        return x->as_tensor() && x->as_tensor()->buffer.defined() &&
+               temp_buffer_set.count(x->as_tensor()->buffer);
+      });
 
   // unique tensors
   std::set<ir::Tensor> unique_tensors;
@@ -94,26 +95,40 @@ std::vector<Expr> CodeGenGpuDev::GenerateBufferAliasExprs(
   }
 
   for (auto &t : unique_tensors) {
-    auto data_type = t->type();
-    auto data_ptr_type = data_type;
-    data_ptr_type.set_cpp_handle();
+    auto tensor_type = t->type();
+    auto tensor_ptr_type = tensor_type;
+    tensor_ptr_type.set_cpp_handle();
 
-    Var t_var(t->name, data_ptr_type);
-    Var buf_var(t->buffer->name, data_ptr_type);
-    buffer_alias.push_back(ir::Let::Make(t_var, buf_var));
+    auto buffer_type = t->buffer->dtype;
+    auto buffer_ptr_type = buffer_type;
+    buffer_ptr_type.set_cpp_handle();
+
+    Expr t_var = Var(t->name, tensor_ptr_type);
+    Expr buf_var = Var(t->buffer->name, buffer_ptr_type);
+
+    // A tensor and its buffer may have different types when multiple tensors
+    // share the same buffer. In this case, add a Cast before aliasing.
+    if (tensor_type != buffer_type) {
+      buf_var = common::cast(buf_var, tensor_ptr_type);
+    }
+
+    buffer_alias.push_back(ir::stmt::Let(t_var, buf_var));
   }
 
   return buffer_alias;
 }
 
-std::vector<Expr> FilterDeallocTempBuffers(const std::vector<Expr> &frees) {
-  std::vector<Expr> filtered;
-  for (const Expr &free : frees) {
-    const ir::Free *op = free.As<ir::Free>();
-    PADDLE_ENFORCE_NOT_NULL(
-        op, ::common::errors::InvalidArgument("Free is not a free node"));
+std::vector<ir::stmt::StmtRef> FilterDeallocTempBuffers(
+    const std::vector<ir::stmt::StmtRef> &frees) {
+  std::vector<ir::stmt::StmtRef> filtered;
+  for (const auto &free : frees) {
+    PADDLE_ENFORCE_EQ(
+        free.isa<ir::stmt::Free>(),
+        true,
+        ::common::errors::InvalidArgument("Free is not a free node"));
+    const auto op = free.as<ir::stmt::Free>();
     bool has_symbolic_constant = false;
-    const ir::_Buffer_ *buffer = op->destination.As<ir::_Buffer_>();
+    const ir::_Buffer_ *buffer = op->destination().As<ir::_Buffer_>();
     for (Expr shape : buffer->shape) {
       shape = optim::ArithSimplify(shape);
       ir::ir_utils::CollectIRNodes(shape, [&](const Expr *x) {
@@ -146,38 +161,40 @@ void CodeGenGpuDev::Visit(const ir::_LoweredFunc_ *op) {
 
   DoIndent();
 
-  std::vector<Expr> new_body;
+  std::vector<ir::stmt::StmtRef> new_body_stmts;
 
-  auto axis_range_assumptions = op->PrepareAxisRangeAssumptions();
-  auto alloca_temp_buffers = op->PrepareAllocTempBufferExprs();
-  auto temp_buffer_alias = GenerateBufferAliasExprs(op, op->temp_bufs);
-  auto alias_var_exprs = op->CudaAliasVarExprs();
-  auto dealloc_temp_buffers =
-      FilterDeallocTempBuffers(op->PrepareDeallocTempBufferExprs());
+  auto axis_range_assumption_stmts = op->PrepareAxisRangeAssumptionStmts();
+  auto alloca_temp_buffer_stmts = op->PrepareAllocTempBufferStmts();
+  auto temp_buffer_alia_stmts = GenerateBufferAliasStmts(op, op->temp_bufs);
+  auto alias_var_stmts = op->CudaAliasVarStmts();
+  auto dealloc_temp_buffer_stmts =
+      FilterDeallocTempBuffers(op->PrepareDeallocTempBufferStmts());
 
-#define APPEND_TO_NEW_BODY(field__) \
-  new_body.insert(std::end(new_body), std::begin(field__), std::end(field__));
-  APPEND_TO_NEW_BODY(axis_range_assumptions)
-  APPEND_TO_NEW_BODY(alloca_temp_buffers)
-  APPEND_TO_NEW_BODY(temp_buffer_alias)
-  APPEND_TO_NEW_BODY(alias_var_exprs)
+#define APPEND_TO_NEW_BODY_STMTS(field__) \
+  new_body_stmts.insert(                  \
+      std::end(new_body_stmts), std::begin(field__), std::end(field__));
+  APPEND_TO_NEW_BODY_STMTS(axis_range_assumption_stmts)
+  APPEND_TO_NEW_BODY_STMTS(alloca_temp_buffer_stmts)
+  APPEND_TO_NEW_BODY_STMTS(temp_buffer_alia_stmts)
+  APPEND_TO_NEW_BODY_STMTS(alias_var_stmts)
+  APPEND_TO_NEW_BODY_STMTS(op->body_block->stmts())
+  APPEND_TO_NEW_BODY_STMTS(dealloc_temp_buffer_stmts);
 
-  new_body.push_back(op->body);
-  APPEND_TO_NEW_BODY(dealloc_temp_buffers);
+  ir::stmt::BlockRef func_body_block = ir::stmt::BlockRef(new_body_stmts);
 
-  Expr func_body = ir::Block::Make(new_body);
+  // Use ir_simplify when pass updated.
+  // optim::SimplifyBlocks(&func_body);
+  // // Make sure that the function's body is wrapped by a block
+  // if (!func_body.As<ir::Block>()) {
+  //   func_body = ir::Block::Make({func_body});
+  // }
 
-  optim::SimplifyBlocks(&func_body);
-  // Make sure that the function's body is wrapped by a block
-  if (!func_body.As<ir::Block>()) {
-    func_body = ir::Block::Make({func_body});
-  }
-  IrPrinter::Visit(func_body);
+  CodeGenC::VisitBlock(func_body_block);
 }
 
-void CodeGenGpuDev::Visit(const ir::Free *op) {
+void CodeGenGpuDev::VisitStmt(const ir::stmt::Free &stmt) {
   str_ += "delete [] ";
-  str_ += op->destination.As<ir::_Buffer_>()->name;
+  str_ += stmt->destination().As<ir::_Buffer_>()->name;
   str_ += ";\n";
 }
 
@@ -191,12 +208,8 @@ void CodeGenGpuDev::Visit(const ir::_Var_ *op) {
   }
 }
 
-void CodeGenGpuDev::Visit(const ir::Alloc *op) {
-  PADDLE_ENFORCE_NE(op->destination.as_buffer(),
-                    nullptr,
-                    ::common::errors::PreconditionNotMet(
-                        "Buffer shouldn't be null in Alloc instruction."));
-  PrintTempBufferCreation(op->destination.as_buffer_ref());
+void CodeGenGpuDev::VisitStmt(const ir::stmt::Alloc &stmt) {
+  PrintTempBufferCreation(stmt->destination().as_buffer_ref());
 }
 
 void CodeGenGpuDev::Visit(const ir::Min *op) {
@@ -423,34 +436,35 @@ void CodeGenGpuDev::Visit(const ir::Call *op) {
   str_ += ")";
 }
 
-void CodeGenGpuDev::Visit(const ir::Let *op) {
+void CodeGenGpuDev::VisitStmt(const ir::stmt::Let &stmt) {
   PADDLE_ENFORCE_EQ(
-      op->type().valid(),
+      stmt->type().valid(),
       true,
       ::common::errors::PreconditionNotMet("Let op type must be valid."));
   // identify vectorized tensors by checking their dtypes are customized_type
   // with customized_type::kcuda_builtin_vector_t prefix, and save their names
-  if (op->type().is_customized() &&
+  if (stmt->type().is_customized() &&
       utils::StartsWith(
-          op->type().customized_type(),
+          stmt->type().customized_type(),
           cinn::common::customized_type::kcuda_builtin_vector_t)) {
-    str_ += GetTypeRepr(op->type());
-    if (op->type().is_cpp_handle()) {
+    str_ += GetTypeRepr(stmt->type());
+    if (stmt->type().is_cpp_handle()) {
       str_ += " ";
       str_ += kCKeywordRestrict;
     }
     str_ += " ";
-    IrPrinter::Visit(op->symbol);
-    vectorized_tensor_names_.insert(utils::GetStreamCnt(op->symbol));
+    IrPrinter::Visit(stmt->symbol());
+    vectorized_tensor_names_.insert(utils::GetStreamCnt(stmt->symbol()));
     // skip "=0" in "half8 temp = 0;" since the operator= of half8 may not
     // overloaded.
-    if (op->body.As<ir::IntImm>() && op->body.As<ir::IntImm>()->value == 0) {
+    if (stmt->body().As<ir::IntImm>() &&
+        stmt->body().As<ir::IntImm>()->value == 0) {
       return;
     }
     str_ += " = ";
-    IrPrinter::Visit(op->body);
+    IrPrinter::Visit(stmt->body());
   } else {
-    CodeGenC::Visit(op);
+    CodeGenC::VisitStmt(stmt);
   }
 }
 
@@ -494,6 +508,46 @@ bool CodeGenGpuDev::PrintBuiltinVectorAccess(const ir::LoadStoreAddrMnger *op,
   return true;
 }
 
+bool CodeGenGpuDev::PrintBuiltinVectorAccess(const ir::stmt::Store &stmt,
+                                             ir::Expr index_expr,
+                                             bool is_store) {
+  static constexpr char index2suffix[8] = {
+      'x', 'y', 'z', 'w', 'v', 'u', 't', 's'};
+
+  // addr of op should be a place of tensor and the index is simple int number
+  if (!stmt->is_addr_tensor() || !index_expr.As<ir::IntImm>()) {
+    return false;
+  }
+  auto *tensor = stmt->tensor().As<ir::_Tensor_>();
+  PADDLE_ENFORCE_NOT_NULL(
+      tensor,
+      ::common::errors::InvalidArgument(
+          "LoadStoreAddrMnger contains NULL tensor, which is an "
+          "illegal argument"));
+
+  // identify vectorized tensors by their names
+  if (!vectorized_tensor_names_.count(tensor->name)) {
+    return false;
+  }
+
+  // the index can't exceed the range of cuda/hip built-in vector type
+  int index = index_expr.As<ir::IntImm>()->value;
+  if (index < 0 || index >= 8) {
+    return false;
+  }
+  if (is_store && tensor->type().is_cpp_handle()) {
+    str_ += tensor->name;
+    str_ += "[";
+    str_ += std::to_string(index);
+    str_ += "]";
+  } else {
+    str_ += tensor->name;
+    str_ += (tensor->type().is_cpp_handle() ? "->" : ".");
+    str_ += index2suffix[index];
+  }
+  return true;
+}
+
 void CodeGenGpuDev::Visit(const ir::Load *op) {
   // overload this visit function to especially deal with the case when it
   // accesses element at a cuda/hip built-in vector, others still resolve to
@@ -503,15 +557,15 @@ void CodeGenGpuDev::Visit(const ir::Load *op) {
   }
 }
 
-void CodeGenGpuDev::Visit(const ir::Store *op) {
+void CodeGenGpuDev::VisitStmt(const ir::stmt::Store &stmt) {
   // overload this visit function to especially deal with the case when it
   // accesses element at a cuda/hip built-in vector, others still resolve to
   // CodeGenC
-  if (PrintBuiltinVectorAccess(op, op->index(), true)) {
+  if (PrintBuiltinVectorAccess(stmt, stmt->index(), true)) {
     str_ += " = ";
-    IrPrinter::Visit(op->value);
+    IrPrinter::Visit(stmt->value());
   } else {
-    CodeGenC::Visit(op);
+    CodeGenC::VisitStmt(stmt);
   }
 }
 
@@ -525,17 +579,18 @@ ir::Expr CalculateSharedMemory(const ir::Buffer &buffer) {
 }
 
 ir::Expr CalculateSharedMemory(const ir::LoweredFunc &func) {
-  auto alloc_temp_buffers = func->PrepareAllocTempBufferExprs();
+  auto alloc_temp_buffers = func->PrepareAllocTempBufferStmts();
   ir::Expr shm_size{0};
   for (const auto &alloc : alloc_temp_buffers) {
+    PADDLE_ENFORCE_EQ(
+        alloc.isa<ir::stmt::Alloc>(),
+        true,
+        ::common::errors::InvalidType("stmt is not a Alloc node"));
     PADDLE_ENFORCE_NOT_NULL(
-        alloc.As<ir::Alloc>(),
-        ::common::errors::InvalidType("expr is not a Alloc node"));
-    PADDLE_ENFORCE_NOT_NULL(
-        alloc.As<ir::Alloc>()->destination.as_buffer(),
-        ::common::errors::InvalidType("expr is not a Buffer node"));
+        alloc.as<ir::stmt::Alloc>()->destination().as_buffer(),
+        ::common::errors::InvalidType("stmt is not a Buffer node"));
 
-    auto buffer = alloc.As<ir::Alloc>()->destination.as_buffer_ref();
+    auto buffer = alloc.as<ir::stmt::Alloc>()->destination().as_buffer_ref();
     if (buffer->memory_type == ir::MemoryType::GPUShared) {
       shm_size = shm_size + CalculateSharedMemory(buffer);
     }

@@ -152,7 +152,7 @@ void MetaTensor::set_dtype(DataType dtype) {
         ->dtype = dtype;
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "Unsupported settting dtype for `%s`.", tensor_->type_info().name()));
+        "Unsupported setting dtype for `%s`.", tensor_->type_info().name()));
   }
 }
 
@@ -190,7 +190,7 @@ void MetaTensor::set_layout(DataLayout layout) {
         ->layout = layout;
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "Unsupported settting layout for `%s`.", tensor_->type_info().name()));
+        "Unsupported setting layout for `%s`.", tensor_->type_info().name()));
   }
 }
 

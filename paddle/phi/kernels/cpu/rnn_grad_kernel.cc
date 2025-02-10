@@ -522,8 +522,8 @@ struct GradLayer {
           &((*weight_list_grad)[layer_idx][current_reverse_idx * 4 + 3]),
           mask_tensor_list[i],
           has_sequence_length);
-      SwapPoniter(&dynamic_grad_last_h, &dynamic_grad_pre_h);
-      SwapPoniter(&dynamic_grad_last_c, &dynamic_grad_pre_c);
+      SwapPointer(&dynamic_grad_last_h, &dynamic_grad_pre_h);
+      SwapPointer(&dynamic_grad_last_c, &dynamic_grad_pre_c);
     }
     // postproces for gradient for w_hi, X, bias_hi, bias_hh
     this->postprocess(dev_ctx,
@@ -1236,7 +1236,7 @@ void RnnGradFunc(const CPUContext& dev_ctx,
         has_allocate_mem = true;
       }
     }
-    SwapPoniter(&layer_x_grad_holder, &layer_output_grad_holder);
+    SwapPointer(&layer_x_grad_holder, &layer_output_grad_holder);
   }
 }
 

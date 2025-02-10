@@ -27,8 +27,16 @@ class TestCCommInitOp(unittest.TestCase):
         self.current_endpoint = os.getenv("PADDLE_CURRENT_ENDPOINT")
         self.nranks = len(self.endpoints)
         self.rank = self.endpoints.index(self.current_endpoint)
-        self.gpu_id = int(os.getenv("FLAGS_selected_gpus"))
-        self.place = base.CUDAPlace(self.gpu_id)
+        self.device_id = (
+            int(os.getenv("FLAGS_selected_gpus"))
+            if not paddle.base.core.is_compiled_with_xpu()
+            else int(os.getenv("FLAGS_selected_xpus"))
+        )
+        self.place = (
+            base.CUDAPlace(self.device_id)
+            if not paddle.base.core.is_compiled_with_xpu()
+            else base.XPUPlace(self.device_id)
+        )
         self.exe = base.Executor(self.place)
         self.endpoints.remove(self.current_endpoint)
         self.other_endpoints = self.endpoints
@@ -36,15 +44,19 @@ class TestCCommInitOp(unittest.TestCase):
     def test_specifying_devices(self):
         program = base.Program()
         block = program.global_block()
-        nccl_id_var = block.create_var(
-            name=base.unique_name.generate('nccl_id'),
+        cl_id_var = block.create_var(
+            name=base.unique_name.generate('cl_id'),
             persistable=True,
             type=base.core.VarDesc.VarType.RAW,
         )
         block.append_op(
-            type='c_gen_nccl_id',
+            type=(
+                'c_gen_nccl_id'
+                if not paddle.base.core.is_compiled_with_xpu()
+                else 'c_gen_bkcl_id'
+            ),
             inputs={},
-            outputs={'Out': nccl_id_var},
+            outputs={'Out': cl_id_var},
             attrs={
                 'rank': self.rank,
                 'endpoint': self.current_endpoint,
@@ -53,13 +65,13 @@ class TestCCommInitOp(unittest.TestCase):
         )
         block.append_op(
             type='c_comm_init',
-            inputs={'X': nccl_id_var},
+            inputs={'X': cl_id_var},
             outputs={},
             attrs={
                 'nranks': self.nranks,
                 'rank': self.rank,
                 'ring_id': 0,
-                'device_id': self.gpu_id,
+                'device_id': self.device_id,
             },
         )
         self.exe.run(program)

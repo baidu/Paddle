@@ -237,9 +237,9 @@ def save_state_dict(
                     )
                     local_tensor = val
                 local_state_dict[key] = local_tensor
-                local_tenosr_dtype = str(local_tensor.dtype).split('.')[1]
+                local_tensor_dtype = str(local_tensor.dtype).split('.')[1]
                 local_state_dict_metadata[key] = LocalTensorMetadata(
-                    global_offset, local_shape, local_tenosr_dtype
+                    global_offset, local_shape, local_tensor_dtype
                 )
                 local_storage_metadata[
                     LocalTensorIndex(key, tuple(global_offset))

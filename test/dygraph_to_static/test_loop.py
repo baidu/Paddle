@@ -41,7 +41,7 @@ def while_loop_dyfunc(x):
 def while_loop_dyfunc_without_tensor(x):
     a = 1
     # There are no tensors in the while condition, which means it's a plain while in python,
-    # so it wont't be transformed to `while_loop` op.
+    # so it won't be transformed to `while_loop` op.
     while not a > 4 and a > 0:
         x = x + 1
         a = a + 1

@@ -179,8 +179,8 @@ class CUDAGraphWithStaticInputOutput:
             )
         else:
             inputs = recursive_flatten_args_kwargs(args, kwargs)
-            for x_staic, x in zip(self.inputs_static, inputs):
-                x_staic.copy_(x, True)
+            for x_static, x in zip(self.inputs_static, inputs):
+                x_static.copy_(x, True)
 
     def record(self, f, *args, **kwargs):
         self.preserve_or_copy(args, kwargs)

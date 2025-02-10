@@ -1038,20 +1038,24 @@ void DiagonalInferMeta(const MetaTensor& input,
   out_dims.erase(out_dims.begin() + std::max(axis1_, axis2_));
   out_dims.erase(out_dims.begin() + std::min(axis1_, axis2_));
 
-  if (offset_ == 0) {
-    out_dims.push_back(std::min(axis1_size, axis2_size));
-  } else if (offset_ > 0) {
-    if ((axis2_size - offset_) > 0) {
-      out_dims.push_back(std::min(axis1_size, axis2_size - offset_));
+  if (axis1_size != -1 && axis2_size != -1) {
+    if (offset_ == 0) {
+      out_dims.push_back(std::min(axis1_size, axis2_size));
+    } else if (offset_ > 0) {
+      if ((axis2_size - offset_) > 0) {
+        out_dims.push_back(std::min(axis1_size, axis2_size - offset_));
+      } else {
+        out_dims.push_back(0);
+      }
     } else {
-      out_dims.push_back(0);
+      if ((axis1_size + offset_) > 0) {
+        out_dims.push_back(std::min(axis1_size + offset_, axis2_size));
+      } else {
+        out_dims.push_back(0);
+      }
     }
   } else {
-    if ((axis1_size + offset_) > 0) {
-      out_dims.push_back(std::min(axis1_size + offset_, axis2_size));
-    } else {
-      out_dims.push_back(0);
-    }
+    out_dims.push_back(-1);
   }
   out->set_dims(common::make_ddim(out_dims));
   out->set_dtype(input.dtype());
@@ -1973,7 +1977,7 @@ void FractionalMaxPoolInferMeta(const MetaTensor& x,
   PADDLE_ENFORCE_EQ(
       (x_dims.size() == 4 || x_dims.size() == 5),
       true,
-      errors::InvalidArgument("Pooling intput should be 4-D or "
+      errors::InvalidArgument("Pooling input should be 4-D or "
                               "5-D tensor but received %dD-Tensor",
                               x_dims.size()));
 
@@ -2151,7 +2155,7 @@ static phi::DDim ValidateShape(const std::vector<int64_t> shape,
 
   for (size_t i = 0; i < shape.size(); ++i) {
     if (shape[i] == -1) {
-      // only one dimension can be set to -1, whose size will be infered.
+      // only one dimension can be set to -1, whose size will be inferred.
       PADDLE_ENFORCE_EQ(
           unk_dim_idx,
           -1,
@@ -2578,7 +2582,7 @@ void MaxPoolWithIndexInferMeta(const MetaTensor& x,
   PADDLE_ENFORCE_EQ(
       (x_dims.size() == 4 || x_dims.size() == 5),
       true,
-      errors::InvalidArgument("Pooling intput should be 4-D or "
+      errors::InvalidArgument("Pooling input should be 4-D or "
                               "5-D tensor but received %dD-Tensor",
                               x_dims.size()));
 
@@ -4314,7 +4318,7 @@ void FillSplitOutDims(const MetaTensor& x,
   }
   for (size_t i = 0; i < sections_vec.size(); ++i) {
     if (axis_value != 0) {
-      // Only pass LoD when not spliting along the first dim.
+      // Only pass LoD when not splitting along the first dim.
       (*out)[i]->set_dtype(x.dtype());
       (*out)[i]->set_dims(out_dims[i]);
       (*out)[i]->set_layout(x.layout());
@@ -4364,7 +4368,7 @@ void SplitInferMeta(const MetaTensor& x,
     }
     for (size_t i = 0; i < sections_data.size(); ++i) {
       if (axis_value != 0) {
-        // Only pass LoD when not spliting along the first dim.
+        // Only pass LoD when not splitting along the first dim.
         out[i]->set_dtype(x.dtype());
         out[i]->set_dims(out_dims[i]);
         out[i]->set_layout(x.layout());
@@ -4455,7 +4459,7 @@ void SplitWithNumInferMeta(const MetaTensor& x,
     }
     for (int i = 0; i < num; ++i) {
       if (axis_value != 0) {
-        // Only pass LoD when not spliting along the first dim.
+        // Only pass LoD when not splitting along the first dim.
         out[i]->set_dtype(x.dtype());
         out[i]->set_dims(out_dims[i]);
         out[i]->set_layout(x.layout());

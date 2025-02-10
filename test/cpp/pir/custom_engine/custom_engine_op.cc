@@ -42,7 +42,7 @@ OpInfoTuple FakeEngineOp::GetOpInfo() {
                    false)};
 
   paddle::dialect::OpRunTimeInfo run_time_info =
-      OpRunTimeInfo("", {""}, "", {""}, {}, {}, {}, {});
+      OpRunTimeInfo("", {}, "", {}, {}, {}, {}, {});
 
   return std::make_tuple(
       inputs, attributes, outputs, run_time_info, "fake_engine");
@@ -108,6 +108,7 @@ void FakeEngineOp::Build(pir::Builder &builder,             // NOLINT
   argument_outputs.push_back(out_vector_type);
 
   argument.AddOutputs(argument_outputs.begin(), argument_outputs.end());
+  argument.AddRegion(nullptr);
   ::pir::PassStopGradientsDefaultly(argument);
 }
 
@@ -160,6 +161,21 @@ void FakeEngineOp::VerifySig() {
                           "Type validation failed for the 0th output."));
   }
   VLOG(4) << "End Verifying for: FakeEngineOp.";
+}
+
+pir::Block *FakeEngineOp::block() {
+  pir::Region &region = (*this)->region(0);
+  if (region.empty()) region.emplace_back();
+  return &region.front();
+}
+
+pir::Block *FakeEngineOp::block() const {
+  pir::Region &region = (*this)->region(0);
+  PADDLE_ENFORCE_EQ(region.empty(),
+                    false,
+                    ::common::errors::Unavailable(
+                        "Required CustomEngineOp's region must not be empty."));
+  return &region.front();
 }
 
 }  // namespace dialect

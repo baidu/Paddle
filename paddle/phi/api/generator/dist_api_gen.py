@@ -21,6 +21,7 @@ from api_base import PREFIX_TENSOR_NAME
 from api_gen import (
     ForwardAPI,
     api_namespace,
+    backward_api_black_list,
     declare_extension_api,
     header_include,
     source_include,
@@ -83,6 +84,17 @@ AUTO_PARALLEL_COND_TEMPLATE = """
 
 NCCL_COMMCONTEXT_INIT = """
 #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
+  const auto & comm_context_manager_ = phi::distributed::CommContextManager::GetInstance();
+  if (nranks > 1 && !comm_context_manager_.Has(std::to_string(ring_id))) {{
+    auto store = phi::distributed::CreateOrGetGlobalTCPStore();
+    phi::distributed::CommContextManager::CreateNCCLCommContext(
+            store, std::to_string(ring_id), rank, nranks);
+  }}
+#endif
+"""
+
+SET_NCCL_COMMCONTEXT = """
+#if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
   const auto & comm_context_manager = phi::distributed::CommContextManager::GetInstance();
   phi::distributed::NCCLCommContext* comm_context = nullptr;
   if (comm_context_manager.Has(std::to_string(ring_id))) {{
@@ -93,15 +105,19 @@ NCCL_COMMCONTEXT_INIT = """
         nullptr,
         common::errors::Unavailable(
             "NCCLCommContext is nullptr, collective op should "
-            "has ring_id attr."));
-    auto kernel_res = phi::KernelFactory::Instance().SelectKernelOrThrowError(
-        "{}", {{kernel_backend, kernel_layout, kernel_data_type}}, true);
-    if (FLAGS_low_precision_op_list) {{
-      phi::KernelFactory::Instance().AddToLowPrecisionKernelList("{}", kernel_data_type);
+            "has ring_id(%d) attr.",
+            std::to_string(ring_id)));
+    if (!comm_context->GetDevContext() || !comm_context->GetDevContext()->GetCommContext())
+    {{
+        auto kernel_res = phi::KernelFactory::Instance().SelectKernelOrThrowError(
+            "{}", {{kernel_backend, kernel_layout, kernel_data_type}}, true);
+        if (FLAGS_low_precision_op_list) {{
+        phi::KernelFactory::Instance().AddToLowPrecisionKernelList("{}", kernel_data_type);
+        }}
+        Backend act_kernel_backend = kernel_res.has_fallback_cpu ? Backend::CPU : kernel_backend;
+        auto* dev_context = GetDeviceContextByBackend(act_kernel_backend);
+        dev_context->SetCommContext(comm_context);
     }}
-    Backend act_kernel_backend = kernel_res.has_fallback_cpu ? Backend::CPU : kernel_backend;
-    auto* dev_context = GetDeviceContextByBackend(act_kernel_backend);
-    dev_context->SetCommContext(comm_context);
   }}
 #endif
 """
@@ -315,7 +331,7 @@ SINGLE_GLOBAL_META_OUT_DECL_TEMPLATE = """
     phi::MetaTensor meta_{}({});"""
 VECTOR_GLOBAL_META_OUT_DECL_TEMPLATE = """
     std::vector<phi::MetaTensor> {name}_meta_vec;
-    for (auto tmp : {name}) {{
+    for (phi::distributed::DistTensor* tmp : {name}) {{
       {name}_meta_vec.emplace_back(phi::MetaTensor(tmp));
     }}
     std::vector<phi::MetaTensor*> {name}_meta_ptr_vec({name}.size());
@@ -885,12 +901,22 @@ class DistForwardAPI(ForwardAPI):
             input_args=input_args, mesh=mesh, kernel_code=kernel_select_code
         )
 
-        attrs = self.attrs
-        if 'ring_id' in attrs['names']:
+        # Current initialization only consider the case where the parameters of op contain ring_id, nranks and rank.
+        # Other cases will be addressed in the future.
+        if 'ring_id' in self.attrs['names']:
+            if (
+                'rank' in self.attrs['names']
+                and 'nranks' in self.attrs['names']
+            ):
+                if_condition_code = (
+                    if_condition_code
+                    + '\n'
+                    + self.generate_nccl_commcontext_init_code()
+                )
             if_condition_code = (
                 if_condition_code
                 + '\n'
-                + self.generate_nccl_commcontext_init_code()
+                + self.generate_set_nccl_commcontext_code()
             )
 
         return kernel_key_item_init + if_condition_code
@@ -1108,6 +1134,11 @@ class DistForwardAPI(ForwardAPI):
                     output_creation_code += VECTOR_OUT_CREATION_TEMPLATE.format(
                         dist_output_arg
                     )
+            else:
+                raise ValueError(
+                    f"{self.api} : Output of infer_spmd error : {self.outputs['types'][0]} type is not supported."
+                )
+
         elif output_num > 1:
             # api output generate
             if self.inplace_flag:
@@ -1132,6 +1163,7 @@ class DistForwardAPI(ForwardAPI):
             for i, out_type in enumerate(self.outputs['types']):
                 self.dist_output_args.append(f'dist_out_{i}')
                 self.dense_output_args.append(f'dense_out_{i}')
+
                 get_out_code = f"std::get<{i}>(api_output)"
                 if out_type == 'Tensor':
                     if self.is_inplace_and_optional_output(i):
@@ -1217,6 +1249,11 @@ class DistForwardAPI(ForwardAPI):
                                     in_name=get_out_code,
                                 )
                             )
+                else:
+                    raise ValueError(
+                        f"{self.api} : Output error: {out_type}"
+                        + " is not supported yet."
+                    )
         else:
             raise ValueError(
                 f"{self.api} : Output error: the output should not be empty."
@@ -1344,7 +1381,10 @@ class DistForwardAPI(ForwardAPI):
         )
 
     def generate_nccl_commcontext_init_code(self) -> str:
-        return NCCL_COMMCONTEXT_INIT.format(self.kernel['func'][0], self.api)
+        return NCCL_COMMCONTEXT_INIT.format(self.kernel['func'][0])
+
+    def generate_set_nccl_commcontext_code(self) -> str:
+        return SET_NCCL_COMMCONTEXT.format(self.kernel['func'][0], self.api)
 
     def generate_reshard_input_code(self) -> str:
         input_reshard_code = ""
@@ -2073,6 +2113,8 @@ def generate_api(
 
     for api in apis:
         dist_forward_api = DistForwardAPI(api)
+        if dist_forward_api.api in backward_api_black_list:
+            continue
         if dist_forward_api.is_dygraph_api and not is_fused_ops_yaml:
             dist_forward_api.is_dygraph_api = False
 
@@ -2124,7 +2166,6 @@ def main():
     )
 
     options = parser.parse_args()
-
     api_yaml_path = options.api_yaml_path
     is_fused_ops_yaml = options.is_fused_ops_yaml
     header_file_path = options.api_header_path

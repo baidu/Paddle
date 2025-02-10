@@ -371,7 +371,7 @@ __global__ void masked_multihead_attention_kernel(
     qk = block_sum<WARPS_PER_RED>(&red_smem[WARPS_PER_RED], qk);
   }
 
-  // Let only the last cuda TheradBlock compute the final q*k.
+  // Let only the last cuda ThreadBlock compute the final q*k.
   if (tid == 0 && is_last_block) {
     // NOTE(wangxi): mask must be 0.0
     // T mask = params.attn_mask[
@@ -857,8 +857,8 @@ void fmha_impl(const phi::GPUContext &dev_ctx,
     FMHA_LAUNCH_KERNEL(128, 128, stream)
     FMHA_LAUNCH_KERNEL(192, 256, stream)
     default:
-      PADDLE_THROW(common::errors::Unimplemented("Dim_head = %d is unsupport!",
-                                                 dim_head));
+      PADDLE_THROW(common::errors::Unimplemented(
+          "Dim_head = %d is unsupported!", dim_head));
   }
 }
 

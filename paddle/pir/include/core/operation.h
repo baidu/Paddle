@@ -126,7 +126,7 @@ class IR_API alignas(8) Operation final
   void *value_property(const std::string &key, size_t index) const;
 
   ///
-  /// \brief op ouput related public interfaces
+  /// \brief op output related public interfaces
   ///
   uint32_t num_results() const { return num_results_; }
   Value result(uint32_t index) const { return OpResult(op_result_impl(index)); }

@@ -335,34 +335,47 @@ class Engine:
             batch_sampler = dataloader.batch_sampler
         else:
             batch_sampler = dataloader._dataloader.batch_sampler
-
         if hasattr(batch_sampler, "set_epoch"):
             # Get data from DataLoader iterator directly may affect data generation randomness
             # of BatchSampler when `Shuffle=True`. It may cause difference of data feeding
             # between dynamic and to_static mode.
             batch_sampler.set_epoch(0)
-
         if isinstance(data, dict):
-            data = tuple(data.values())
-            if len(data) != 2:
+            data = list(data.values())
+            if len(data) >= 2:
+                labels = data.pop()
+                inputs = data
+            else:
                 raise ValueError(
-                    f"Data should be a dict with two keys, but received {len(data)}."
+                    f"Data should be a dict at least two keys, but received {len(data)}."
                 )
-            inputs, labels = data
         elif isinstance(data, (list, tuple)):
-            if len(data) != 2:
+            if len(data) >= 2:
+                labels = data.pop()
+                inputs = data
+            else:
                 raise ValueError(
-                    f"Data should be a list or tuple with two elements, but received {len(data)}."
+                    f"Data should be a dict or list at list two element, but received {len(data)}."
                 )
-            inputs, labels = data
         else:
             raise TypeError(
                 f"Data should be a dict or list, but received {type(data)}."
             )
-
-        inputs = auto_utils.to_list(inputs)
+        if not isinstance(inputs, (list, tuple)):
+            inputs = auto_utils.to_list(inputs)
         labels = auto_utils.to_list(labels)
 
+        def flatten_list(nested_list):
+            flat_list = []
+            for item in nested_list:
+                if isinstance(item, (list, tuple)):
+                    flat_list.extend(flatten_list(item))
+                else:
+                    flat_list.append(item)
+            return flat_list
+
+        # flatten [[1,2],3] - > [1,2,3]
+        inputs = flatten_list(inputs)
         if inputs is not None:
             for i, item in enumerate(inputs):
                 assert item is not None, "Receive None input."
@@ -917,6 +930,18 @@ class Engine:
                 lambda op: bool(op.has_attr('op_role') and op.op_role == 0),
             )
 
+        if (
+            self._strategy.fused_passes.fused_passes_list is not None
+            and "fused_gemm_epilogue_pass"
+            in self._strategy.fused_passes.fused_passes_list
+        ):
+            pm = pir.PassManager()
+            pm.add_pass("fused_gemm_epilogue_pass", {})
+            pm.run(dense_program)
+            self._strategy.fused_passes.fused_passes_list.remove(
+                "fused_gemm_epilogue_pass"
+            )
+
         if self._strategy.pipeline.enable:
             self._job_plan = pipeline_pass(
                 [dense_program], [dense_program], self._strategy.pipeline
@@ -1353,7 +1378,7 @@ class Engine:
             self.program_helper.init_pir(
                 self._pir_dist_main_progs[mode], self._place
             )
-            changed_ouput_op_list = []
+            changed_output_op_list = []
             if self._executor is None:
                 self._executor = paddle.static.Executor(self._place)
                 startup_prog = self._startup_progs[mode].clone()
@@ -1411,7 +1436,7 @@ class Engine:
                             )
                             if src_value.persistable:
                                 src_value.persistable = False
-                                changed_ouput_op_list.append(op)
+                                changed_output_op_list.append(op)
                             op.operand(0).set_source(reshard_var)
                 for del_op in del_ops:
                     del_op.erase()
@@ -1421,7 +1446,7 @@ class Engine:
                 paddle.base.libpaddle.pir.apply_dist2dense_pass(startup_prog)
                 remove_unuseful_comm_op_pass(startup_prog)
 
-                for op in changed_ouput_op_list:
+                for op in changed_output_op_list:
                     op.operand_source(0).persistable = True
                 self._executor.run(startup_prog)
                 if self._job_plan is not None:

@@ -273,7 +273,7 @@ struct IRCopyVisitor : public ir::IRVisitorRequireReImpl<Expr> {
     auto domain = Visit(op->domain);
     auto buffer_expr = Expr(op->buffer);
     // TODO(Superjomn) copy the operation.
-    auto operaion = op->operation;
+    auto operation = op->operation;
     auto name = op->name;
     auto tensor = make_shared<_Tensor_>();
 
@@ -289,7 +289,7 @@ struct IRCopyVisitor : public ir::IRVisitorRequireReImpl<Expr> {
     tensor->domain = domain;
     tensor->shape = shape;
     tensor->reduce_axis = op->reduce_axis;
-    tensor->operation = operaion;
+    tensor->operation = operation;
     tensor->name = name;
     tensor->set_type(op->type());
     tensor->axis_ = op->axis_;
@@ -584,6 +584,8 @@ ir::Module IRCopy(const Module& m, bool copy_buffer_node) {
 ir::LoweredFunc IRCopy(const ir::LoweredFunc& x, bool copy_buffer_node) {
   IRCopyVisitor visitor(copy_buffer_node);
   auto copied = visitor.Visit(x.As<ir::_LoweredFunc_>());
+  // TODO(Dmovic): Update ir copy when remove expr body.
+  copied->body_block = x->body_block;
   return copied;
 }
 

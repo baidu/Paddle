@@ -350,7 +350,7 @@ void GenerateShapeOp::Build(pir::Builder& builder,
     for (const auto& attr : output_dim_exprs) {
       PADDLE_ENFORCE(attr.isa<pir::Int64Attribute>(),
                      ::common::errors::PreconditionNotMet(
-                         "Reqiured attr must be Int64Attribute."));
+                         "Required attr must be Int64Attribute."));
     }
   }
   argument.AddInputs(inputs);

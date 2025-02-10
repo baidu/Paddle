@@ -93,22 +93,22 @@ void ArrayToTensorKernel(const Context& dev_ctx,
   PADDLE_ENFORCE_GT(
       n,
       0,
-      common::errors::InvalidArgument("Input tensorarray size should > 0,"
+      common::errors::InvalidArgument("Input tensor array size should > 0,"
                                       "but the received is %d",
                                       n));
 
   std::vector<DenseTensor> tmp_inputs(x.size());
   std::vector<const DenseTensor*> inputs;
 
-  std::vector<DenseTensor> tmp_indexs(x.size());
-  std::vector<const DenseTensor*> indexs;
+  std::vector<DenseTensor> tmp_indices(x.size());
+  std::vector<const DenseTensor*> indices;
 
   for (size_t i = 0; i < x.size(); i++) {
     tmp_inputs[i].ShareDataWith(x[i]);
     inputs.push_back(&tmp_inputs[i]);
     FullKernel<int, Context>(
-        dev_ctx, {1}, x[i].dims()[axis], DataType::INT32, &tmp_indexs[i]);
-    indexs.push_back(&tmp_indexs[i]);
+        dev_ctx, {1}, x[i].dims()[axis], DataType::INT32, &tmp_indices[i]);
+    indices.push_back(&tmp_indices[i]);
   }
 
   if (use_stack) {
@@ -132,7 +132,7 @@ void ArrayToTensorKernel(const Context& dev_ctx,
   }
 
   out_index->Resize(common::make_ddim({static_cast<int>(x.size())}));
-  StackKernel<int, Context>(dev_ctx, indexs, 0, out_index);
+  StackKernel<int, Context>(dev_ctx, indices, 0, out_index);
 }
 
 template <typename T, typename Context>
@@ -186,6 +186,20 @@ PD_REGISTER_KERNEL(create_array,
                    phi::dtype::complex<double>) {}
 #endif
 
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(create_array,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::CreateArrayKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
+#endif
+
 PD_REGISTER_KERNEL(create_array_like,
                    CPU,
                    ALL_LAYOUT,
@@ -214,6 +228,20 @@ PD_REGISTER_KERNEL(create_array_like,
                    phi::dtype::bfloat16,
                    phi::dtype::complex<float>,
                    phi::dtype::complex<double>) {}
+#endif
+
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(create_array_like,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::CreateArrayLikeKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
 #endif
 
 PD_REGISTER_KERNEL(array_length,
@@ -260,6 +288,20 @@ PD_REGISTER_KERNEL(array_read,
                    phi::dtype::complex<double>) {}
 #endif
 
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(array_read,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::ArrayReadKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
+#endif
+
 PD_REGISTER_KERNEL(array_write,
                    CPU,
                    ALL_LAYOUT,
@@ -288,6 +330,20 @@ PD_REGISTER_KERNEL(array_write,
                    phi::dtype::bfloat16,
                    phi::dtype::complex<float>,
                    phi::dtype::complex<double>) {}
+#endif
+
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(array_write,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::ArrayWriteKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
 #endif
 
 PD_REGISTER_KERNEL(array_to_tensor,
@@ -320,6 +376,20 @@ PD_REGISTER_KERNEL(array_to_tensor,
                    phi::dtype::complex<double>) {}
 #endif
 
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(array_to_tensor,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::ArrayToTensorKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
+#endif
+
 PD_REGISTER_KERNEL(array_pop,
                    CPU,
                    ALL_LAYOUT,
@@ -348,4 +418,18 @@ PD_REGISTER_KERNEL(array_pop,
                    phi::dtype::bfloat16,
                    phi::dtype::complex<float>,
                    phi::dtype::complex<double>) {}
+#endif
+
+#if defined(PADDLE_WITH_XPU)
+PD_REGISTER_KERNEL(array_pop,
+                   XPU,
+                   ALL_LAYOUT,
+                   phi::ArrayPopKernel,
+                   bool,
+                   int,
+                   int64_t,
+                   float,
+                   double,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}
 #endif

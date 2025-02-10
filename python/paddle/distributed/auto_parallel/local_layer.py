@@ -21,8 +21,7 @@ import paddle.distributed as dist
 from paddle.nn import Layer
 
 if TYPE_CHECKING:
-    from paddle.distributed import Placement
-    from paddle.distributed.auto_parallel.process_mesh import ProcessMesh
+    from paddle.distributed import Placement, ProcessMesh
 
 
 class LocalLayer(Layer):
@@ -41,34 +40,64 @@ class LocalLayer(Layer):
     Examples:
         .. code-block:: python
 
-            import paddle
-            import paddle.distributed as dist
-            from paddle import nn
+            >>> from __future__ import annotations
 
-            class CustomLayer(LocalLayer):
-                def __init__(self, mesh):
-                    super().__init__(
-                        out_dist_attrs=[(mesh, [dist.Partial(dist.ReduceType.kRedSum)])]
-                    )
-                    self.fc = nn.Linear(16, 8)
+            >>> import paddle
+            >>> import paddle.distributed as dist
+            >>> from paddle import Tensor
+            >>> from paddle.distributed import ProcessMesh
 
-                def forward(self, x):
-                    return self.fc(x)
+            >>> class CustomLayer(dist.LocalLayer):
+            ...     def __init__(self, out_dist_attrs):
+            ...         super().__init__(out_dist_attrs)
+            ...         self.local_result = paddle.to_tensor(0.0)
 
-            # doctest: +REQUIRES(env:DISTRIBUTED)
-            mesh = dist.ProcessMesh([0, 1], dim_names=["x"])
-            custom_layer = CustomLayer(mesh)
-            input_tensor = dist.auto_parallel.api.dtensor_from_local(
-                paddle.randn([4, 16]), mesh, [dist.Replicate()]
-            )
+            ...     def forward(self, x):
+            ...         mask = paddle.zeros_like(x)
+            ...         if dist.get_rank() == 0:
+            ...             mask[1:3] = 1
+            ...         else:
+            ...             mask[4:7] = 1
 
-            output_tensor = custom_layer(input_tensor)
-            print(output_tensor)
+            ...         x = x * mask
+            ...         mask_sum = paddle.sum(x)
+            ...         mask_sum = mask_sum / mask.sum()
+            ...         self.local_result = mask_sum
+            ...         return mask_sum
+
+            >>> # doctest: +REQUIRES(env:DISTRIBUTED)
+            >>> dist.init_parallel_env()
+            >>> mesh = ProcessMesh([0, 1], dim_names=["x"])
+            >>> out_dist_attrs = [
+            ...     (mesh, [dist.Partial(dist.ReduceType.kRedSum)]),
+            ... ]
+            >>> local_input = paddle.arange(0, 10, dtype="float32")
+            >>> local_input = local_input + dist.get_rank()
+            >>> input_dist = dist.auto_parallel.api.dtensor_from_local(
+            ...     local_input, mesh, [dist.Shard(0)]
+            ... )
+            >>> custom_layer = CustomLayer(out_dist_attrs)
+            >>> output_dist = custom_layer(input_dist)
+
+            >>> local_value = custom_layer.local_result
+            >>> gathered_values: list[Tensor] = []
+            >>> dist.all_gather(gathered_values, local_value)
+
+            >>> print(f"[Rank 0] local_loss={gathered_values[0]}")
+            [Rank 0] local_loss=1.5
+            >>> print(f"[Rank 1] local_loss={gathered_values[1]}")
+            [Rank 1] local_loss=6.0
+            >>> print(f"global_loss (distributed)={output_dist}")
+            global_loss (distributed)=7.5
+
+            >>> # This case needs to be executed in a multi-card environment
+            >>> # export CUDA_VISIBLE_DEVICES=0,1
+            >>> # python -m paddle.distributed.launch {test_case}.py
     """
 
     def __init__(
         self, out_dist_attrs: list[tuple[ProcessMesh, list[Placement]]]
-    ):
+    ) -> None:
         super().__init__()
         self.out_dist_attrs = out_dist_attrs
 
@@ -84,12 +113,22 @@ class LocalLayer(Layer):
                 inputs[idx] = dist.auto_parallel.api.dtensor_to_local(
                     inputs[idx]
                 )
+
         outputs = Layer.__call__(self, *inputs, **kwargs)
         list_outs = paddle.utils.flatten(outputs)
-        for idx in range(len(list_outs)):
-            list_outs[idx] = dist.auto_parallel.api.dtensor_from_local(
-                list_outs[idx],
-                self.out_dist_attrs[idx][0],
-                self.out_dist_attrs[idx][1],
+        if len(list_outs) != len(self.out_dist_attrs):
+            raise ValueError(
+                f"The number of outputs ({len(list_outs)}) does not match "
+                f"the number of distribution attributes ({len(self.out_dist_attrs)})."
             )
-        return paddle.utils.pack_sequence_as(outputs, list_outs)
+
+        dist_outs = []
+        for idx in range(len(list_outs)):
+            dist_outs.append(
+                dist.auto_parallel.api.dtensor_from_local(
+                    list_outs[idx],
+                    self.out_dist_attrs[idx][0],
+                    self.out_dist_attrs[idx][1],
+                )
+            )
+        return paddle.utils.pack_sequence_as(outputs, dist_outs)

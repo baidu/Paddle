@@ -21,8 +21,8 @@ import numpy as np
 import paddle
 from paddle.utils import deprecated
 
-LOWEST_WARNING_POSTION = 3
-ERROR_WARNING_POSTION = sys.maxsize
+LOWEST_WARNING_POSITION = 3
+ERROR_WARNING_POSITION = sys.maxsize
 
 # custom paddle version
 paddle.version.major = '0'
@@ -36,19 +36,19 @@ print("current paddle version: ", paddle.__version__)
 
 def get_warning_index(api):
     """
-    Given an paddle API, return the index of the Warinng information in its doc string if exists;
-    If Warinng information doesn't exist, return the default ERROR_WARNING_POSTION, sys.maxsize.
+    Given an paddle API, return the index of the Warning information in its doc string if exists;
+    If Warning information doesn't exist, return the default ERROR_WARNING_POSITION, sys.maxsize.
 
     Args:
         API (python object)
 
     Returns:
-        index (int): the index of the Warinng information in its doc string if exists.
+        index (int): the index of the Warning information in its doc string if exists.
     """
 
     doc_list = api.__doc__.splitlines()
     if len(doc_list) < 2:
-        return ERROR_WARNING_POSTION
+        return ERROR_WARNING_POSITION
     for idx, (current_line, next_line) in enumerate(
         zip(doc_list[:-1], doc_list[1:])
     ):
@@ -58,7 +58,7 @@ def get_warning_index(api):
             and "and will be removed in future versions." in next_line
         ):
             return idx
-    return ERROR_WARNING_POSTION
+    return ERROR_WARNING_POSITION
 
 
 class TestDeprecatedDecorator(unittest.TestCase):
@@ -79,12 +79,12 @@ class TestDeprecatedDecorator(unittest.TestCase):
         res = paddle.multiply(x, y)
 
         # expected
-        expected = LOWEST_WARNING_POSTION
+        expected = LOWEST_WARNING_POSITION
 
         # captured
         captured = get_warning_index(paddle.multiply)
 
-        # testting
+        # testing
         self.assertLess(expected, captured)
 
     def test_indent_level(self):

@@ -69,8 +69,8 @@ void AutoTuner::Initialize(const Config& config,
     auto&& task = tasks_[i];
     task.Initialize(shape_dict, dtype_dict, op_lowerer_.get());
     // Register the initial ModuleExpr corresponding to the task
-    task_registry->Regist(task.serialized_key,
-                          ir::ModuleExpr(task.GetLoweredFuncBodyExprs()));
+    task_registry->Register(task.serialized_key,
+                            ir::ModuleExpr(task.GetLoweredFuncBodyExprs()));
     VLOG(3) << "Add a task, id:" << i << ", serialized_key:\n"
             << task.serialized_key;
   }

@@ -4478,7 +4478,7 @@ def adaptive_log_softmax_with_loss(
         name (str|None, optional): Name for the operation (optional, default is ``None``). For more information, please refer to :ref:`api_guide_Name`.
 
     Returns:
-        - output (Tensor). The tensor sotring adaptive logsoftmax result, the shape of output is ``[N]``
+        - output (Tensor). The tensor storing adaptive logsoftmax result, the shape of output is ``[N]``
         - loss (Tensor). The tensor variable storing the adaptive_log_softmax_loss of input and label.
 
     Examples:

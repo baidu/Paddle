@@ -50,7 +50,7 @@ int32_t MemorySparseTable::Initialize() {
   for (auto &shards_task : _shards_task_pool) {
     shards_task.reset(new ::ThreadPool(1));
   }
-  VLOG(0) << "initalize MemorySparseTable succ";
+  VLOG(0) << "initialize MemorySparseTable succ";
   return 0;
 }
 

@@ -56,15 +56,17 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['exclusive'],
             self.attrs['reverse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 1]
+        )
 
         # axis = 0
         # [-1, 0, 1] --> [-1, 0, 1], [-1, 0, 1]
@@ -77,15 +79,15 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['exclusive'],
             self.attrs['reverse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, 0, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 0, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, 0, 1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, 0, 1])
 
         # axis=-1, flatten = True
         # [-1, 0, 1] --> [-1, -1, -1], [-1]
@@ -99,15 +101,17 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['exclusive'],
             self.attrs['reverse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1])
         self.attrs['flatten'] = False
 
     def test_infer_spmd_reverse(self):
@@ -126,15 +130,17 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['exclusive'],
             self.attrs['reverse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 1]
+        )
 
         # axis = -1, flatten = True
         # [-1, 0, 1], [-1] --> [-1, -1, -1], [-1]
@@ -151,15 +157,17 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['exclusive'],
             self.attrs['reverse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1])
         self.attrs['flatten'] = False
         self.out_spec.shape = [64, 32, 48]
 

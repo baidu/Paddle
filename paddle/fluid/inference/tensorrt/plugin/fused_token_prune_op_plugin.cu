@@ -44,12 +44,12 @@ __global__ void compute_token_length(const int32_t* src,
 template <typename T>
 __global__ void fill_index_padding_score(int32_t* token_index,
                                          const T* scores,
-                                         int32_t sequnce_length,
+                                         int32_t sequence_length,
                                          T* padding_scores) {
   int padding_scores_it = threadIdx.x + blockIdx.x * blockDim.x;
-  int scores_it = threadIdx.x + blockIdx.x * sequnce_length;
+  int scores_it = threadIdx.x + blockIdx.x * sequence_length;
   token_index[padding_scores_it] = threadIdx.x;
-  if (threadIdx.x < sequnce_length) {
+  if (threadIdx.x < sequence_length) {
     padding_scores[padding_scores_it] = scores[scores_it];
   } else {
     padding_scores[padding_scores_it] = 0;
@@ -120,7 +120,7 @@ __global__ void varlen_prune_token_change_order(
 
 template <typename T>
 __global__ void prune_token_change_order(const T* tokens,
-                                         int32_t new_sequnce_length,
+                                         int32_t new_sequence_length,
                                          const int32_t padding_token_length,
                                          const int32_t* token_index,
                                          T* output) {
@@ -130,8 +130,8 @@ __global__ void prune_token_change_order(const T* tokens,
       token_it * gridDim.z * blockDim.x + blockIdx.z * blockDim.x + threadIdx.x;
   int token_index_it = batch * padding_token_length + blockIdx.y;
 
-  if (token_index[token_index_it] < new_sequnce_length) {
-    output[(batch * new_sequnce_length + token_index[token_index_it]) *
+  if (token_index[token_index_it] < new_sequence_length) {
+    output[(batch * new_sequence_length + token_index[token_index_it]) *
                gridDim.z * blockDim.x +
            blockIdx.z * blockDim.x + threadIdx.x] = tokens[pre_value_it];
   }
@@ -139,21 +139,21 @@ __global__ void prune_token_change_order(const T* tokens,
 
 template <typename T>
 __global__ void prune_token_keep_order(const T* tokens,
-                                       int32_t pre_sequnce_length,
-                                       int32_t new_sequnce_length,
+                                       int32_t pre_sequence_length,
+                                       int32_t new_sequence_length,
                                        const int32_t padding_token_length,
                                        const int32_t* token_index,
                                        T* output0,
                                        int32_t* output1) {
   int batch = blockIdx.x;
   int index = 0;
-  for (int i = 0; i < pre_sequnce_length; ++i) {
-    if (token_index[batch * padding_token_length + i] < new_sequnce_length) {
-      output0[(batch * new_sequnce_length + index) * gridDim.y * blockDim.x +
+  for (int i = 0; i < pre_sequence_length; ++i) {
+    if (token_index[batch * padding_token_length + i] < new_sequence_length) {
+      output0[(batch * new_sequence_length + index) * gridDim.y * blockDim.x +
               blockIdx.y * blockDim.x + threadIdx.x] =
-          tokens[(batch * pre_sequnce_length + i) * gridDim.y * blockDim.x +
+          tokens[(batch * pre_sequence_length + i) * gridDim.y * blockDim.x +
                  blockIdx.y * blockDim.x + threadIdx.x];
-      output1[batch * new_sequnce_length + index] = i;
+      output1[batch * new_sequence_length + index] = i;
       index++;
     }
   }
@@ -350,21 +350,21 @@ int FusedTokenPrunePluginDynamic::enqueue(
     int32_t* output3 = static_cast<int32_t*>(outputs[3]);  // new pos id
     half* output0 = static_cast<half*>(outputs[0]);
     const int32_t B = input_desc[1].dims.d[0];  // batches
-    const int32_t max_sequnce_length =
-        input_desc[1].dims.d[1];                     // max sequnce length
+    const int32_t max_sequence_length =
+        input_desc[1].dims.d[1];                     // max sequence length
     const int32_t length = input_desc[1].dims.d[2];  // hidden size
     const half* scores = static_cast<const half*>(inputs[0]);  // reduce sum
     const half* tokens = static_cast<const half*>(inputs[1]);
     int32_t padding_token_length;
-    if (max_sequnce_length <= 64) {
+    if (max_sequence_length <= 64) {
       padding_token_length = 64;
-    } else if (max_sequnce_length <= 128) {
+    } else if (max_sequence_length <= 128) {
       padding_token_length = 128;
-    } else if (max_sequnce_length <= 256) {
+    } else if (max_sequence_length <= 256) {
       padding_token_length = 256;
-    } else if (max_sequnce_length <= 384) {
+    } else if (max_sequence_length <= 384) {
       padding_token_length = 384;
-    } else if (max_sequnce_length <= 512) {
+    } else if (max_sequence_length <= 512) {
       padding_token_length = 512;
     } else {
       PADDLE_THROW(common::errors::InvalidArgument(
@@ -379,7 +379,7 @@ int FusedTokenPrunePluginDynamic::enqueue(
     fill_index_padding_score<half><<<B, padding_token_length, 0, stream>>>(
         token_index_,
         scores,
-        max_sequnce_length,
+        max_sequence_length,
         static_cast<half*>(padding_scores_));
 
     // 3. compute new pos id
@@ -446,17 +446,16 @@ int FusedTokenPrunePluginDynamic::enqueue(
     }
     const dim3 num_blocks(
         B,
-        max_sequnce_length,
-        length /
-            num_threads);  //  batches, max_sequnce_length, vector_ength/***
+        max_sequence_length,
+        length / num_threads);  // batches, max_sequence_length, vector_length
     varlen_prune_token_change_order<<<num_blocks, num_threads, 0, stream>>>(
         tokens, output3, padding_token_length, token_index_, output0);
   } else {
     auto input_type = input_desc[0].type;
     const int32_t B = input_desc[1].dims.d[0];  // batches
-    const int32_t pre_sequnce_length = input_desc[1].dims.d[1];
-    const int32_t new_sequnce_length = input_desc[3].dims.d[2];  // new mask
-    const int32_t length = input_desc[1].dims.d[2];              // hidden size
+    const int32_t pre_sequence_length = input_desc[1].dims.d[1];
+    const int32_t new_sequence_length = input_desc[3].dims.d[2];  // new mask
+    const int32_t length = input_desc[1].dims.d[2];               // hidden size
     if (input_type == nvinfer1::DataType::kFLOAT) {
       VLOG(1) << "TRT Plugin DataType selected. FusedTokenPrune-->fp32";
       const float* scores = static_cast<const float*>(inputs[0]);  // reduce sum
@@ -464,15 +463,15 @@ int FusedTokenPrunePluginDynamic::enqueue(
       float* output0 = static_cast<float*>(outputs[0]);
       int32_t* output1 = static_cast<int32_t*>(outputs[1]);
       int32_t padding_token_length;
-      if (pre_sequnce_length <= 64) {
+      if (pre_sequence_length <= 64) {
         padding_token_length = 64;
-      } else if (pre_sequnce_length <= 128) {
+      } else if (pre_sequence_length <= 128) {
         padding_token_length = 128;
-      } else if (pre_sequnce_length <= 256) {
+      } else if (pre_sequence_length <= 256) {
         padding_token_length = 256;
-      } else if (pre_sequnce_length <= 384) {
+      } else if (pre_sequence_length <= 384) {
         padding_token_length = 384;
-      } else if (pre_sequnce_length <= 512) {
+      } else if (pre_sequence_length <= 512) {
         padding_token_length = 512;
       } else {
         PADDLE_THROW(common::errors::InvalidArgument(
@@ -483,7 +482,7 @@ int FusedTokenPrunePluginDynamic::enqueue(
       fill_index_padding_score<float><<<B, padding_token_length, 0, stream>>>(
           token_index_,
           scores,
-          pre_sequnce_length,
+          pre_sequence_length,
           static_cast<float*>(padding_scores_));
 
       // 2. sort scores
@@ -535,17 +534,17 @@ int FusedTokenPrunePluginDynamic::enqueue(
         const dim3 num_blocks(B, length / num_threads);
         prune_token_keep_order<float>
             <<<num_blocks, num_threads, 0, stream>>>(tokens,
-                                                     pre_sequnce_length,
-                                                     new_sequnce_length,
+                                                     pre_sequence_length,
+                                                     new_sequence_length,
                                                      padding_token_length,
                                                      token_index_,
                                                      output0,
                                                      output1);
       } else {
-        const dim3 num_blocks(B, pre_sequnce_length, length / num_threads);
+        const dim3 num_blocks(B, pre_sequence_length, length / num_threads);
         prune_token_change_order<float>
             <<<num_blocks, num_threads, 0, stream>>>(tokens,
-                                                     new_sequnce_length,
+                                                     new_sequence_length,
                                                      padding_token_length,
                                                      token_index_,
                                                      output0);
@@ -557,15 +556,15 @@ int FusedTokenPrunePluginDynamic::enqueue(
       half* output0 = static_cast<half*>(outputs[0]);
       int32_t* output1 = static_cast<int32_t*>(outputs[1]);
       int32_t padding_token_length;
-      if (pre_sequnce_length <= 64) {
+      if (pre_sequence_length <= 64) {
         padding_token_length = 64;
-      } else if (pre_sequnce_length <= 128) {
+      } else if (pre_sequence_length <= 128) {
         padding_token_length = 128;
-      } else if (pre_sequnce_length <= 256) {
+      } else if (pre_sequence_length <= 256) {
         padding_token_length = 256;
-      } else if (pre_sequnce_length <= 384) {
+      } else if (pre_sequence_length <= 384) {
         padding_token_length = 384;
-      } else if (pre_sequnce_length <= 512) {
+      } else if (pre_sequence_length <= 512) {
         padding_token_length = 512;
       } else {
         PADDLE_THROW(common::errors::InvalidArgument(
@@ -576,7 +575,7 @@ int FusedTokenPrunePluginDynamic::enqueue(
       fill_index_padding_score<half><<<B, padding_token_length, 0, stream>>>(
           token_index_,
           scores,
-          pre_sequnce_length,
+          pre_sequence_length,
           static_cast<half*>(padding_scores_));
 
       // 2. sort scores
@@ -628,17 +627,17 @@ int FusedTokenPrunePluginDynamic::enqueue(
         const dim3 num_blocks(B, length / num_threads);
         prune_token_keep_order<half>
             <<<num_blocks, num_threads, 0, stream>>>(tokens,
-                                                     pre_sequnce_length,
-                                                     new_sequnce_length,
+                                                     pre_sequence_length,
+                                                     new_sequence_length,
                                                      padding_token_length,
                                                      token_index_,
                                                      output0,
                                                      output1);
       } else {
-        const dim3 num_blocks(B, pre_sequnce_length, length / num_threads);
+        const dim3 num_blocks(B, pre_sequence_length, length / num_threads);
         prune_token_change_order<half>
             <<<num_blocks, num_threads, 0, stream>>>(tokens,
-                                                     new_sequnce_length,
+                                                     new_sequence_length,
                                                      padding_token_length,
                                                      token_index_,
                                                      output0);

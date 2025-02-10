@@ -418,7 +418,7 @@ def summary(
 
 @no_grad()
 def summary_string(model, input_size=None, dtypes=None, input=None):
-    def _all_is_numper(items):
+    def _all_is_number(items):
         for item in items:
             if not isinstance(item, numbers.Number):
                 return False
@@ -428,7 +428,7 @@ def summary_string(model, input_size=None, dtypes=None, input=None):
         if dtype is None:
             dtype = 'float32'
 
-        if isinstance(input_size, (list, tuple)) and _all_is_numper(input_size):
+        if isinstance(input_size, (list, tuple)) and _all_is_number(input_size):
             return [dtype]
         else:
             return [_build_dtypes(i, dtype) for i in input_size]
@@ -521,7 +521,7 @@ def summary_string(model, input_size=None, dtypes=None, input=None):
         input_size = [input_size]
 
     def build_input(input_size, dtypes):
-        if isinstance(input_size, (list, tuple)) and _all_is_numper(input_size):
+        if isinstance(input_size, (list, tuple)) and _all_is_number(input_size):
             if isinstance(dtypes, (list, tuple)):
                 dtype = dtypes[0]
             else:
@@ -637,7 +637,7 @@ def summary_string(model, input_size=None, dtypes=None, input=None):
         summary_str += line_new + "\n"
 
     def _get_input_size(input_size, size):
-        if isinstance(input_size, (list, tuple)) and _all_is_numper(input_size):
+        if isinstance(input_size, (list, tuple)) and _all_is_number(input_size):
             size = abs(np.prod(input_size) * 4.0 / (1024**2.0))
         else:
             size = sum([_get_input_size(i, size) for i in input_size])

@@ -230,7 +230,7 @@ class CoalesceGradTensorPass : public ir::Pass {
     // params_grads.begin()->second.
     auto fused_grad_var_name = std::string(details::kFusedVarNamePrefix) +
                                "@GRAD@" + params_grads.begin()->second;
-    // what a pity, visual c++ unsupport {.type_ = type}
+    // what a pity, visual c++ unsupported {.type_ = type}
     details::VariableInfo var_info;
     var_info.name_ = fused_grad_var_name;
     var_info.type_ = type;

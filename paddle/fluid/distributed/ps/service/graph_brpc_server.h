@@ -36,8 +36,8 @@ class GraphBrpcServer : public PSServer {
   virtual brpc::Channel *GetCmdChannel(size_t server_index);
   virtual int32_t Stop() {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (stoped_) return 0;
-    stoped_ = true;
+    if (stopped_) return 0;
+    stopped_ = true;
     // cv_.notify_all();
     _server.Stop(1000);
     _server.Join();
@@ -51,7 +51,7 @@ class GraphBrpcServer : public PSServer {
   virtual int32_t Initialize();
   mutable std::mutex mutex_;
   std::condition_variable cv_;
-  bool stoped_ = false;
+  bool stopped_ = false;
   int rank;
   brpc::Server _server;
   std::shared_ptr<PsBaseService> _service;

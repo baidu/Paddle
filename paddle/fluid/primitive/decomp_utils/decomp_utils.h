@@ -332,7 +332,7 @@ class LayerNormDecompHelper {
     }
 
     if (!static_norm_shape_) {
-      // try get static norm numel from sacle for bias
+      // try get static norm numel from scale for bias
       normalized_numel_ = -1;
       if (scale.get_ptr()) {
         normalized_numel_ = scale->dims()[0];

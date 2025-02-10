@@ -451,7 +451,7 @@ void Executor::WeightsToHost() {
   if (ipu_strategy_->is_training && session_) {
     WeightsToPaddle();
   } else {
-    LOG(WARNING) << "For a non-trainning graph, cannot sync weights from IPU.";
+    LOG(WARNING) << "For a non-training graph, cannot sync weights from IPU.";
   }
 }
 

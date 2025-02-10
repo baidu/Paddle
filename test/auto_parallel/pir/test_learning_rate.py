@@ -71,12 +71,12 @@ class SimpleDemoNet(nn.Layer):
 
     def forward(self, x):
         x.stop_gradient = False
-        out = self.relu_0(x)  # triggle backward partial allreduce
+        out = self.relu_0(x)  # trigger backward partial allreduce
         out = self.linear_0(out)
         out = self.relu_1(out)
         out = dist.reshard(out, self._mesh2, [dist.Replicate()])
         out = self.linear_1(out)
-        out = self.relu_2(out)  # triggle forward partial allreduce
+        out = self.relu_2(out)  # trigger forward partial allreduce
         return out
 
 

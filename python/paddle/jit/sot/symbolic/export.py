@@ -318,13 +318,13 @@ class PyFileGen:
 
         def search(outputs, path, result):
             if isinstance(outputs, (list, tuple)):
-                search_sequnce(outputs, path, result)
+                search_sequence(outputs, path, result)
             elif isinstance(outputs, dict):
                 search_dict(outputs, path, result)
             elif isinstance(outputs, Symbol):
                 result.append(self.name_gener(outputs) + " = " + "".join(path))
 
-        def search_sequnce(outputs, path, result):
+        def search_sequence(outputs, path, result):
             for idx, out in enumerate(outputs):
                 path.append(f"[{idx}]")
                 search(out, path, result)

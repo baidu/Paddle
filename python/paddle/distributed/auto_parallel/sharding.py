@@ -31,6 +31,7 @@ from paddle.distributed.auto_parallel.static.process_group import (
 from paddle.distributed.auto_parallel.static.reshard_funcs.nd_mesh_reshard_func import (
     get_1D_sub_process_mesh,
 )
+from paddle.distributed.auto_parallel.static.utils import split_mesh
 from paddle.distributed.fleet.meta_optimizers.common import OpRole
 from paddle.distributed.fleet.utils.tensor_fusion_helper import (
     align,
@@ -139,12 +140,22 @@ class ShardingOptimizerStage1(Optimizer):
             self.pp_meshes.add(mesh)
 
         self._sharding_axis = mesh._dim_names.index("dp")
+
         self._sharding_degree = mesh._shape[self._sharding_axis]
         self._mp_mesh_axis = -1
         self._mp_degree = 1
         if "mp" in mesh._dim_names:
             self._mp_mesh_axis = mesh._dim_names.index("mp")
             self._mp_degree = mesh._shape[self._mp_mesh_axis]
+            pp_meshes = set()
+            for pp_mesh in self.pp_meshes:
+                pp_meshes.add(pp_mesh)
+                for sub_pp_mesh in split_mesh(
+                    global_mesh=pp_mesh, sub_mesh_dim=self._mp_mesh_axis
+                ):
+                    pp_meshes.add(sub_pp_mesh)
+            self.pp_meshes = pp_meshes
+
         paddle.disable_static()
 
     def apply_gradients(self, params_grads):
@@ -180,39 +191,6 @@ class ShardingOptimizerStage1(Optimizer):
                 param_dist_attr.process_mesh == grad_dist_attr.process_mesh
             ), f"Parameter and grad should have same process_mesh. but received name:{param.name}, parameter:{param}, grad: {grad}."
 
-            assert (
-                param_dist_attr.process_mesh in self.pp_meshes
-            ), f"parameter mesh mush be in pp_meshes. but received parameter name:{param.name}, mesh:{param_dist_attr.process_mesh}, pp_meshes: {self.pp_meshes}."
-
-            if dist.get_rank() in param_dist_attr.process_mesh.process_ids:
-                sub_mesh = get_1D_sub_process_mesh(
-                    param_dist_attr.process_mesh, self._sharding_axis
-                )
-                assert (
-                    sorted(sub_mesh.process_ids) == self._sharding_group.ranks
-                ), f" all parameter must have the same sharding group. but received {param.name} sharding group is : {sub_mesh.process_ids}, global sharding group is: {self._sharding_group.ranks}"
-
-                if self._mp_group is not None:
-                    sub_mesh = get_1D_sub_process_mesh(
-                        param_dist_attr.process_mesh, self._mp_mesh_axis
-                    )
-                    assert (
-                        sorted(sub_mesh.process_ids) == self._mp_group.ranks
-                    ), f" all parameter must have the same mp group. but received {param.name} mp group is : {sub_mesh.process_ids}, global mp group is: {self._mp_group.ranks}"
-
-            assert (
-                param_dist_attr.partial_dims == set()
-            ), f"Sharding fusion do not support parital parameter. but received {param.name} : {param}."
-            assert (
-                param_dist_attr.dims_mapping == grad_dist_attr.dims_mapping
-            ), f"Parameter and grad should have same dims_mapping. but received name:{param.name}, parameter:{param}, grad: {grad}."
-            assert (
-                param.shape == grad.shape
-            ), f"Parameter and grad should have same global shape. but received name:{param.name}, parameter:{param}, grad: {grad}."
-            assert (
-                param._local_shape == grad._local_shape
-            ), f"Parameter and grad should have same local shape. but received name:{param.name}, parameter:{param}, grad: {grad}."
-
             if self._sharding_axis not in grad_dist_attr.partial_dims:
                 new_params_grads.append((param, grad))
                 if param.optimize_attr is None:
@@ -225,6 +203,31 @@ class ShardingOptimizerStage1(Optimizer):
                     param.optimize_attr = {'no_fusion': False}
                 else:
                     param.optimize_attr["no_fusion"] = False
+
+            assert (
+                param_dist_attr.process_mesh in self.pp_meshes
+            ), f"parameter mesh mush be in pp_meshes. but received parameter name:{param.name}, mesh:{param_dist_attr.process_mesh}, pp_meshes: {self.pp_meshes}."
+
+            if dist.get_rank() in param_dist_attr.process_mesh.process_ids:
+                sub_mesh = get_1D_sub_process_mesh(
+                    param_dist_attr.process_mesh, self._sharding_axis
+                )
+                assert (
+                    sorted(sub_mesh.process_ids) == self._sharding_group.ranks
+                ), f" all parameter must have the same sharding group. but received {param.name} sharding group is : {sub_mesh.process_ids}, global sharding group is: {self._sharding_group.ranks}"
+
+            assert (
+                param_dist_attr.partial_dims == set()
+            ), f"Sharding fusion do not support partial parameter. but received {param.name} : {param}."
+            assert (
+                param_dist_attr.dims_mapping == grad_dist_attr.dims_mapping
+            ), f"Parameter and grad should have same dims_mapping. but received name:{param.name}, parameter:{param}, grad: {grad}."
+            assert (
+                param.shape == grad.shape
+            ), f"Parameter and grad should have same global shape. but received name:{param.name}, parameter:{param}, grad: {grad}."
+            assert (
+                param._local_shape == grad._local_shape
+            ), f"Parameter and grad should have same local shape. but received name:{param.name}, parameter:{param}, grad: {grad}."
 
             if (
                 self._mp_degree > 1

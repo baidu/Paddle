@@ -61,7 +61,7 @@ PHI_DEFINE_EXPORTED_bool(enable_gpu_memory_usage_log_mb,
                          true,
                          "Whether to print the message of gpu memory usage "
                          "MB as a unit of measurement.");
-PHI_DEFINE_EXPORTED_uint64(cuda_memory_async_pool_realease_threshold,
+PHI_DEFINE_EXPORTED_uint64(cuda_memory_async_pool_release_threshold,
                            ULLONG_MAX,
                            "Amount of reserved memory in bytes to hold onto "
                            "before trying to release memory back to the OS");
@@ -274,7 +274,7 @@ class RecordedGpuMallocHelper {
       PADDLE_ENFORCE_GPU_SUCCESS(
           hipDeviceGetDefaultMemPool(&memPool_, dev_id_));
 #endif
-      uint64_t thresholdVal = FLAGS_cuda_memory_async_pool_realease_threshold;
+      uint64_t thresholdVal = FLAGS_cuda_memory_async_pool_release_threshold;
       VLOG(10) << "[cudaMallocAsync] set cudaMemPoolAttrReleaseThreshold to "
                << thresholdVal;
 #ifdef PADDLE_WITH_CUDA

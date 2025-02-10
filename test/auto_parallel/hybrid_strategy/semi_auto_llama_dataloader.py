@@ -252,10 +252,10 @@ class TestLlamaAuto:
                 break
 
     def run_test_cases(self):
-        dynamic_input_mdsum = self.run_llama(to_static=0)
+        dynamic_input_md5sum = self.run_llama(to_static=0)
         static_input_md5sum = self.run_llama(to_static=1)
         if dist.get_rank() == 0:
-            assert dynamic_input_mdsum == static_input_md5sum
+            assert dynamic_input_md5sum == static_input_md5sum
 
 
 if __name__ == '__main__':

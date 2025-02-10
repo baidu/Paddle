@@ -204,7 +204,7 @@ nvinfer1::DimsExprs SplitPluginDynamic::getOutputDimensions(
                     output_length_.size(),
                     common::errors::InvalidArgument(
                         "When GetOutputDimensions, the index(%d) should not "
-                        "greater the num(%d) of the outpus.",
+                        "greater the num(%d) of the outputs.",
                         output_index,
                         output_length_.size()));
 

@@ -11,12 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import argparse
 import re
 
 import yaml
 from api_base import PREFIX_TENSOR_NAME, BaseAPI
+
+backward_api_black_list = [
+    "embedding_grad",  # tensor = embedding_grad_impl() is not implemented in api_custom_impl.cc
+    "pull_sparse_v2_grad",  # tensor = pull_sparse_v2() is not implemented in api_custom_impl.cc
+    "scale_grad",  # tensor = scale is not implemented in api_custom_impl.cc
+    "cudnn_lstm_grad",  # weight_list.size() should be weight_list.get_ptr()->size() but can't modify yaml file
+]
 
 inplace_out_type_map = {
     "Tensor": "Tensor&",
@@ -26,6 +32,11 @@ inplace_out_type_map = {
 inplace_optional_out_type_map = {
     "Tensor": "paddle::optional<Tensor>&",
     "std::vector<Tensor>": "paddle::optional<std::vector<Tensor>>&",
+}
+
+optional_out_type_map = {
+    "Tensor": "paddle::optional<Tensor>",
+    "std::vector<Tensor>": "paddle::optional<std::vector<Tensor>>",
 }
 
 
@@ -112,6 +123,7 @@ class ForwardAPI(BaseAPI):
         return inplace_map, view_map
 
     def get_return_type_with_intermediate(self, inplace_flag=False):
+
         out_type_list = []
         for i, out_type in enumerate(self.outputs['types']):
             out_name = self.outputs['names'][i].split('@')[0]
@@ -216,7 +228,11 @@ class ForwardAPI(BaseAPI):
                 or out_tensor_type_list[0] == 'dense'
                 else 'SetSelectedRowsKernelOutput'
             )
-            if return_type == 'std::vector<Tensor>':
+
+            if (
+                return_type == 'std::vector<Tensor>'
+                or return_type == 'std::vector<Tensor>&'
+            ):
                 assert (
                     self.outputs['out_size_expr'][0] is not None
                 ), f"{self.api}: The out size expr : '{{expr}}' should be set when output has Tensor[]. You can refer 'split' api."
@@ -225,8 +241,28 @@ class ForwardAPI(BaseAPI):
                     + f"""
 {code_indent}  auto kernel_out = {set_out_func}({self.outputs['out_size_expr'][0]}, &api_output);"""
                 )
-
-            else:
+            elif (
+                return_type == 'paddle::optional<std::vector<Tensor>>'
+                or return_type == 'paddle::optional<std::vector<Tensor>>&'
+            ):
+                assert (
+                    self.outputs['out_size_expr'][0] is not None
+                ), f"{self.api}: The out size expr : '{{expr}}' should be set when output has Tensor[]. You can refer 'split' api."
+                output_create = (
+                    output_create
+                    + f"""
+{code_indent}  auto kernel_out = {set_out_func}({self.outputs['out_size_expr'][0]}, api_output.get_ptr());"""
+                )
+            elif (
+                return_type == 'paddle::optional<Tensor>'
+                or return_type == 'paddle::optional<Tensor>&'
+            ):
+                output_create = (
+                    output_create
+                    + f"""
+{code_indent}  auto kernel_out = {set_out_func}(api_output.get_ptr());"""
+                )
+            elif return_type == 'Tensor' or return_type == 'Tensor&':
                 output_create = (
                     output_create
                     + f"""
@@ -273,7 +309,8 @@ class ForwardAPI(BaseAPI):
 
                 get_out_code = f"&std::get<{i}>(api_output)"
                 if (
-                    self.outputs['names'][i] in self.inplace_map
+                    inplace_flag
+                    and self.outputs['names'][i] in self.inplace_map
                     and self.inplace_map[self.outputs['names'][i]]
                     in self.optional_vars
                 ):
@@ -413,17 +450,18 @@ def source_include(header_file_path):
 #include "paddle/phi/infermeta/unary.h"
 #include "paddle/phi/infermeta/ternary.h"
 #include "paddle/phi/infermeta/fusion.h"
+#include "paddle/phi/infermeta/backward.h"
 
 #include "paddle/phi/api/profiler/event_tracing.h"
 #include "paddle/phi/api/profiler/supplement_tracing.h"
 
-#include "paddle/phi/core/platform/device_context.h"
 #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
 #include "paddle/phi/core/distributed/comm_context_manager.h"
 #include "paddle/phi/core/distributed/nccl_comm_context.h"
 #endif
 
 #ifdef PADDLE_WITH_DISTRIBUTE
+#include "paddle/phi/core/distributed/store/store_utils.h"
 #include "paddle/phi/infermeta/spmd_rules/rules.h"
 #include "paddle/phi/core/distributed/auto_parallel/reshard/reshard_utils.h"
 #endif
@@ -485,7 +523,7 @@ def generate_api(
         if is_fused_ops_yaml is True
         else "paddle/phi/api/include/api.h"
     )
-    # not all fused ops supoort dygraph
+    # not all fused ops support dygraph
     if is_fused_ops_yaml is True:
         new_apis = [
             api
@@ -499,7 +537,10 @@ def generate_api(
     source_file.write(namespace[0])
 
     for api in apis:
+
         forward_api = ForwardAPI(api)
+        if forward_api.api in backward_api_black_list:
+            continue
         if forward_api.is_dygraph_api and not is_fused_ops_yaml:
             forward_api.is_dygraph_api = False
 

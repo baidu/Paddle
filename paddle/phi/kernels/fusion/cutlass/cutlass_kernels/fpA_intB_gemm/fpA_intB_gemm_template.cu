@@ -617,7 +617,8 @@ void CutlassFpAIntBGemmRunner<T, WeightType>::run_gemm<EpilogueTag,
   } else {
     float best_time = std::numeric_limits<float>::max();
     CutlassGemmConfig best_config;
-    int profile_m = gemmConfigManager.nextPowerOfTwo(m);
+    int profile_m = std::min(gemmConfigManager.nextPowerOfTwo(m),
+                             gemmConfigManager.getMaxProfileM());
     bool found_one = false;
 
     for (size_t ii = 0; ii < candidate_configs.size(); ++ii) {

@@ -39,6 +39,7 @@ from paddle.tensorrt.util import (
     forbid_op_lower_trt,
     mark_builtin_op,
     run_pir_pass,
+    run_trt_partition,
     warmup_shape_infer,
 )
 
@@ -173,6 +174,7 @@ class TensorRTConfig:
         ops_run_float: str | list | None = None,
         optimization_level: int | None = 3,
         disable_passes: list = [],
+        workspace_size: int | None = 1 << 30,
     ) -> None:
         """
         A class for configuring TensorRT optimizations.
@@ -199,6 +201,8 @@ class TensorRTConfig:
                 Set TensorRT optimization level (default is 3). Only supported in TensorRT versions greater than 8.6.
             disable_passes : (str|list, optional):
                 A list of string representing the names of pass that should not be used for origin program (default is []).
+            workspace_size (int, optional):
+                Specifies the maximum GPU memory (in bytes) that TensorRT can use for the optimization process (default is 1 << 30).
         Returns:
             None
 
@@ -222,6 +226,7 @@ class TensorRTConfig:
             >>> trt_config.disable_ops = "pd_op.dropout"
             >>> trt_config.precision_mode = PrecisionMode.FP16
             >>> trt_config.ops_run_float = "pd_op.conv2d"
+            >>> trt_config.workspace_size = 2 << 30
         """
         self.inputs = inputs
         self.min_subgraph_size = min_subgraph_size
@@ -231,6 +236,7 @@ class TensorRTConfig:
         self.disable_ops = disable_ops
         self.disable_passes = disable_passes
         self.optimization_level = optimization_level
+        self.workspace_size = workspace_size
         paddle.framework.set_flags(
             {'FLAGS_trt_min_group_size': min_subgraph_size}
         )
@@ -264,7 +270,6 @@ def convert_to_trt(program, trt_config, scope):
         # run pir pass (including trt_op_marker_pass)
         program_with_pir = run_pir_pass(
             program,
-            partition_mode=False,
             disable_passes=trt_config.disable_passes,
             scope=scope,
         )
@@ -286,9 +291,7 @@ def convert_to_trt(program, trt_config, scope):
         mark_builtin_op(program)
 
         # run pir pass (including trt_sub_graph_extract_pass)
-        program_with_pir = run_pir_pass(
-            program, partition_mode=True, scope=scope
-        )
+        program_with_pir = run_trt_partition(program)
 
         # Step4: run TRTConverter (would lower group_op into tensorrt_engine_op)
         converter = PaddleToTensorRTConverter(

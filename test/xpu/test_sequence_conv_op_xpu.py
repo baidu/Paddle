@@ -126,7 +126,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
                 0.000159822,
                 [
                     self.context_length * self.input_size[1],
-                    self.output_represention,
+                    self.output_representation,
                 ],
             ).astype(self.dtype)
 
@@ -216,7 +216,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
             # convert from offset-based lod to length-based lod
             for i in range(len(offset_lod[0]) - 1):
                 self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-            self.output_represention = 8  # output feature size
+            self.output_representation = 8  # output feature size
 
     class TestSeqProjectCase1(TestSeqProject):
         def init_test_case(self):
@@ -232,7 +232,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
             # convert from offset-based lod to length-based lod
             for i in range(len(offset_lod[0]) - 1):
                 self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-            self.output_represention = 8  # output feature size
+            self.output_representation = 8  # output feature size
 
     class TestSeqProjectCase2Len0(TestSeqProject):
         def init_test_case(self):
@@ -248,7 +248,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
             # convert from offset-based lod to length-based lod
             for i in range(len(offset_lod[0]) - 1):
                 self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-            self.output_represention = 8  # output feature size
+            self.output_representation = 8  # output feature size
 
     class TestSeqProjectCase3(TestSeqProject):
         def init_test_case(self):
@@ -272,7 +272,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
             # convert from offset-based lod to length-based lod
             for i in range(len(offset_lod[0]) - 1):
                 self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-            self.output_represention = 8  # output feature size
+            self.output_representation = 8  # output feature size
 
     class TestSeqProjectCase4(TestSeqProject):
         def init_test_case(self):
@@ -421,7 +421,7 @@ class XPUTestSequenceConv(XPUOpTestWrapper):
             # convert from offset-based lod to length-based lod
             for i in range(len(offset_lod[0]) - 1):
                 self.lod[0].append(offset_lod[0][i + 1] - offset_lod[0][i])
-            self.output_represention = 8  # output feature size
+            self.output_representation = 8  # output feature size
 
 
 support_types = get_xpu_op_support_types('sequence_conv')

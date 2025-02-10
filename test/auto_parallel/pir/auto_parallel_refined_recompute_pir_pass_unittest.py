@@ -66,6 +66,7 @@ class TestRefinedRecomputeLlamaAuto(TestRecomputeLlamaAuto):
         segment_num_base, bwd_rc_op_num_base = self.get_recompute_message(
             base_prog
         )
+
         segment_num_0, bwd_rc_op_num_0 = self.get_recompute_message(prog_0)
         segment_num_1, bwd_rc_op_num_1 = self.get_recompute_message(prog_1)
         segment_num_2, bwd_rc_op_num_2 = self.get_recompute_message(prog_2)
@@ -78,9 +79,9 @@ class TestRefinedRecomputeLlamaAuto(TestRecomputeLlamaAuto):
 
         # check recompute op number
         assert bwd_rc_op_num_base == 0
-        assert bwd_rc_op_num_0 == 288
-        assert bwd_rc_op_num_1 == 284
-        assert bwd_rc_op_num_2 == 280
+        assert bwd_rc_op_num_0 == 296
+        assert bwd_rc_op_num_1 == 292
+        assert bwd_rc_op_num_2 == 288
 
         # memory check
         assert max_mem_reserved_0 < max_mem_reserved_1

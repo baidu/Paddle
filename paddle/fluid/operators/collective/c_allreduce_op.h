@@ -29,6 +29,7 @@ limitations under the License. */
     defined(PADDLE_WITH_XPU_BKCL)
 #include "paddle/common/flags.h"
 #include "paddle/phi/core/platform/collective_helper.h"
+COMMON_DECLARE_bool(dynamic_static_unified_comm);
 #endif
 
 #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
@@ -179,24 +180,30 @@ class CAllReduceOpXPUKernel : public framework::OpKernel<T> {
 
     const auto& comm_context_manager =
         phi::distributed::CommContextManager::GetInstance();
-
-    PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(rid)),
-                      true,
-                      common::errors::InvalidArgument(
-                          "You choose to use new communication library. "
-                          "But ring_id(%d) is "
-                          "not found in comm_context_manager.",
-                          std::to_string(rid)));
-    comm_ctx = static_cast<phi::distributed::BKCLCommContext*>(
-        comm_context_manager.Get(std::to_string(rid)));
-    PADDLE_ENFORCE_NE(comm_ctx,
-                      nullptr,
-                      common::errors::Unavailable(
-                          "BKCLCommContext is nullptr, collective op should "
-                          "has ring_id attr."));
-    stream = comm_ctx->GetStream();
-    VLOG(3) << "new comm_context_manager has rid " << rid;
-
+    if (FLAGS_dynamic_static_unified_comm) {
+      PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(rid)),
+                        true,
+                        common::errors::InvalidArgument(
+                            "You choose to use new communication library by "
+                            "setting environment "
+                            "variable FLAGS_dynamic_static_unified_comm True. "
+                            "But ring_id(%d) is "
+                            "not found in comm_context_manager.",
+                            std::to_string(rid)));
+      comm_ctx = static_cast<phi::distributed::BKCLCommContext*>(
+          comm_context_manager.Get(std::to_string(rid)));
+      PADDLE_ENFORCE_NE(comm_ctx,
+                        nullptr,
+                        common::errors::Unavailable(
+                            "BKCLCommContext is nullptr, collective op should "
+                            "has ring_id attr."));
+      stream = comm_ctx->GetStream();
+      VLOG(3) << "new comm_context_manager has rid " << rid;
+    } else {
+      comm = platform::BKCLCommContext::Instance().Get(rid, place);
+      stream = comm->stream();
+      VLOG(3) << "old BKCLCommContext has rid " << rid;
+    }
     if (ctx.Attr<bool>("use_calc_stream")) {
       auto dev_ctx = phi::DeviceContextPool::Instance().Get(place);
       stream = static_cast<phi::XPUContext*>(dev_ctx)->x_context()->xpu_stream;
@@ -318,24 +325,30 @@ class CAllReduceOpCUDAKernel : public framework::OpKernel<T> {
 
     const auto& comm_context_manager =
         phi::distributed::CommContextManager::GetInstance();
-
-    PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(rid)),
-                      true,
-                      common::errors::InvalidArgument(
-                          "You choose to use new communication library. "
-                          "But ring_id(%d) is "
-                          "not found in comm_context_manager.",
-                          std::to_string(rid)));
-    comm_ctx = static_cast<phi::distributed::NCCLCommContext*>(
-        comm_context_manager.Get(std::to_string(rid)));
-    PADDLE_ENFORCE_NE(comm_ctx,
-                      nullptr,
-                      common::errors::Unavailable(
-                          "NCCLCommContext is nullptr, collective op should "
-                          "has ring_id attr."));
-    stream = comm_ctx->GetStream();
-    VLOG(3) << "new comm_context_manager has rid " << rid;
-
+    if (FLAGS_dynamic_static_unified_comm) {
+      PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(rid)),
+                        true,
+                        common::errors::InvalidArgument(
+                            "You choose to use new communication library by "
+                            "setting environment "
+                            "variable FLAGS_dynamic_static_unified_comm True. "
+                            "But ring_id(%d) is "
+                            "not found in comm_context_manager.",
+                            std::to_string(rid)));
+      comm_ctx = static_cast<phi::distributed::NCCLCommContext*>(
+          comm_context_manager.Get(std::to_string(rid)));
+      PADDLE_ENFORCE_NE(comm_ctx,
+                        nullptr,
+                        common::errors::Unavailable(
+                            "NCCLCommContext is nullptr, collective op should "
+                            "has ring_id attr."));
+      stream = comm_ctx->GetStream();
+      VLOG(3) << "new comm_context_manager has rid " << rid;
+    } else {
+      comm = platform::NCCLCommContext::Instance().Get(rid, place);
+      stream = comm->stream();
+      VLOG(3) << "old NCCLCommContext has rid " << rid;
+    }
     if (ctx.Attr<bool>("use_calc_stream")) {
       // should not use global ctx for calc stream.
       // auto dev_ctx = phi::DeviceContextPool::Instance().Get(place);

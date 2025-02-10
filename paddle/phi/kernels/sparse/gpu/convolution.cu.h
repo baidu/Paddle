@@ -110,21 +110,21 @@ inline IntT* SortedAndUniqueIndex(const Context& dev_ctx,
  * @brief: update the out index and indices
  * unique_keys: save the index of the output feature list
  * unique_values: indicates the index of key before deduplication
- * out_indexs: indicates the position of the output index in the rulebook
+ * out_indexes: indicates the position of the output index in the rulebook
  * rulebook_len: indicates the length of rulebook
  * out_dims: indicates the output dims
  * out_indices: the indices of output, out_indices = IndexToPoint(unique_keys)
- * rulebook_out_indexs: the output index in rulebook
+ * rulebook_out_indices: the output index in rulebook
  **/
 template <typename T>
 __global__ void UpdateIndexKernel(const T* unique_keys,
                                   const int* unique_values,
-                                  const int* out_indexs,
+                                  const int* out_indexes,
                                   const int64_t non_zero_num,
                                   const int rulebook_len,
                                   const Dims4D out_dims,
                                   T* out_indices,
-                                  T* rulebook_out_indexs) {
+                                  T* rulebook_out_indices) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   for (int i = tid; i < non_zero_num; i += gridDim.x * blockDim.x) {
     const T index = unique_keys[i];
@@ -142,20 +142,20 @@ __global__ void UpdateIndexKernel(const T* unique_keys,
     int end = i == non_zero_num - 1 ? rulebook_len : unique_values[i + 1];
     // max(end-start) = kernel_size
     for (T j = start; j < end; j++) {
-      rulebook_out_indexs[out_indexs[j]] = i;
+      rulebook_out_indices[out_indexes[j]] = i;
     }
   }
 }
 
 template <typename IntT>
 __global__ void UpdateOutIndexAndCounterAfterLowerBound(
-    const IntT* x_indexs,
+    const IntT* x_indices,
     const IntT* bound_out,
     const int rulebook_len,
     const int kernel_size,
     const int64_t non_zero_num,
     IntT* rulebook_ptr,
-    IntT* out_indexs,
+    IntT* out_indices,
     int* counter_ptr) {
   extern __shared__ int cache_count[];
   for (int i = threadIdx.x; i < kernel_size; i += blockDim.x) {
@@ -165,8 +165,8 @@ __global__ void UpdateOutIndexAndCounterAfterLowerBound(
 
   CUDA_KERNEL_LOOP_TYPE(i, rulebook_len, int64_t) {
     int j = bound_out[i];
-    if (j >= 0 && j < non_zero_num && out_indexs[i] == x_indexs[j]) {
-      out_indexs[i] = j;
+    if (j >= 0 && j < non_zero_num && out_indices[i] == x_indices[j]) {
+      out_indices[i] = j;
     } else {
       // mask this position will be remove
       int kernel_index = rulebook_ptr[i];
@@ -211,7 +211,7 @@ __global__ void ProductRuleBookKernel(const T* x_indices,
                                       const bool subm,
                                       T* rulebook,
                                       int* counter,
-                                      T* in_indexs) {
+                                      T* in_indices) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   extern __shared__ int counter_buf[];  // kernel_size
   const int kernel_size = kernel_dims[3] * kernel_dims[2] * kernel_dims[1];
@@ -228,7 +228,7 @@ __global__ void ProductRuleBookKernel(const T* x_indices,
     T in_y = x_indices[i + 2 * non_zero_num];
     T in_x = x_indices[i + 3 * non_zero_num];
     if (subm) {
-      in_indexs[i] = PointToIndex(batch, in_x, in_y, in_z, x_dims);
+      in_indices[i] = PointToIndex(batch, in_x, in_y, in_z, x_dims);
     }
     for (int kz = 0; kz < kernel_dims[1]; kz++) {
       for (int ky = 0; ky < kernel_dims[2]; ky++) {
@@ -280,7 +280,7 @@ __global__ void ProductRuleBookKernel(const T* x_indices,
 //  unique_key:     20, 25, 30, 33
 //  unique_values:  0, 2, 3, 5
 //  the index of unique_values is: 0, 1, 2, 3
-// 5. update the out_index by unique_key, uniqe_value and the index of
+// 5. update the out_index by unique_key, unique_value and the index of
 // unique_value:
 //  the new out_index: 0, 2, 3, 2, 3, 0, 1
 template <typename T, typename Context, typename IntT = int>
@@ -304,7 +304,7 @@ int ProductRuleBook(const Context& dev_ctx,
   const int64_t non_zero_num = x.nnz();
   const auto& indices = x.indices();
   const IntT* indices_ptr = indices.data<IntT>();
-  DenseTensor in_indexs = phi::Empty<Context>(
+  DenseTensor in_indices = phi::Empty<Context>(
       dev_ctx, DenseTensorMeta(indices_dtype, {x.nnz()}, DataLayout::NCHW));
   int* counter_ptr = counter_per_kernel->data<int>();
   int* offsets_ptr = offsets_per_kernel->data<int>();
@@ -343,7 +343,7 @@ int ProductRuleBook(const Context& dev_ctx,
                                                     subm,
                                                     rulebook_ptr,
                                                     counter_ptr,
-                                                    in_indexs.data<IntT>());
+                                                    in_indices.data<IntT>());
 
 // 2. remove -1
 #ifdef PADDLE_WITH_HIP
@@ -379,8 +379,8 @@ int ProductRuleBook(const Context& dev_ctx,
     // to obain the rulebook.
 
     // call lower_bound to get the real index of out_index
-    const IntT* in_indexs_ptr = in_indexs.data<IntT>();
-    IntT* out_indexs_ptr = rulebook_ptr + 2 * rulebook_len;
+    const IntT* in_indices_ptr = in_indices.data<IntT>();
+    IntT* out_indices_ptr = rulebook_ptr + 2 * rulebook_len;
     DenseTensor bound = phi::Empty(
         dev_ctx,
         DenseTensorMeta(
@@ -391,10 +391,10 @@ int ProductRuleBook(const Context& dev_ctx,
 #else
     thrust::lower_bound(thrust::cuda::par.on(dev_ctx.stream()),
 #endif
-                        in_indexs_ptr,
-                        in_indexs_ptr + in_indexs.numel(),
-                        out_indexs_ptr,
-                        out_indexs_ptr + rulebook_len,
+                        in_indices_ptr,
+                        in_indices_ptr + in_indices.numel(),
+                        out_indices_ptr,
+                        out_indices_ptr + rulebook_len,
                         bound_ptr);
 
     config = phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, rulebook_len, 1);
@@ -403,13 +403,13 @@ int ProductRuleBook(const Context& dev_ctx,
                                               config.thread_per_block,
                                               kernel_size * sizeof(int),
                                               dev_ctx.stream()>>>(
-        in_indexs_ptr,
+        in_indices_ptr,
         bound.data<IntT>(),
         rulebook_len,
         kernel_size,
         x.nnz(),
         rulebook_ptr,
-        out_indexs_ptr,
+        out_indices_ptr,
         counter_ptr);
 
 // remove -1

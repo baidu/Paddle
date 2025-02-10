@@ -204,7 +204,7 @@ function run_op_benchmark_test {
   do
     echo "$api_info" >> $api_info_file
   done
-  # install tensorflow for testing accuary
+  # install tensorflow for testing accuracy
   # pip install tensorflow==2.3.0 tensorflow-probability
   for branch_name in "dev_whl" "pr_whl"
   do
@@ -282,7 +282,7 @@ function check_CHANGE_OP_MAP {
   fi
 }
 
-# diff benchmakr result and miss op
+# diff benchmark result and miss op
 function summary_problems {
   LOG "[INFO]  run function summary_problems"
   local op_name exit_code

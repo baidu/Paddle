@@ -25,7 +25,7 @@ class TestSparseIsCoalescedAPI(unittest.TestCase):
         self.dtype = "float32"
         coo_indices = [[0, 0, 0, 1], [0, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         )
         self.expected_result = False
@@ -38,7 +38,7 @@ class TestSparseIsCoalescedAPI(unittest.TestCase):
         for place in places:
             paddle.disable_static(place)
             self.assertEqual(
-                self.coo_tenosr.is_coalesced(), self.expected_result
+                self.coo_tensor.is_coalesced(), self.expected_result
             )
 
 
@@ -47,7 +47,7 @@ class TestSparseIsCoalescedAPI1(TestSparseIsCoalescedAPI):
         self.dtype = "float64"
         coo_indices = [[0, 0, 1, 2], [0, 1, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         )
         self.expected_result = False
@@ -58,7 +58,7 @@ class TestSparseIsCoalescedAPI2(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 1, 2], [0, 2, 0, 2], [0, 1, 1, 0]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "int16"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         ).coalesce()
         self.expected_result = True
@@ -69,7 +69,7 @@ class TestSparseIsCoalescedAPI3(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 0, 1], [0, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "int32"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         ).coalesce()
         self.expected_result = True
@@ -80,7 +80,7 @@ class TestSparseIsCoalescedAPI4(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 0, 1], [0, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "int64"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         )
         self.expected_result = False
@@ -91,7 +91,7 @@ class TestSparseIsCoalescedAPI5(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 0, 1], [0, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "uint8"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         )
         self.expected_result = False
@@ -102,7 +102,7 @@ class TestSparseIsCoalescedAPI6(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 1, 2], [0, 1, 1, 2], [0, 1, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "complex64"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         ).coalesce()
         self.expected_result = True
@@ -113,7 +113,7 @@ class TestSparseIsCoalescedAPI7(TestSparseIsCoalescedAPI):
         coo_indices = [[0, 0, 1, 2], [0, 1, 1, 2], [1, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
         self.dtype = "complex128"
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         )
         self.expected_result = False
@@ -129,7 +129,7 @@ class TestSparseIsCoalescedFP16API(TestSparseIsCoalescedAPI):
         self.dtype = "float16"
         coo_indices = [[0, 0, 0, 1], [0, 0, 1, 2]]
         coo_values = paddle.to_tensor([1.0, 2.0, 3.0, 4.0])
-        self.coo_tenosr = paddle.sparse.sparse_coo_tensor(
+        self.coo_tensor = paddle.sparse.sparse_coo_tensor(
             coo_indices, coo_values, dtype=self.dtype
         ).coalesce()
         self.expected_result = True

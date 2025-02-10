@@ -582,11 +582,11 @@ class HeterServer {
   virtual ~HeterServer() {}
   void Stop() {
     std::unique_lock<std::mutex> lock(mutex_);
-    if (stoped_ == true) return;
+    if (stopped_ == true) return;
     if (!IsExit()) {
       service_.ForceExit();
     }
-    stoped_ = true;
+    stopped_ = true;
     cv_.notify_all();
     server_.Stop(1000);
     server_.Join();
@@ -594,7 +594,7 @@ class HeterServer {
 
   bool IsStop() {
     std::unique_lock<std::mutex> lock(mutex_);
-    return stoped_;
+    return stopped_;
   }
 
   bool IsExit() { return service_.IsExit(); }
@@ -664,7 +664,7 @@ class HeterServer {
   static std::mutex mtx_;
   std::condition_variable cv_;
   std::condition_variable condition_ready_;
-  bool stoped_ = true;
+  bool stopped_ = true;
   std::string endpoint_;
   std::string endpoint_inter_;
   // for switch

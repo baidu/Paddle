@@ -49,9 +49,9 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
       phi::CppTypeToDataType<IntT>::Type(), {sparse_dim}, DataLayout::NCHW);
   DenseTensor d_sparse_offsets =
       phi::Empty<GPUContext>(dev_ctx, std::move(sparse_offset_meta));
-  DenseTensor indexs = phi::Empty(
+  DenseTensor indices = phi::Empty(
       dev_ctx, DenseTensorMeta(x_indices.dtype(), {nnz}, x_indices.layout()));
-  IntT* indexs_ptr = indexs.data<IntT>();
+  IntT* indices_ptr = indices.data<IntT>();
 
   phi::backends::gpu::GpuMemcpyAsync(d_sparse_offsets.data<IntT>(),
                                      sparse_offsets.data(),
@@ -67,24 +67,24 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
                                              dev_ctx.stream()>>>(
       x.indices().data<IntT>(),
       d_sparse_offsets.data<IntT>(),
-      indexs.numel(),
+      indices.numel(),
       sparse_dim,
-      indexs_ptr);
+      indices_ptr);
 
   // 2. get the address of each non-zero values
   const T* x_values_ptr = x_values.data<T>();
   const int64_t stride =
       x.dims().size() == sparse_dim ? 1 : x.values().dims()[1];
-  DenseTensor values_indexs = phi::Empty(
+  DenseTensor values_indices = phi::Empty(
       dev_ctx, DenseTensorMeta(DataType::INT32, {nnz}, DataLayout::NCHW));
-  int* values_indexs_ptr = values_indexs.data<int>();
-  DenseTensor public_indexs = phi::EmptyLike<int>(dev_ctx, values_indexs);
+  int* values_indices_ptr = values_indices.data<int>();
+  DenseTensor public_indices = phi::EmptyLike<int>(dev_ctx, values_indices);
 
-  // values_indexs = [0,1,2,,,nnz-1]
+  // values_indices = [0,1,2,,,nnz-1]
   phi::IndexKernel<int, kps::IdentityFunctor<int>>(
-      dev_ctx, &values_indexs, kps::IdentityFunctor<int>());
+      dev_ctx, &values_indices, kps::IdentityFunctor<int>());
   phi::IndexKernel<int, kps::IdentityFunctor<int>>(
-      dev_ctx, &public_indexs, kps::IdentityFunctor<int>());
+      dev_ctx, &public_indices, kps::IdentityFunctor<int>());
 
 // 3. sort (indices, values index)
 #ifdef PADDLE_WITH_HIP
@@ -92,9 +92,9 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
 #else
   thrust::sort_by_key(thrust::cuda::par.on(dev_ctx.stream()),
 #endif
-                      indexs_ptr,
-                      indexs_ptr + nnz,
-                      values_indexs_ptr);
+                      indices_ptr,
+                      indices_ptr + nnz,
+                      values_indices_ptr);
 
   // 4. unique index
   thrust::pair<IntT*, int*> new_end =
@@ -103,12 +103,12 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
 #else
       thrust::unique_by_key(thrust::cuda::par.on(dev_ctx.stream()),
 #endif
-                            indexs_ptr,
-                            indexs_ptr + nnz,
-                            public_indexs.data<int>());
+                            indices_ptr,
+                            indices_ptr + nnz,
+                            public_indices.data<int>());
 
   phi::funcs::sparse::DistanceKernel<<<1, 1, 0, dev_ctx.stream()>>>(
-      indexs_ptr, new_end.first, out_indices.data<IntT>());
+      indices_ptr, new_end.first, out_indices.data<IntT>());
 
   IntT out_nnz = 0;
   phi::backends::gpu::GpuMemcpyAsync(&out_nnz,
@@ -135,8 +135,8 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
            config.thread_per_block,
            0,
            dev_ctx.stream()>>>(x_values_ptr,
-                               public_indexs.data<int>(),
-                               values_indexs_ptr,
+                               public_indices.data<int>(),
+                               values_indices_ptr,
                                out_nnz,
                                nnz,
                                stride,
@@ -148,8 +148,8 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
            config.thread_per_block,
            0,
            dev_ctx.stream()>>>(x_values_ptr,
-                               public_indexs.data<int>(),
-                               values_indexs_ptr,
+                               public_indices.data<int>(),
+                               values_indices_ptr,
                                out_nnz,
                                nnz,
                                stride,
@@ -167,7 +167,7 @@ void CoalesceCooGPUKernel(const GPUContext& dev_ctx,
                                                 config.thread_per_block,
                                                 0,
                                                 dev_ctx.stream()>>>(
-      indexs_ptr, const_dims, out_nnz, sparse_dim, out_indices.data<IntT>());
+      indices_ptr, const_dims, out_nnz, sparse_dim, out_indices.data<IntT>());
 
   out->SetMember(out_indices, out_values, x.dims(), true);
   out->SetIndicesDict(x.GetIndicesDict());

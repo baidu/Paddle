@@ -45,7 +45,7 @@ class MyLayer(paddle.nn.Layer):
 
 
 class TestImperativeContainerParameterDict(unittest.TestCase):
-    def paramter_dict(self):
+    def parameter_dict(self):
         self.place = (
             paddle.CUDAPlace(0)
             if paddle.is_compiled_with_cuda()
@@ -67,7 +67,7 @@ class TestImperativeContainerParameterDict(unittest.TestCase):
             )
             res = model(x)
             self.assertListEqual(res.shape, [5, 3])
-            parmeter = OrderedDict(
+            parameter = OrderedDict(
                 [
                     (
                         't' + str(num_stacked_param),
@@ -75,15 +75,15 @@ class TestImperativeContainerParameterDict(unittest.TestCase):
                     )
                 ]
             )
-            model.params.update(parmeter)
+            model.params.update(parameter)
             self.assertEqual(len(model.params), num_stacked_param + 1)
             res = model(x)
             self.assertListEqual(res.shape, [5, 4])
             loss = paddle.mean(res)
             loss.backward()
 
-    def test_paramter_dict(self):
-        self.paramter_dict()
+    def test_parameter_dict(self):
+        self.parameter_dict()
 
 
 if __name__ == '__main__':

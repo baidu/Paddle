@@ -173,11 +173,12 @@ std::vector<std::vector<int64_t>> GetFeedTargetShapes(
 }
 
 template <typename Place, bool CreateVars = true, bool PrepareContext = false>
-void TestInference(const std::string& dirname,
-                   const std::vector<phi::DenseTensor*>& cpu_feeds,
-                   const std::vector<paddle::framework::FetchType*>& cpu_fetchs,
-                   const int repeat = 1,
-                   const bool is_combined = false) {
+void TestInference(
+    const std::string& dirname,
+    const std::vector<phi::DenseTensor*>& cpu_feeds,
+    const std::vector<paddle::framework::FetchType*>& cpu_fetches,
+    const int repeat = 1,
+    const bool is_combined = false) {
   // 1. Define place, executor, scope
   auto place = Place();
   auto executor = paddle::framework::Executor(place);
@@ -231,7 +232,7 @@ void TestInference(const std::string& dirname,
   // 5. Define Tensor to get the outputs: set up maps for fetch targets
   std::map<std::string, paddle::framework::FetchType*> fetch_targets;
   for (size_t i = 0; i < fetch_target_names.size(); ++i) {
-    fetch_targets[fetch_target_names[i]] = cpu_fetchs[i];
+    fetch_targets[fetch_target_names[i]] = cpu_fetches[i];
   }
 
   // 6. If export Flags_use_mkldnn=True, use onednn related ops.

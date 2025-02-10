@@ -20,6 +20,7 @@ from test_case_base import (
 )
 
 import paddle
+from paddle.jit.sot.psdb import check_no_breakgraph
 
 
 def add(x, y):
@@ -176,6 +177,44 @@ class TestApplyDifferentFunctions(TestCaseBase):
             self.assertEqual(ctx.translate_count, 2)
             self.assert_results(apply_fn, fn1, x)
             self.assertEqual(ctx.translate_count, 2)
+
+
+@check_no_breakgraph
+def positional_only_basic(x, /, y):
+    z = x + y
+    return x + z
+
+
+def positional_only_breakgraph(x, /, y):
+    z = x + y
+    paddle.jit.sot.psdb.breakgraph()
+    return x + z
+
+
+@check_no_breakgraph
+def keyword_only_basic(x, *, y):
+    z = x + y
+    return x + z
+
+
+def keyword_only_breakgraph(x, *, y):
+    z = x + y
+    paddle.jit.sot.psdb.breakgraph()
+    return x + z
+
+
+class TestPositionalKeywordOnly(TestCaseBase):
+    def test_positional_only_basic(self):
+        self.assert_results(positional_only_basic, 1, 2)
+
+    def test_positional_only_breakgraph(self):
+        self.assert_results(positional_only_breakgraph, 1, 2)
+
+    def test_keyword_only_basic(self):
+        self.assert_results(keyword_only_basic, x=1, y=2)
+
+    def test_keyword_only_breakgraph(self):
+        self.assert_results(keyword_only_breakgraph, x=1, y=2)
 
 
 if __name__ == "__main__":

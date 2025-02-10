@@ -45,34 +45,40 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.x_dist_tensor_spec, self.attrs['axis']
         )
         self.assertEqual(len(result_dist_attrs), 2)
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # sharding on batch axis II
         self.x_dist_tensor_spec.set_dims_mapping([-1, 1, -1])
         result_dist_attrs = self.rule1.infer_forward(
             self.x_dist_tensor_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, 1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 1, -1])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, 1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 1, -1]
+        )
 
         # sharding on softmax_axis
         self.x_dist_tensor_spec.set_dims_mapping([1, -1, 0])
         result_dist_attrs = self.rule1.infer_forward(
             self.x_dist_tensor_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # sharding on softmax_axis + axis = 1
         self.attrs = {
@@ -82,10 +88,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule1.infer_forward(
             self.x_dist_tensor_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+        )
 
         # sharding on softmax_axis + axis = -2
         self.attrs = {
@@ -95,10 +103,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule1.infer_forward(
             self.x_dist_tensor_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+        )
 
     def test_softmax_infer_backward(self):
         # sharding on batch axis I
@@ -109,14 +119,16 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['axis'],
         )
         self.assertEqual(len(result_dist_attrs), 2)
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # sharding on batch axis II
         self.out_dist_tensor_spec.set_dims_mapping([-1, 1, -1])
@@ -125,10 +137,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.out_dist_tensor_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, 1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 1, -1])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, 1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 1, -1]
+        )
 
         # sharding on softmax_axis
         self.out_dist_tensor_spec.set_dims_mapping([1, -1, 0])
@@ -137,10 +151,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.out_dist_tensor_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # sharding on softmax_axis + axis = 1
         self.attrs = {
@@ -152,10 +168,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.out_dist_tensor_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+        )
 
         # sharding on softmax_axis + axis = -2
         self.attrs = {
@@ -167,10 +185,12 @@ class TestSoftmaxSPMDRule(unittest.TestCase):
             self.out_dist_tensor_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+        )
 
 
 if __name__ == "__main__":

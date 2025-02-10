@@ -41,28 +41,28 @@ class TestTileSPMDRule(unittest.TestCase):
     def test_tile_forward(self):
         input = self.build_input(self.dims_mapping, self.shape)
         rule = core.get_phi_spmd_rule("tile")
-        infered_dist_attrs = rule.infer_forward(input, [2, 2, 1, 1])
-        infered_input_dist_attrs = infered_dist_attrs[0]
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        infered_output_dist_attrs = infered_dist_attrs[1]
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        inferred_dist_attrs = rule.infer_forward(input, [2, 2, 1, 1])
+        inferred_input_dist_attrs = inferred_dist_attrs[0]
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        inferred_output_dist_attrs = inferred_dist_attrs[1]
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, 1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, 1]
         )
 
     def test_tile_reverse(self):
         input = self.build_input(self.dims_mapping, self.shape)
         output = self.build_input([-1, -1, -1, 1], [2, 32, 16, 16])
         rule = core.get_phi_spmd_rule("tile")
-        infered_dist_attrs = rule.infer_backward(input, output, [2, 2, 1, 1])
-        infered_input_dist_attrs = infered_dist_attrs[0]
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        infered_output_dist_attrs = infered_dist_attrs[1]
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
+        inferred_dist_attrs = rule.infer_backward(input, output, [2, 2, 1, 1])
+        inferred_input_dist_attrs = inferred_dist_attrs[0]
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        inferred_output_dist_attrs = inferred_dist_attrs[1]
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, 1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, 1]
         )
 
 

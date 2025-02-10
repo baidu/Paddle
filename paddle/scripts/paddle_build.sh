@@ -138,6 +138,18 @@ function cmake_base() {
             else
                 exit 1
             fi
+	elif [ "$1" == "cp313-cp313" ]; then
+            if [ -d "/Library/Frameworks/Python.framework/Versions/3.13" ]; then
+                export LD_LIBRARY_PATH=/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export PATH=/Library/Frameworks/Python.framework/Versions/3.13/bin/:${PATH}
+                PYTHON_FLAGS="-DPYTHON_EXECUTABLE:FILEPATH=/Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+            -DPYTHON_INCLUDE_DIR:PATH=/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13/
+            -DPYTHON_LIBRARY:FILEPATH=/Library/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib"
+                pip3.13 install --user -r ${PADDLE_ROOT}/python/requirements.txt
+            else
+                exit 1
+            fi
         fi
     else
         if [ "$1" != "" ]; then
@@ -182,6 +194,14 @@ function cmake_base() {
             -DPYTHON_LIBRARIES:FILEPATH=/opt/_internal/cpython-3.12.0/lib/libpython3.so"
                 pip3.12 install -r ${PADDLE_ROOT}/python/requirements.txt
                 pip3.12 install -r ${PADDLE_ROOT}/paddle/scripts/compile_requirements.txt
+	    elif [ "$1" == "cp313-cp313" ]; then
+                export LD_LIBRARY_PATH=/opt/_internal/cpython-3.13.0/lib/:${LD_LIBRARY_PATH}
+                export PATH=/opt/_internal/cpython-3.13.0/bin/:${PATH}
+                export PYTHON_FLAGS="-DPYTHON_EXECUTABLE:FILEPATH=/opt/_internal/cpython-3.13.0/bin/python3.13
+            -DPYTHON_INCLUDE_DIR:PATH=/opt/_internal/cpython-3.13.0/include/python3.13
+            -DPYTHON_LIBRARIES:FILEPATH=/opt/_internal/cpython-3.13.0/lib/libpython3.so"
+                pip3.13 install -r ${PADDLE_ROOT}/python/requirements.txt
+                pip3.13 install -r ${PADDLE_ROOT}/paddle/scripts/compile_requirements.txt
             elif [ "$1" == "conda-python3.8" ]; then
                 export LD_LIBRARY_PATH=/opt/conda/lib/:${LD_LIBRARY_PATH}
                 export PATH=/opt/conda/bin/:${PATH}
@@ -875,7 +895,7 @@ set +x
         if [ -n "$failed_test_lists" ];then
             EXIT_CODE=1
             if [ ${TIMEOUT_DEBUG_HELP:-OFF} == "ON" ];then
-                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for tiemout uts which killed by ctest
+                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for timeout uts which killed by ctest
             fi
             need_retry_ut_str=$(echo "$failed_test_lists" | grep -oEi "\-.+\(.+\)" | sed 's/(.\+)//' | sed 's/- //' )
             need_retry_ut_arr=(${need_retry_ut_str})
@@ -1795,7 +1815,7 @@ set +x
         rerun_ut_startTime_s=`date +%s`
         if [ -n "$failed_test_lists" ];then
             if [ ${TIMEOUT_DEBUG_HELP:-OFF} == "ON" ];then
-                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for tiemout uts which killed by ctest
+                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for timeout uts which killed by ctest
             fi
             need_retry_ut_str=$(echo "$failed_test_lists" | grep -oEi "\-.+\(.+\)" | sed 's/(.\+)//' | sed 's/- //' )
             need_retry_ut_arr=(${need_retry_ut_str})
@@ -2871,6 +2891,9 @@ set +x
             pushd ${PADDLE_ROOT}/build/paddle/cinn
             ctest -N -E "test_frontend_interpreter" | awk -F ': ' '{print $2}' | sed '/^$/d' | sed '$d' > ${PADDLE_ROOT}/build/pr_ci_cinn_gpu_ut_list
             popd
+            pushd ${PADDLE_ROOT}/build/test/cpp/cinn # Note: Some tests have been moved to test/cpp/cinn.
+            ctest -N -E "test_frontend_interpreter" | awk -F ': ' '{print $2}' | sed '/^$/d' | sed '$d' >> ${PADDLE_ROOT}/build/pr_ci_cinn_gpu_ut_list
+            popd
             ctest -N -L "RUN_TYPE=CINN" | awk -F ': ' '{print $2}' | sed '/^$/d' | sed '$d' > ${PADDLE_ROOT}/build/pr_ci_cinn_ut_list
             echo "========================================"
             echo "pr_ci_cinn_ut_list: "
@@ -2998,7 +3021,7 @@ set +x
         rerun_ut_startTime_s=`date +%s`
         if [ -n "$failed_test_lists" ];then
             if [ ${TIMEOUT_DEBUG_HELP:-OFF} == "ON" ];then
-                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for tiemout uts which killed by ctest
+                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for timeout uts which killed by ctest
             fi
             need_retry_ut_str=$(echo "$failed_test_lists" | grep -oEi "\-.+\(.+\)" | sed 's/(.\+)//' | sed 's/- //' )
             need_retry_ut_arr=(${need_retry_ut_str})
@@ -3119,7 +3142,7 @@ set +x
         rerun_ut_startTime_s=`date +%s`
         if [ -n "$failed_test_lists" ];then
             if [ ${TIMEOUT_DEBUG_HELP:-OFF} == "ON" ];then
-                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for tiemout uts which killed by ctest
+                bash $PADDLE_ROOT/tools/timeout_debug_help.sh "$failed_test_lists"    # cat logs for timeout uts which killed by ctest
             fi
             need_retry_ut_str=$(echo "$failed_test_lists" | grep -oEi "\-.+\(.+\)" | sed 's/(.\+)//' | sed 's/- //' )
             need_retry_ut_arr=(${need_retry_ut_str})
@@ -4130,6 +4153,19 @@ function run_setup(){
             else
                 exit 1
             fi
+	elif [ "$1" == "cp313-cp313" ]; then
+            if [ -d "/Library/Frameworks/Python.framework/Versions/3.13" ]; then
+                export LD_LIBRARY_PATH=/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export PATH=/Library/Frameworks/Python.framework/Versions/3.13/bin/:${PATH}
+                #after changing "PYTHON_LIBRARY:FILEPATH" to "PYTHON_LIBRARY" ,we can use export
+                export PYTHON_EXECUTABLE=/Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+                export PYTHON_INCLUDE_DIR=/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13/
+                export PYTHON_LIBRARY=/Library/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib
+                pip3.13 install --user -r ${PADDLE_ROOT}/python/requirements.txt
+            else
+                exit 1
+            fi
         fi
     else
         if [ "$1" != "" ]; then
@@ -4179,7 +4215,16 @@ function run_setup(){
                 export PYTHON_LIBRARIES=/opt/_internal/cpython-3.12.0/lib/libpython3.so
                 pip3.12 install -r ${PADDLE_ROOT}/python/requirements.txt
                 pip3.12 install -r ${PADDLE_ROOT}/paddle/scripts/compile_requirements.txt
-           fi
+	    elif [ "$1" == "cp313-cp313" ]; then
+                export LD_LIBRARY_PATH=/opt/_internal/cpython-3.13.0/lib/:${LD_LIBRARY_PATH}
+                export PATH=/opt/_internal/cpython-3.13.0/bin/:${PATH}
+                #after changing "PYTHON_LIBRARY:FILEPATH" to "PYTHON_LIBRARY" ,we can use export
+                export PYTHON_EXECUTABLE=/opt/_internal/cpython-3.13.0/bin/python3.13
+                export PYTHON_INCLUDE_DIR=/opt/_internal/cpython-3.13.0/include/python3.13
+                export PYTHON_LIBRARIES=/opt/_internal/cpython-3.13.0/lib/libpython3.so
+                pip3.13 install -r ${PADDLE_ROOT}/python/requirements.txt
+                pip3.13 install -r ${PADDLE_ROOT}/paddle/scripts/compile_requirements.txt
+             fi
         else
             pip install -r ${PADDLE_ROOT}/python/requirements.txt
         fi
@@ -4409,6 +4454,20 @@ function run_setup_mac(){
             else
                 exit 1
             fi
+	elif [ "$1" == "cp313-cp313" ]; then
+            if [ -d "/Library/Frameworks/Python.framework/Versions/3.13" ]; then
+                export LD_LIBRARY_PATH=/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:/Library/Frameworks/Python.framework/Versions/3.13/lib/
+                export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${PADDLE_ROOT}/build/third_party/install/lapack/lib
+                export PATH=/Library/Frameworks/Python.framework/Versions/3.13/bin/:${PATH}
+                #after changing "PYTHON_LIBRARY:FILEPATH" to "PYTHON_LIBRARY" ,we can use export
+                export PYTHON_EXECUTABLE=/Library/Frameworks/Python.framework/Versions/3.13/bin/python3
+                export PYTHON_INCLUDE_DIR=/Library/Frameworks/Python.framework/Versions/3.13/include/python3.13/
+                export PYTHON_LIBRARY=/Library/Frameworks/Python.framework/Versions/3.13/lib/libpython3.13.dylib
+                pip3.13 install --user -r ${PADDLE_ROOT}/python/requirements.txt
+            else
+                exit 1
+            fi
         fi
     else
         if [ "$1" != "" ]; then
@@ -4453,7 +4512,15 @@ function run_setup_mac(){
                 export PYTHON_INCLUDE_DIR=/opt/_internal/cpython-3.12.0/include/python3.12
                 export PYTHON_LIBRARIES=/opt/_internal/cpython-3.12.0/lib/libpython3.so
                 pip3.12 install -r ${PADDLE_ROOT}/python/requirements.txt
-           elif [ "$1" == "conda-python3.8" ]; then
+	    elif [ "$1" == "cp313-cp313" ]; then
+                export LD_LIBRARY_PATH=/opt/_internal/cpython-3.13.0/lib/:${LD_LIBRARY_PATH}
+                export PATH=/opt/_internal/cpython-3.13.0/bin/:${PATH}
+                #after changing "PYTHON_LIBRARY:FILEPATH" to "PYTHON_LIBRARY" ,we can use export
+                export PYTHON_EXECUTABLE=/opt/_internal/cpython-3.13.0/bin/python3.13
+                export PYTHON_INCLUDE_DIR=/opt/_internal/cpython-3.13.0/include/python3.13
+                export PYTHON_LIBRARIES=/opt/_internal/cpython-3.13.0/lib/libpython3.so
+                pip3.13 install -r ${PADDLE_ROOT}/python/requirements.txt
+            elif [ "$1" == "conda-python3.8" ]; then
                 export LD_LIBRARY_PATH=/opt/conda/lib/:${LD_LIBRARY_PATH}
                 export PATH=/opt/conda/bin/:${PATH}
                 #after changing "PYTHON_LIBRARY:FILEPATH" to "PYTHON_LIBRARY" ,we can use export
@@ -4461,7 +4528,7 @@ function run_setup_mac(){
                 export PYTHON_INCLUDE_DIR=/opt/conda/include/python3.8m
                 export PYTHON_LIBRARIES=/opt/conda/lib/libpython3.so
                 /opt/conda/bin/pip install -r ${PADDLE_ROOT}/python/requirements.txt
-           fi
+            fi
         else
             pip install -r ${PADDLE_ROOT}/python/requirements.txt
         fi

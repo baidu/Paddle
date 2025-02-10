@@ -86,7 +86,7 @@ class FusionOpInfo {
 
  private:
   OperationInfo op_info_;
-  // oprand_source id : OperationInfo hash
+  // operand_source id : OperationInfo hash
   std::map<size_t, OpDepInfo> inner_deps_;
 };
 

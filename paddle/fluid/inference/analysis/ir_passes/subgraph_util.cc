@@ -30,7 +30,7 @@ using framework::ir::Node;
 std::vector<std::string> ExtractParameters(
     const std::unordered_set<Node *> &nodes, bool sorted) {
   // We can judge whether a variable is a parameter by
-  // its presistable property, but sometimes the presistable
+  // its persistable property, but sometimes the persistable
   // of the feed op output is true, so we have to identify it.
   std::vector<std::string> feed_outputs;
   for (const auto &node : nodes) {

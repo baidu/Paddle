@@ -50,7 +50,7 @@ repos:
                 paddle/cinn/utils/registry.h
             )$
 -   repo: https://github.com/PFCCLab/typos-pre-commit-mirror.git
-    rev: v1.27.3
+    rev: v1.29.4
     hooks:
     -   id: typos
         args: [--force-exclude]
@@ -60,7 +60,7 @@ repos:
     hooks:
     -   id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.3
+    rev: v0.9.2
     hooks:
     -   id: ruff
         args: [--fix, --exit-non-zero-on-fix, --no-cache]
@@ -151,7 +151,7 @@ repos:
         exclude: |
             (?x)^(
                 cmake/external/onnxruntime.cmake
-                )$
+            )$
 # Others
 -   repo: local
     hooks:

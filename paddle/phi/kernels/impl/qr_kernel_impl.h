@@ -26,7 +26,6 @@
 
 namespace phi {
 
-#if defined(PADDLE_WITH_CUDA)
 template <typename DeviceContext, typename T>
 void BatchedGeqrf(const DeviceContext& dev_ctx,
                   int batch_size,
@@ -49,7 +48,5 @@ void BatchedOrgqr(const DeviceContext& dev_ctx,
                   T* tau,
                   int a_stride,
                   int tau_stride);
-
-#endif
 
 }  // namespace phi

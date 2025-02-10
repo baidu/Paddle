@@ -307,6 +307,18 @@ struct RearrangeLoadInstructionMutator : public ir::stmt::StmtMutator<> {
            store_stmt->value().As<ir::Load>();
   }
 
+  // If there is any vectorized loop in the block skip pass
+  bool HasVectorizedLoop(BlockRef block) {
+    bool is_vectorized = false;
+    auto pre_callback = [&is_vectorized](const StmtRef& stmt) {
+      if (stmt.isa<For>() && stmt.as<For>()->is_vectorized())
+        is_vectorized = true;
+    };
+
+    ir::stmt::Visit(block, pre_callback, [](const StmtRef&) {});
+    return is_vectorized;
+  }
+
   void DoRearrangeLoadInstruction(BlockRef block) {
     auto GetStoreOfScheduleStmt = [](Schedule schedule_stmt) -> Store {
       bool found = false;
@@ -386,6 +398,7 @@ struct RearrangeLoadInstructionMutator : public ir::stmt::StmtMutator<> {
   }
 
   void VisitBlock(BlockRef block) override {
+    if (HasVectorizedLoop(block)) return;
     ir::stmt::StmtMutator<>::VisitBlock(block);
     if (IsLeafBlock(block)) {
       DoRearrangeLoadInstruction(block);

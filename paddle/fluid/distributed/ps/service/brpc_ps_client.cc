@@ -123,7 +123,7 @@ int32_t BrpcPsClient::StartClientService() {
     return -1;
   }
   _server_started = true;
-  _env->RegistePsClient(
+  _env->RegisterPsClient(
       butil::my_ip_cstr(), _server.listen_address().port, _client_id);
   VLOG(0) << "BrpcPsClient Service addr: " << butil::my_ip_cstr() << ", "
           << _server.listen_address().port << ", " << _client_id;

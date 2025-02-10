@@ -23,8 +23,8 @@ __global__ void RemovePaddingKernel(const half* input0,
                                     const int32_t* input1,
                                     half* output) {
   int word_id = blockIdx.x * gridDim.y + blockIdx.y;
-  int32_t seqence_length = input1[blockIdx.x + 1] - input1[blockIdx.x];
-  if (blockIdx.y < seqence_length) {
+  int32_t sequence_length = input1[blockIdx.x + 1] - input1[blockIdx.x];
+  if (blockIdx.y < sequence_length) {
     output[(input1[blockIdx.x] + blockIdx.y) * gridDim.z * blockDim.x +
            blockIdx.z * blockDim.x + threadIdx.x] =
         input0[word_id * gridDim.z * blockDim.x + blockIdx.z * blockDim.x +
@@ -141,7 +141,7 @@ int RemovePaddingPlugin::enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
       input0_desc.dims.d[0],
       input0_desc.dims.d[1],
       vector_length /
-          num_threads);  //  batches, max sequnce length, input0.dims.d[2]/***
+          num_threads);  //  batches, max sequence length, input0.dims.d[2]/***
 
   RemovePaddingKernel<<<num_blocks, num_threads, 0, stream>>>(
       input0, input1, output);

@@ -311,8 +311,8 @@ function(op_library TARGET)
   endif()
   if(WIN32)
     # remove windows unsupported op, because windows has no nccl, no warpctc such ops.
-    foreach(windows_unsupport_op "nccl_op" "gen_nccl_id_op")
-      if("${TARGET}" STREQUAL "${windows_unsupport_op}")
+    foreach(windows_unsupported_op "nccl_op" "gen_nccl_id_op")
+      if("${TARGET}" STREQUAL "${windows_unsupported_op}")
         return()
       endif()
     endforeach()
@@ -636,7 +636,7 @@ function(op_library TARGET)
 
   # pybind USE_OP
   if(${pybind_flag} EQUAL 0)
-    # NOTE(*): activation use macro to regist the kernels, set use_op manually.
+    # NOTE(*): activation use macro to register the kernels, set use_op manually.
     if(${TARGET} STREQUAL "activation")
       file(APPEND ${pybind_file} "USE_OP_ITSELF(relu);\n")
     elseif(${TARGET} STREQUAL "fake_dequantize")

@@ -52,12 +52,14 @@ class TestGatherNdSPMDRule(unittest.TestCase):
             self.x_spec, self.index_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
 
     def test_forward_mesh_dim_diff_shape(self):
         # dims_mapping: [-1], [0, -1] --> [0]
@@ -75,12 +77,12 @@ class TestGatherNdSPMDRule(unittest.TestCase):
 
         result_dist_attrs = self.rule.infer_forward(x_spec, index_spec)
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0])
 
     def test_forward_mesh_dim_same_shape(self):
         # dims_mapping: [-1], [0] --> [0]
@@ -98,12 +100,12 @@ class TestGatherNdSPMDRule(unittest.TestCase):
 
         result_dist_attrs = self.rule.infer_forward(x_spec, index_spec)
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0])
 
     def test_reverse_mesh_dim(self):
         self.x_spec.set_process_mesh(self.process_mesh)
@@ -122,12 +124,14 @@ class TestGatherNdSPMDRule(unittest.TestCase):
             self.index_spec,
             self.out_spec,
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
 
     def test_reverse_mesh_dim_same_shape(self):
         x_shape = [10]
@@ -157,12 +161,12 @@ class TestGatherNdSPMDRule(unittest.TestCase):
             index_spec,
             out_spec,
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0])
 
     def test_reverse_mesh_dim_diff_shape(self):
         # dims_mapping: [-1], [0, -1] --> [0]
@@ -193,12 +197,12 @@ class TestGatherNdSPMDRule(unittest.TestCase):
             index_spec,
             out_spec,
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0])
 
 
 if __name__ == "__main__":

@@ -59,26 +59,26 @@ namespace {
 
 using cinn::hlir::framework::pir::ScheduleInfoNode;
 
-std::unordered_set<::pir::Value> GetListOutsideInput(
+std::vector<::pir::Value> GetListOutsideInput(
     const std::vector<::pir::Operation*>& ops) {
-  std::unordered_set<pir::Value> outside_ops;
-  std::unordered_set<pir::Value> block_inner_output;
+  std::vector<pir::Value> outside_inputs;
+  std::unordered_set<pir::Value> visited;
 
   for (auto op : ops) {
     for (size_t i = 0; i < op->num_results(); ++i) {
-      block_inner_output.insert(op->result(i));
+      visited.insert(op->result(i));
     }
   }
 
   for (const auto& op : ops) {
     for (size_t i = 0; i < op->num_operands(); ++i) {
-      if (!block_inner_output.count(op->operand_source(i)) &&
-          !outside_ops.count(op->operand_source(i))) {
-        outside_ops.insert(op->operand_source(i));
+      if (!visited.count(op->operand_source(i))) {
+        visited.insert(op->operand_source(i));
+        outside_inputs.push_back(op->operand_source(i));
       }
     }
   }
-  return outside_ops;
+  return outside_inputs;
 }
 
 std::string BuildGroupId(const ::pir::GroupOpsVec& ops_list) {
@@ -108,7 +108,7 @@ struct GroupClusterNode {
   std::unordered_map<::pir::Operation*, std::vector<ScheduleInfoNode>>
       alignment_schedule_info;
 
-  std::unordered_set<::pir::Value> GetOutsideInput() const {
+  std::vector<::pir::Value> GetOutsideInput() const {
     return GetListOutsideInput(ops);
   }
 

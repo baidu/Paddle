@@ -80,7 +80,7 @@ class ReplaceZeroScaleToFullPattern
           op->attributes().at("bias").dyn_cast<pir::FloatAttribute>().data();
 
       if (scale_value == 0.0f && bias_value == 0.0f) {
-        // repalce to full(0)
+        // replace to full(0)
         return ReplaceWithFullOp(op, &rewriter, 0);
       }
     }

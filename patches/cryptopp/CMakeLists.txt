@@ -290,7 +290,7 @@ function(DumpMachine output pattern)
 
 endfunction(DumpMachine)
 
-# Thansk to Anonimal for MinGW; see http://github.com/weidai11/cryptopp/issues/466
+# Thanks to Anonimal for MinGW; see http://github.com/weidai11/cryptopp/issues/466
 DumpMachine(CRYPTOPP_AMD64 "amd64|x86_64")
 DumpMachine(CRYPTOPP_I386 "i.86")
 DumpMachine(CRYPTOPP_MINGW32 "\\<mingw32\\>")

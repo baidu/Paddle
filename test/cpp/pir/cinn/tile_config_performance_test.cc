@@ -560,7 +560,7 @@ void TestPerformanceForTileConfig(int spatial_left_bound,
   constexpr int kMaxTestNum = 1;
   constexpr float kEarlyStopThreshold = 1.2;
   // number of nodes in cudaGraph for test, which is defined in
-  // performace_statistician.h as graph_nodes_num_. This parameter is set to
+  // performance_statistician.h as graph_nodes_num_. This parameter is set to
   // make measure results corresponding to one launch for better readability
   constexpr int kGraphNum = 25;
 

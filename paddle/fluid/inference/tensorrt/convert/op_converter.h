@@ -818,7 +818,7 @@ class OpConverter {
       //     layer->getOutput(i)->getDimensions().nbDims,
       //     0,
       //     common::errors::InvalidArgument(
-      //         "Error occures in Paddle-TRT layer with output name: %s",
+      //         "Error occurred in Paddle-TRT layer with output name: %s",
       //         output_tensor_names[i].c_str()));
     }
     layer->setName((layer_name + ")").c_str());

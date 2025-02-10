@@ -72,6 +72,11 @@ def convert_to_list(value, n, name, dtype=int):
     if isinstance(value, dtype):
         return [value] * n
     else:
+        if isinstance(value, (Variable, paddle.pir.Value)):
+            raise NotSupportedTensorArgumentError(
+                f"`{name}` required numerical type with `{dtype}`, but received Tensor.",
+                name,
+            )
         try:
             value_list = list(value)
         except TypeError:

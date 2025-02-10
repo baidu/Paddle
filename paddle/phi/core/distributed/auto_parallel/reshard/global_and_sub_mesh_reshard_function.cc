@@ -79,6 +79,10 @@ void SubMeshToGlobalReshardFunction::Eval(phi::DeviceContext* dev_ctx,
                                           const TensorDistAttr& out_dist_attr,
                                           DistTensor* out) {
   VLOG(3) << "Call SubMeshToGlobalReshardFunction Eval";
+#if defined(PADDLE_WITH_XPU)
+  PADDLE_THROW(::common::errors::Unimplemented(
+      "Not supported PSendKernel/PRecv on xpu yet."));
+#else
   const TensorDistAttr& in_dist_attr = in.dist_attr();
   const ProcessMesh& in_process_mesh = in_dist_attr.process_mesh();
   const ProcessMesh& out_process_mesh = out_dist_attr.process_mesh();
@@ -132,6 +136,7 @@ void SubMeshToGlobalReshardFunction::Eval(phi::DeviceContext* dev_ctx,
                               GetMutableTensor(out));
   }
   SetDistProps(out, in.dims(), out_dist_attr);
+#endif
 }
 
 }  // namespace phi::distributed

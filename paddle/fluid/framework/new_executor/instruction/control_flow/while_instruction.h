@@ -30,7 +30,7 @@ class Value;
 class PirInterpreter;
 class ValueExecutionInfo;
 
-/// The execute semantics of while op ['output' = while_op('cond', 'intput')]
+/// The execute semantics of while op ['output' = while_op('cond', 'input')]
 /// is:
 ///   'output' = 'input';
 ///   while('cond') {

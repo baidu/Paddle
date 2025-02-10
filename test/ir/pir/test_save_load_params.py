@@ -212,7 +212,7 @@ class TestSimpleParamSaveLoad(unittest.TestCase):
                     main_program=prog,
                     filename=params_filename,
                 )
-                # test sepearate
+                # test separate
                 paddle.static.io.save_vars(
                     executor=exe,
                     dirname=save_dirname,
@@ -228,7 +228,7 @@ class TestSimpleParamSaveLoad(unittest.TestCase):
                     main_program=prog,
                     filename=load_filename,
                 )
-                # test sepearate
+                # test separate
                 paddle.static.io.load_vars(
                     executor=exe,
                     dirname=load_dirname,

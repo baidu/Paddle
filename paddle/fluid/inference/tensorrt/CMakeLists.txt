@@ -36,12 +36,12 @@ elseif(WITH_CINN)
   nv_test(
     test_tensorrt_engine
     SRCS test_engine.cc test_dynamic_engine.cc
-    DEPS fleet_executor phi common tensorrt_engine tensorrt_plugin python)
+    DEPS phi common tensorrt_engine tensorrt_plugin python)
 else()
   nv_test(
     test_tensorrt_engine
     SRCS test_engine.cc test_dynamic_engine.cc
-    DEPS fleet_executor phi common tensorrt_engine tensorrt_plugin python)
+    DEPS phi common tensorrt_engine tensorrt_plugin python)
 endif()
 nv_test(
   test_arg_mapping_context

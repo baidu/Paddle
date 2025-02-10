@@ -114,11 +114,11 @@ class MatrixMultiplyOpConverter : public OpConverter {
         before_shape_tensors.push_back(
             GetEleTensorOfShape(input_shape_tensor, i));
       }
-      nvinfer1::ITensor* producted = Add1DConstantLayer(1);
+      nvinfer1::ITensor* produced = Add1DConstantLayer(1);
       for (int i = x_num_col_dims; i < x_rank; ++i) {
-        producted = Prod(producted, GetEleTensorOfShape(input_shape_tensor, i));
+        produced = Prod(produced, GetEleTensorOfShape(input_shape_tensor, i));
       }
-      before_shape_tensors.push_back(producted);
+      before_shape_tensors.push_back(produced);
       nvinfer1::ITensor* before_shape_tensor = Concat(before_shape_tensors);
       auto* reshape_before_layer =
           TRT_ENGINE_ADD_LAYER(engine_, Shuffle, *input1);

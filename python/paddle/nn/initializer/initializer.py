@@ -159,7 +159,7 @@ def calculate_gain(
     Args:
         nonlinearity(str): name of nonlinearity activation function. If it is a linear function, such as:
             `linear/conv1d/conv2d/conv3d/conv1d_transpose/conv2d_transpose/conv3d_transpose` , 1.0 will be returned.
-        param(bool|int|float|None, optional): optional parameter for somme nonlinearity function. Now, it only applies to
+        param(bool|int|float|None, optional): optional parameter for some nonlinearity function. Now, it only applies to
             'leaky_relu'. Default: None, it will be calculated as 0.01 in the formula.
 
     Returns:

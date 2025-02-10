@@ -572,9 +572,11 @@ Dispatcher.register(
 # stop
 Dispatcher.register(
     range,
-    ("ConstantVariable",),
+    ("ConstantVariable | TensorVariable",),
     lambda stop: RangeVariable(
-        range(stop.get_py_value()),
+        ConstantVariable.wrap_literal(0, stop.graph),
+        stop,
+        ConstantVariable.wrap_literal(1, stop.graph),
         graph=stop.graph,
         tracker=DummyTracker([stop]),
     ),
@@ -583,9 +585,11 @@ Dispatcher.register(
 # start, stop
 Dispatcher.register(
     range,
-    ("ConstantVariable", "ConstantVariable"),
+    ("ConstantVariable | TensorVariable", "ConstantVariable | TensorVariable"),
     lambda start, stop: RangeVariable(
-        range(start.get_py_value(), stop.get_py_value()),
+        start,
+        stop,
+        ConstantVariable.wrap_literal(1, stop.graph),
         graph=stop.graph,
         tracker=DummyTracker([start, stop]),
     ),
@@ -593,9 +597,15 @@ Dispatcher.register(
 # start, stop, step
 Dispatcher.register(
     range,
-    ("ConstantVariable", "ConstantVariable", "ConstantVariable"),
+    (
+        "ConstantVariable | TensorVariable",
+        "ConstantVariable | TensorVariable",
+        "ConstantVariable | TensorVariable",
+    ),
     lambda start, stop, step: RangeVariable(
-        range(start.get_py_value(), stop.get_py_value(), step.get_py_value()),
+        start,
+        stop,
+        step,
         graph=stop.graph,
         tracker=DummyTracker([start, stop, step]),
     ),
@@ -795,11 +805,26 @@ Dispatcher.register(
 Dispatcher.register(
     operator.setitem,
     (
+        "TensorVariable",
+        "Any",
         "VariableBase",
-        "int | str | ConstantVariable | TensorVariable",
-        "int | str | ConstantVariable | TensorVariable",
     ),
-    lambda var, key, value: var.setitem(key.get_py_value(), value),
+    lambda var, key, value: var.setitem(
+        VariableFactory.from_value(
+            key, graph=var.graph, tracker=ConstTracker(key)
+        ),
+        value,
+    ),
+)
+
+Dispatcher.register(
+    operator.setitem,
+    (
+        "VariableBase",
+        "int | str | ConstantVariable | TensorVariable | ContainerVariable",
+        "VariableBase",
+    ),
+    lambda var, key, value: var.setitem(add_guard(key).get_py_value(), value),
 )
 
 # delitem
@@ -817,7 +842,7 @@ Dispatcher.register(
         "VariableBase",
         "ConstantVariable",
     ),
-    lambda var, key: var.delitem(key.get_py_value()),
+    lambda var, key: var.delitem(add_guard(key).get_py_value()),
 )
 
 

@@ -42,14 +42,21 @@ class ArgMaxOpConverter : public OpConverter {
                               {output_name + "_value", output_name},
                               test_mode);
     } else {
+      int topk_out_shape_size =
+          topk_layer->getOutput(1)->getDimensions().nbDims;
+      std::vector<bool> should_squeeze(topk_out_shape_size, false);
+      should_squeeze[axis] = true;
+      std::vector<int> gather_indices;
+      for (int i = 0; i < topk_out_shape_size; ++i) {
+        if (!should_squeeze[i]) {
+          gather_indices.push_back(i);
+        }
+      }
       auto squeeze_layer =
           TRT_ENGINE_ADD_LAYER(engine_, Shuffle, *topk_layer->getOutput(1));
-      auto dims = input_dims;
-      dims.nbDims -= 1;
-      for (int i = axis; i < dims.nbDims; i++) {
-        dims.d[i] = dims.d[i + 1];
-      }
-      squeeze_layer->setReshapeDimensions(dims);
+      auto shape_tesnor = Shape(topk_layer->getOutput(1));
+      auto real_shape_tensor = Gather(shape_tesnor, gather_indices);
+      squeeze_layer->setInput(1, *real_shape_tensor);
       ReplenishLayerAndOutput(
           squeeze_layer, "arg_max", {output_name}, test_mode);
     }

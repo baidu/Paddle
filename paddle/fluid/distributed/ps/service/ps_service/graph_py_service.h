@@ -211,7 +211,7 @@ class GraphPyClient : public GraphPyService {
   int client_id;
   std::shared_ptr<::paddle::distributed::GraphBrpcClient> worker_ptr;
   std::thread* client_thread;
-  bool stoped_ = false;
+  bool stopped_ = false;
 };
 }  // namespace distributed
 }  // namespace paddle

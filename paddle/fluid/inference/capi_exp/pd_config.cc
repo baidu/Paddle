@@ -19,7 +19,7 @@
 #include "paddle/fluid/inference/capi_exp/utils_internal.h"
 #include "paddle/fluid/platform/enforce.h"
 
-#define CHECK_NULL_POINTER_PARM(param)                         \
+#define CHECK_NULL_POINTER_PARAM(param)                        \
   PADDLE_ENFORCE_NOT_NULL(                                     \
       param,                                                   \
       common::errors::InvalidArgument("The pointer of " #param \
@@ -44,7 +44,7 @@ static Config::Precision ConvertToCxxPrecisionType(PD_PrecisionType precision) {
       return Config::Precision::kHalf;
     default:
       PADDLE_THROW(common::errors::InvalidArgument(
-          "Unsupport paddle precision type %d.", precision));
+          "Unsupported paddle precision type %d.", precision));
       return Config::Precision::kFloat32;
   }
 }
@@ -64,33 +64,33 @@ void PD_ConfigSetModel(__pd_keep PD_Config* pd_config,
                        const char* prog_file_path,
                        const char* params_file_path) {
   CHECK_AND_CONVERT_PD_CONFIG;
-  CHECK_NULL_POINTER_PARM(prog_file_path);
-  CHECK_NULL_POINTER_PARM(params_file_path);
+  CHECK_NULL_POINTER_PARAM(prog_file_path);
+  CHECK_NULL_POINTER_PARAM(params_file_path);
   config->SetModel(prog_file_path, params_file_path);
 }
 void PD_ConfigSetProgFile(__pd_keep PD_Config* pd_config,
                           const char* prog_file_path) {
   CHECK_AND_CONVERT_PD_CONFIG;
-  CHECK_NULL_POINTER_PARM(prog_file_path);
+  CHECK_NULL_POINTER_PARAM(prog_file_path);
   config->SetProgFile(prog_file_path);
 }
 void PD_ConfigSetParamsFile(__pd_keep PD_Config* pd_config,
                             const char* params_file_path) {
   CHECK_AND_CONVERT_PD_CONFIG;
-  CHECK_NULL_POINTER_PARM(params_file_path);
+  CHECK_NULL_POINTER_PARAM(params_file_path);
   config->SetParamsFile(params_file_path);
 }
 void PD_ConfigSetOptimCacheDir(__pd_keep PD_Config* pd_config,
                                const char* opt_cache_dir) {
   CHECK_AND_CONVERT_PD_CONFIG;
-  CHECK_NULL_POINTER_PARM(opt_cache_dir);
+  CHECK_NULL_POINTER_PARAM(opt_cache_dir);
   config->SetOptimCacheDir(opt_cache_dir);
 }
 
 void PD_ConfigSetModelDir(__pd_keep PD_Config* pd_config,
                           const char* model_dir) {
   CHECK_AND_CONVERT_PD_CONFIG;
-  CHECK_NULL_POINTER_PARM(model_dir);
+  CHECK_NULL_POINTER_PARAM(model_dir);
   config->SetModel(model_dir);
 }
 const char* PD_ConfigGetModelDir(__pd_keep PD_Config* pd_config) {

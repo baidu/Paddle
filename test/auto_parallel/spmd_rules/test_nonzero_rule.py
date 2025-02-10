@@ -47,33 +47,33 @@ class TestNonZeroSPMDRule(unittest.TestCase):
         # [-1, -1, -1], [-1, -1] (x, output)
         self.x_dist_tensor_spec.set_dims_mapping([1, 1, 1])
 
-        infered_dist_attr = self.rule1.infer_forward(self.x_dist_tensor_spec)
+        inferred_dist_attr = self.rule1.infer_forward(self.x_dist_tensor_spec)
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_output_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
-        self.assertEqual(infered_input_dist_attr[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attr[0].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [-1, -1])
 
         # [-1, -1, -1] (x) -->
         # [-1, -1, -1], [-1, -1] (x, output)
         self.x_dist_tensor_spec.set_dims_mapping([-1, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(self.x_dist_tensor_spec)
+        inferred_dist_attr = self.rule1.infer_forward(self.x_dist_tensor_spec)
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_output_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
-        self.assertEqual(infered_input_dist_attr[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attr[0].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [-1, -1])
 
     def test_infer_reverse(self):
         # [1, 1, 1], [-1, -1] (x, output) -->
@@ -81,38 +81,38 @@ class TestNonZeroSPMDRule(unittest.TestCase):
         self.x_dist_tensor_spec.set_dims_mapping([1, 1, 1])
         self.output_dist_tensor_spec.set_dims_mapping([1, 1])
 
-        infered_dist_attr = self.rule1.infer_backward(
+        inferred_dist_attr = self.rule1.infer_backward(
             self.x_dist_tensor_spec, self.output_dist_tensor_spec
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_output_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
-        self.assertEqual(infered_input_dist_attr[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attr[0].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [-1, -1])
 
         # [-1, -1, -1], [-1, -1] (x, output) -->
         # [-1, -1, -1], [-1, -1] (x, output)
         self.x_dist_tensor_spec.set_dims_mapping([1, 1, 1])
         self.output_dist_tensor_spec.set_dims_mapping([-1, -1])
 
-        infered_dist_attr = self.rule1.infer_backward(
+        inferred_dist_attr = self.rule1.infer_backward(
             self.x_dist_tensor_spec, self.output_dist_tensor_spec
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_output_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
-        self.assertEqual(infered_input_dist_attr[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attr[0].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [-1, -1])
 
 
 if __name__ == "__main__":

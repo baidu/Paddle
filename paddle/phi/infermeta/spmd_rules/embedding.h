@@ -36,13 +36,14 @@ SpmdInfo EmbeddingInferSpmd(const DistMetaTensor& x,
 /// \note why need this rule?
 /// Currently, the phi include two kernels about embedding, `embedding` and
 /// `c_embedding`. `c_embedding` is supported weight's row-wise parallel which
-/// is used in  static graph, but `embedding` used in egaer graph is not
+/// is used in  static graph, but `embedding` used in eager graph is not
 /// supported. So we need two propagation rules for `c_embedding` and
 /// `embedding`.
-SpmdInfo EmbeddingInferSpmdUnsupportVocabParallel(const DistMetaTensor& x,
-                                                  const DistMetaTensor& weight,
-                                                  int padding_idx,
-                                                  bool sparse = false);
+SpmdInfo EmbeddingInferSpmdUnsupportedVocabParallel(
+    const DistMetaTensor& x,
+    const DistMetaTensor& weight,
+    int padding_idx,
+    bool sparse = false);
 
 SpmdInfo EmbeddingInferSpmdReverse(const DistMetaTensor& x,
                                    const DistMetaTensor& weight,

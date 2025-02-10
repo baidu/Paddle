@@ -36,7 +36,7 @@ def set_child_signal_handler(self, child_pid):
     signal.signal(signal.SIGCHLD, __handler__)
 
 
-class DygraphDataLoaderSingalHandler(unittest.TestCase):
+class DygraphDataLoaderSignalHandler(unittest.TestCase):
     def test_child_process_exit_with_error(self):
         def __test_process__():
             core._set_process_signal_handler()

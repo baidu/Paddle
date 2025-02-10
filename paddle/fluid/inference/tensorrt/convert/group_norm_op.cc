@@ -40,7 +40,7 @@ class GroupNormOpConverter : public OpConverter {
       with_silu = PADDLE_GET_CONST(bool, op_desc.GetAttr("with_silu"));
     }
 
-    // get the presistable var's data
+    // get the persistable var's data
     auto GetWeight = [&](const std::string& var_name,
                          phi::DDim* dims) -> TensorRTEngine::Weight {
       auto* temp_var = scope.FindVar(var_name);

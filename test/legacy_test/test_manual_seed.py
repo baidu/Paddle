@@ -38,7 +38,10 @@ class TestManualSeed(unittest.TestCase):
         x2_np = x2.numpy()
         x3_np = x3.numpy()
 
-        if not base.core.is_compiled_with_cuda():
+        if (
+            not base.core.is_compiled_with_cuda()
+            and not base.core.is_compiled_with_xpu()
+        ):
             np.testing.assert_allclose(x1_np, x2_np, rtol=1e-05)
             np.testing.assert_allclose(x_np, x3_np, rtol=1e-05)
 

@@ -74,7 +74,7 @@ void MultiPrecisionAddKernelImpl(const Context& dev_ctx,
         -1);
   } else {
     PADDLE_THROW(common::errors::InvalidArgument(
-        "Unsupport x dtype:%s, y dtype:%s for add(x, y) operation",
+        "Unsupported x dtype:%s, y dtype:%s for add(x, y) operation",
         phi::DataTypeToString(x.type()),
         phi::DataTypeToString(y.type())));
   }

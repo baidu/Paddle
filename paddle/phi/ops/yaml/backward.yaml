@@ -321,6 +321,12 @@
     data_type : out_grad
   no_need_buffer : input
 
+- backward_op : c_concat_grad
+  forward : c_concat (Tensor x, int rank, int nranks, int ring_id, bool use_calc_stream, bool use_model_parallel) -> Tensor(out)
+  args : (Tensor out_grad, int rank = 0, int nranks = 1, int ring_id = 0, bool use_model_parallel = true)
+  output : Tensor(x_grad)
+  invoke: c_split(out_grad, rank, nranks, ring_id, use_model_parallel)
+
 - backward_op : cast_grad
   forward : cast (Tensor x, DataType dtype) -> Tensor(out)
   args : (Tensor x, Tensor out_grad)
@@ -410,6 +416,7 @@
   infer_meta :
     func : UnchangedInferMeta
     param : [x]
+    spmd_rule : ClipGradInferSpmd
   kernel :
     func : clip_grad
   backward : clip_double_grad
@@ -1668,15 +1675,15 @@
   no_need_buffer : x
 
 - backward_op : instance_norm_double_grad
-  forward : instance_norm_grad(Tensor x, Tensor fwd_scale, Tensor saved_mean, Tensor saved_variance, Tensor grad_y, float epsilon) -> Tensor(grad_x), Tensor(grad_scale), Tensor(grad_bias)
-  args : (Tensor x, Tensor fwd_scale, Tensor saved_mean, Tensor saved_variance, Tensor grad_y, Tensor grad_x_grad, Tensor grad_scale_grad, Tensor grad_bias_grad, float epsilon)
-  output : Tensor(x_grad), Tensor(fwd_scale_grad), Tensor(grad_y_grad)
+  forward : instance_norm_grad(Tensor x, Tensor scale, Tensor saved_mean, Tensor saved_variance, Tensor grad_y, float epsilon) -> Tensor(grad_x), Tensor(grad_scale), Tensor(grad_bias)
+  args : (Tensor x, Tensor scale, Tensor saved_mean, Tensor saved_variance, Tensor grad_y, Tensor grad_x_grad, Tensor grad_scale_grad, Tensor grad_bias_grad, float epsilon)
+  output : Tensor(x_grad), Tensor(scale_grad), Tensor(grad_y_grad)
   infer_meta :
     func : InstanceNormDoubleGradInferMeta
   kernel :
     func : instance_norm_double_grad
     data_type : x
-  optional : fwd_scale, grad_x_grad, grad_scale_grad, grad_bias_grad
+  optional : scale, grad_x_grad, grad_scale_grad, grad_bias_grad
 
 - backward_op : instance_norm_grad
   forward : instance_norm(Tensor x, Tensor scale, Tensor bias, float epsilon) -> Tensor(y), Tensor(saved_mean), Tensor(saved_variance)
@@ -2121,14 +2128,14 @@
   optional : bias, cu_seqlens_q, cu_seqlens_k
 
 - backward_op : meshgrid_grad
-  forward : meshgrid (Tensor[] inputs) -> Tensor[](outputs)
-  args : (Tensor[] inputs, Tensor[] outputs_grad)
+  forward : meshgrid (Tensor[] inputs) -> Tensor[](out)
+  args : (Tensor[] inputs, Tensor[] out_grad)
   output : Tensor[](inputs_grad){inputs.size()}
   infer_meta :
     func : MeshgridGradInferMeta
   kernel :
     func : meshgrid_grad
-    data_type : outputs_grad
+    data_type : out_grad
 
 - backward_op : mish_grad
   forward : mish (Tensor x, float lambda) -> Tensor(out)

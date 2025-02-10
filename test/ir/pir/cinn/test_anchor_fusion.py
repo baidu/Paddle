@@ -91,11 +91,11 @@ class TestAnchorFusion(unittest.TestCase):
         self.check_accuracy_and_kernel_num(init, func, kernel_num=1)
 
     def test_transpose_iters_fusion(self):
-        #     Tranpose
+        #     Transpose
         #      /  \
-        #     T   Tranpose
+        #     T   Transpose
         #    / \
-        #   T  Tranpose
+        #   T  Transpose
         def func(x):
             x = paddle.transpose(x, [2, 0, 1, 3])
             a = x + 1
@@ -216,7 +216,7 @@ class TestAnchorFusion(unittest.TestCase):
 
         self.check_accuracy_and_kernel_num(init, func, kernel_num=1)
 
-    def test_recompute_multidownstrema_trivial(self):
+    def test_recompute_multidownstream_trivial(self):
         #     T
         #    / \
         #   S   S

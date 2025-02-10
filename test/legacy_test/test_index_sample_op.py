@@ -129,6 +129,7 @@ class TestCase6(TestIndexSampleOp):
         self.index_type = "int64"
 
 
+@unittest.skipIf(core.is_compiled_with_xpu(), "complex is not supported on XPU")
 class TestIndexSampleComplex64(TestIndexSampleOp):
     def config(self):
         """
@@ -140,6 +141,7 @@ class TestIndexSampleComplex64(TestIndexSampleOp):
         self.index_type = "int64"
 
 
+@unittest.skipIf(core.is_compiled_with_xpu(), "complex is not supported on XPU")
 class TestIndexSampleComplex128(TestIndexSampleOp):
     def config(self):
         """

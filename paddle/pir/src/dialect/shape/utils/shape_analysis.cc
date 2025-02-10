@@ -140,14 +140,34 @@ InferSymbolicShapeContext::GetShapeOrDataForValue(Value val) const {
 }
 
 void InferSymbolicShapeContext::SetSymbolForValueByStaticShape(Value val) {
+  const auto& GetValueMessage = [](Value val) -> std::string {
+    std::ostringstream oss;
+    if (val.isa<pir::OpResult>()) {
+      const auto val_idx = val.dyn_cast<OpResult>().index();
+      oss << "The Value is a OpResult, defined by " << val.defining_op()->name()
+          << "[" << val.defining_op()->id() << "], with results index "
+          << val_idx;
+    } else if (val.isa<pir::BlockArgument>()) {
+      const auto val_idx = val.dyn_cast<pir::BlockArgument>().index();
+      const auto* block = val.dyn_cast<pir::BlockArgument>().owner();
+      oss << "The Value is a BlockArgument, defined by "
+          << block->GetParentOp()->name() << "[" << block->GetParentOp()->id()
+          << "], with input index " << val_idx;
+    } else {
+      oss << "It's a FakeValue.";
+    }
+    return oss.str();
+  };
   const auto& value_type = val.type();
   if (!val || !value_type) {
-    LOG(WARNING) << "Risk on SetSymbolForValueByStaticShape for null value";
+    LOG(WARNING) << "Risk on SetSymbolForValueByStaticShape for null value. "
+                 << GetValueMessage(val);
     return;
   }
-  if (!IsStaticShape(val)) {
+  if (!IsStaticShape(val) && !val.isa<pir::BlockArgument>()) {
     LOG(WARNING)
-        << "Risk on SetSymbolForValueByStaticShape for contain_unknown_dim";
+        << "Risk on SetSymbolForValueByStaticShape for contain_unknown_dim. "
+        << GetValueMessage(val);
   }
   const auto& GetStaticShapeForDenseTensorType =
       [&](DenseTensorType type_info) -> symbol::TensorShapeOrDataDimExprs {
@@ -289,20 +309,35 @@ InferSymbolicShapeContext::SimplifyBroadcastForShapeOrData(
   auto SimplifyBroadcast =
       [&](const symbol::Broadcast<symbol::DimExpr>& bc) -> symbol::DimExpr {
     const symbol::List<symbol::DimExpr>& dim_exprs = bc.operands;
+    // 1. check if any dim_expr is greater than 1
     symbol::List<symbol::DimExpr> gtone_list;
     for (const auto& dim_expr : *dim_exprs) {
       if (IsGreatThanOne(dim_expr)) gtone_list->push_back(dim_expr);
     }
-    symbol::DimExpr simplified_dim_expr = bc;
-    if (gtone_list->size() == 1) {
-      simplified_dim_expr = gtone_list->at(0);
-    } else if (gtone_list->size() > 1) {
-      for (size_t i = 1; i < gtone_list->size(); i++) {
-        AddEqualCstr(gtone_list->at(0), gtone_list->at(i));
+    if (gtone_list->size() >= 1) {
+      if (gtone_list->size() > 1) {
+        for (size_t i = 1; i < gtone_list->size(); i++) {
+          AddEqualCstr(gtone_list->at(0), gtone_list->at(i));
+        }
       }
-      simplified_dim_expr = gtone_list->at(0);
+      return gtone_list->at(0);
     }
-    return simplified_dim_expr;
+
+    // compare each other dim_expr
+    for (size_t i = 0; i < dim_exprs->size() - 1; ++i) {
+      for (size_t j = i + 1; j < dim_exprs->size(); ++j) {
+        const auto compare_result =
+            symbol::Compare(dim_exprs->at(i), dim_exprs->at(j));
+        if (compare_result == symbol::DimExprCompareResult::GT) {
+          AddEqualCstr(dim_exprs->at(j), symbol::DimExpr(1));
+          return dim_exprs->at(i);
+        } else if (compare_result == symbol::DimExprCompareResult::LT) {
+          AddEqualCstr(dim_exprs->at(i), symbol::DimExpr(1));
+          return dim_exprs->at(j);
+        }
+      }
+    }
+    return bc;
   };
 
   auto DimExprsVisitor =
@@ -498,7 +533,7 @@ void ShapeConstraintIRAnalysis::InferShapeOrDataForValue(Value val) {
     }
   };
 
-  const auto& VisitNotInferedInputOp =
+  const auto& VisitNotInferredInputOp =
       [&](Operation* op, const std::function<void(Operation*)>& Visit) {
         for (auto& operand : GetRealOperandSource(op)) {
           if (operand.impl() && !context_.HasShapeOrDataForValue(operand)) {
@@ -511,7 +546,8 @@ void ShapeConstraintIRAnalysis::InferShapeOrDataForValue(Value val) {
         }
       };
 
-  ::common::BfsWalker<Operation*> build_subgraph_walker(VisitNotInferedInputOp);
+  ::common::BfsWalker<Operation*> build_subgraph_walker(
+      VisitNotInferredInputOp);
   build_subgraph_walker(val.defining_op(), [&](Operation* op) {
     subgraph_ops.insert(op);
     bool has_prev_op = false;

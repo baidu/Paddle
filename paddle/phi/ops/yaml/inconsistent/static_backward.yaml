@@ -476,6 +476,12 @@
     data_type: input
   optional: bias, sample_weight, custom_dist_probs, custom_dist_alias, custom_dist_alias_probs
 
+- backward_op : print_grad
+  forward : print (Tensor in, int first_n, str message, int summarize, bool print_tensor_name = true, bool print_tensor_type = true, bool print_tensor_shape = true, bool print_tensor_layout = true, bool print_tensor_lod = true, str print_phase = "BOTH", bool is_forward = true) -> Tensor(out)
+  args : (Tensor out_grad, int first_n, str message, int summarize, bool print_tensor_name = true, bool print_tensor_type = true, bool print_tensor_shape = true, bool print_tensor_layout = true, bool print_tensor_lod = true, str print_phase = "BOTH", bool is_forward = true)
+  output : Tensor(in_grad)
+  invoke : print(out_grad, first_n, message, summarize, print_tensor_name, print_tensor_type, print_tensor_shape, print_tensor_layout, print_tensor_lod, print_phase, is_forward)
+
 - backward_op : push_box_sparse
   forward : pull_box_sparse (Tensor w, Tensor[] ids, bool is_sparse = false, bool is_distributed = false, int size = 1) -> Tensor[](out){ids.size()}
   args : (Tensor[] ids, Tensor[] out_grad_in, bool is_sparse = false, bool is_distributed = false, int size = 1)

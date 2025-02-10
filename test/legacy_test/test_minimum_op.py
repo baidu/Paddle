@@ -93,9 +93,6 @@ class ApiMinimumTest(unittest.TestCase):
             )
         np.testing.assert_allclose(res, self.np_expected4, rtol=1e-05)
 
-    @unittest.skipIf(
-        core.is_compiled_with_xpu(), "XPU int64_t minimum has bug now"
-    )
     def test_dynamic_api(self):
         paddle.disable_static()
         x = paddle.to_tensor(self.input_x)

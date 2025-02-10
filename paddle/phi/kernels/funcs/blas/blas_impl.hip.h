@@ -62,7 +62,7 @@ struct CUBlas<float> {
         phi::dynload::rocblas_sgemm_strided_batched(args...));
   }
 
-  // HIP not supportted, refer to the doc here:
+  // HIP not supported, refer to the doc here:
   // https://github.com/ROCm-Developer-Tools/HIP/blob/roc-3.5.x/docs/markdown/CUBLAS_API_supported_by_HIP.md
   template <typename... ARGS>
   static void GEMM_EX(ARGS... args) {
@@ -95,8 +95,12 @@ struct CUBlas<float> {
 
   template <typename... ARGS>
   static void TRSM_BATCH(ARGS... args) {
+#if HIP_VERSION >= 30000000
+    PADDLE_ENFORCE_GPU_SUCCESS(phi::dynload::rocblas_strsm_batched(args...));
+#else
     PADDLE_THROW(common::errors::Unimplemented(
         "cublasStrsmBatched is not supported on HIP platform."));
+#endif
   }
 };
 
@@ -164,8 +168,12 @@ struct CUBlas<double> {
 
   template <typename... ARGS>
   static void TRSM_BATCH(ARGS... args) {
+#if HIP_VERSION >= 30000000
+    PADDLE_ENFORCE_GPU_SUCCESS(phi::dynload::rocblas_dtrsm_batched(args...));
+#else
     PADDLE_THROW(common::errors::Unimplemented(
         "cublasDtrsmBatched is not supported on HIP platform."));
+#endif
   }
 };
 

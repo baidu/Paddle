@@ -48,16 +48,20 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['num'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
 
         # num_or_sections = [15, 16, 17], axis = 2
         # [0, -1, -1] --> [0, -1, -1], [0, -1, -1], [0, -1, -1], [0, -1, -1]
@@ -69,17 +73,23 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['sections'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[2].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[2].dims_mapping, [0, -1, -1]
+        )
 
         # num_or_sections = [15, 16, 17], axis = 2
         # [-1, -1, 0] --> [-1, -1, -1], [-1, -1, -1], [-1, -1, -1], [-1, -1, -1]
@@ -90,22 +100,24 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['sections'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[2].dims_mapping, [-1, -1, -1]
         )
 
         # num_or_sections = 2, axis = -2
@@ -118,16 +130,20 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['num'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
 
     def test_multi_mesh_dim(self):
         process_mesh = auto.ProcessMesh(mesh=[[0, 1, 2], [3, 4, 5]])
@@ -144,24 +160,24 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['num'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[2].dims_mapping, [0, 1, -1, -1]
         )
 
         # num_or_sections = [32, 32, 32], axis = 0
@@ -174,24 +190,24 @@ class TestReductionSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.attrs['sections'], self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[2].dims_mapping, [-1, 1, -1, -1]
         )
 
     def test_backward_single_mesh_dim(self):
@@ -217,16 +233,20 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['num'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
 
         # num_or_sections = [15, 16, 17], axis = 2
         # [0, -1, -1], [0, -1, -1], [0, -1, -1] -->
@@ -252,17 +272,23 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['sections'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[2].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[2].dims_mapping, [0, -1, -1]
+        )
 
         # num_or_sections = [15, 16, 17], axis = 2
         # [-1, -1, -1], [-1, -1, -1], [-1, -1, -1] -->
@@ -287,22 +313,24 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['sections'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[2].dims_mapping, [-1, -1, -1]
         )
 
         # num_or_sections = 2, axis = -2
@@ -325,16 +353,20 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['num'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1]
+        )
 
         # num_or_sections = 2, axis = -2
         # [-1, 0, -1], [-1, -1, -1] --> [-1, -1, -1], [-1, -1, -1], [-1, -1, -1]
@@ -356,19 +388,21 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['num'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
         )
 
     def test_backward_multi_mesh_dim(self):
@@ -416,24 +450,24 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['num'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [0, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[2].dims_mapping, [0, 1, -1, -1]
         )
 
         # num_or_sections = [32, 32, 32], axis = 0
@@ -460,24 +494,24 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['sections'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, 1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [-1, 1, -1, -1]
+            inferred_output_dist_attrs[2].dims_mapping, [-1, 1, -1, -1]
         )
 
         # num_or_sections = [32, 32, 32], axis = 2
@@ -504,24 +538,24 @@ class TestReductionSPMDRule(unittest.TestCase):
             self.attrs['sections'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 3)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 3)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [0, -1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[2].dims_mapping, [0, -1, -1, -1]
+            inferred_output_dist_attrs[2].dims_mapping, [0, -1, -1, -1]
         )
 
 

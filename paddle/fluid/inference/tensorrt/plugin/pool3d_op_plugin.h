@@ -204,12 +204,12 @@ class Pool3DPluginDynamic : public DynamicPluginTensorRT {
   size_t getSerializationSize() const TRT_NOEXCEPT override;
   void serialize(void* buffer) const TRT_NOEXCEPT override;
 
-  nvinfer1::DimsExprs getOutputDimensions(int output_index,
-                                          const nvinfer1::DimsExprs* inputs,
-                                          int nb_inputs,
-                                          nvinfer1::IExprBuilder& expr_builder)
+  nvinfer1::DimsExprs getOutputDimensions(
+      int output_index,
+      const nvinfer1::DimsExprs* inputs,
+      int nb_inputs,
+      nvinfer1::IExprBuilder& expr_builder)  // NOLINT
       TRT_NOEXCEPT override;
-
   bool supportsFormatCombination(int pos,
                                  const nvinfer1::PluginTensorDesc* inOut,
                                  int nbInputs,
@@ -263,7 +263,139 @@ class Pool3DPluginDynamicCreator : public TensorRTPluginCreator {
     return new Pool3DPluginDynamic(serial_data, serial_length);
   }
 };
+
+class PIRPool3DPluginDynamic : public DynamicPluginTensorRT {
+ public:
+  PIRPool3DPluginDynamic() {}
+  PIRPool3DPluginDynamic(const bool& ceil_mode,
+                         const std::string& pool3d_type,
+                         const bool& adaptive,
+                         const std::vector<int>& ksize,
+                         const std::vector<int>& strides,
+                         const std::vector<int>& paddings,
+                         const bool& is_global)
+      : ceil_mode_(ceil_mode),
+        pool3d_type_(pool3d_type),
+        adaptive_(adaptive),
+        ksize_(ksize),
+        strides_(strides),
+        paddings_(paddings),
+        is_global_(is_global) {}
+
+  PIRPool3DPluginDynamic(void const* serialData, size_t serialLength);
+  ~PIRPool3DPluginDynamic() {}
+  nvinfer1::IPluginV2DynamicExt* clone() const TRT_NOEXCEPT override;
+  const char* getPluginType() const TRT_NOEXCEPT override;
+  int getNbOutputs() const TRT_NOEXCEPT override;
+  int initialize() TRT_NOEXCEPT override;
+  size_t getSerializationSize() const TRT_NOEXCEPT override;
+  void serialize(void* buffer) const TRT_NOEXCEPT override;
+
+  nvinfer1::DimsExprs getOutputDimensions(
+      int output_index,
+      const nvinfer1::DimsExprs* inputs,
+      int nb_inputs,
+      nvinfer1::IExprBuilder& expr_builder)  // NOLINT
+      TRT_NOEXCEPT override;
+  bool supportsFormatCombination(int pos,
+                                 const nvinfer1::PluginTensorDesc* inOut,
+                                 int nbInputs,
+                                 int nbOutputs) TRT_NOEXCEPT override;
+
+  void configurePlugin(const nvinfer1::DynamicPluginTensorDesc* in,
+                       int nbInputs,
+                       const nvinfer1::DynamicPluginTensorDesc* out,
+                       int nbOutputs) TRT_NOEXCEPT override;
+
+  size_t getWorkspaceSize(const nvinfer1::PluginTensorDesc* inputs,
+                          int nbInputs,
+                          const nvinfer1::PluginTensorDesc* outputs,
+                          int nbOutputs) const TRT_NOEXCEPT override;
+
+  int enqueue(const nvinfer1::PluginTensorDesc* inputDesc,
+              const nvinfer1::PluginTensorDesc* outputDesc,
+              const void* const* inputs,
+              void* const* outputs,
+              void* workspace,
+              cudaStream_t stream) TRT_NOEXCEPT override;
+  nvinfer1::DataType getOutputDataType(int index,
+                                       const nvinfer1::DataType* inputTypes,
+                                       int nbInputs) const
+      TRT_NOEXCEPT override;
+
+  void destroy() TRT_NOEXCEPT override { delete this; }
+
+ private:
+  bool ceil_mode_;
+  std::string pool3d_type_;
+  bool adaptive_;
+  std::vector<int> ksize_;
+  std::vector<int> strides_;
+  std::vector<int> paddings_;
+  bool is_global_;
+};
+
+class PIRPool3DPluginDynamicCreator : public TensorRTPluginCreator {
+ public:
+  const char* getPluginName() const TRT_NOEXCEPT override {
+    return "pir_pool3d_plugin_dynamic";
+  }
+
+  const char* getPluginVersion() const TRT_NOEXCEPT override { return "1"; }
+
+  nvinfer1::IPluginV2* deserializePlugin(const char* name,
+                                         const void* serial_data,
+                                         size_t serial_length)
+      TRT_NOEXCEPT override {
+    return new PIRPool3DPluginDynamic(serial_data, serial_length);
+  }
+
+  nvinfer1::IPluginV2* createPlugin(const char* name,
+                                    const nvinfer1::PluginFieldCollection* fc)
+      TRT_NOEXCEPT override {
+    bool ceil_mode = false;
+    std::string pool3d_type;
+    bool adaptive = false;
+    std::vector<int> ksize;
+    std::vector<int> strides;
+    std::vector<int> paddings;
+    bool is_global = false;
+
+    for (int i = 0; i < fc->nbFields; ++i) {
+      const nvinfer1::PluginField& field = fc->fields[i];
+      const std::string field_name(field.name);
+
+      if (field_name.compare("ceil_mode") == 0) {
+        ceil_mode = *static_cast<const bool*>(field.data);
+      } else if (field_name.compare("pool3d_type") == 0) {
+        pool3d_type = std::string(static_cast<const char*>(fc->fields[i].data),
+                                  fc->fields[i].length);
+      } else if (field_name.compare("adaptive") == 0) {
+        adaptive = *static_cast<const bool*>(field.data);
+      } else if (field_name.compare("ksize") == 0) {
+        const int length = fc->fields[i].length;
+        const int* data = static_cast<const int*>(fc->fields[i].data);
+        ksize.insert(ksize.end(), data, data + length);
+      } else if (field_name.compare("strides") == 0) {
+        const int length = fc->fields[i].length;
+        const int* data = static_cast<const int*>(fc->fields[i].data);
+        strides.insert(strides.end(), data, data + length);
+      } else if (field_name.compare("paddings") == 0) {
+        const int length = fc->fields[i].length;
+        const int* data = static_cast<const int*>(fc->fields[i].data);
+        paddings.insert(paddings.end(), data, data + length);
+      } else if (field_name.compare("is_global") == 0) {
+        is_global = *static_cast<const bool*>(field.data);
+      } else {
+        assert(false && "Unknown plugin field name.");
+      }
+    }
+    return new Pool3DPluginDynamic(
+        ceil_mode, pool3d_type, adaptive, ksize, strides, paddings, is_global);
+  }
+};
 REGISTER_TRT_PLUGIN_V2(Pool3DPluginDynamicCreator);
+REGISTER_TRT_PLUGIN_V2(PIRPool3DPluginDynamicCreator);
 
 }  // namespace plugin
 }  // namespace tensorrt

@@ -566,7 +566,7 @@ void AutoMixedPrecisionPass::UpdateOpPrecision() const {
             vars_should_not_low_precision.insert(in_var_node->Var()->Name());
           }
         }
-        // when op_1 only support cpu kernel. if op_2's intput var is op_1's
+        // when op_1 only support cpu kernel. if op_2's input var is op_1's
         // output var, then op_2 should not run at low precision.
         if (GetOpOriginalType(op_type) != "feed" &&
             GetOpOriginalType(op_type) != "tensorrt_engine" &&

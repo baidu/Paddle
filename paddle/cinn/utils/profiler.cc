@@ -51,7 +51,7 @@ void ProfilerHelper::UpdateState() {
       g_state = ProfilerState::kAll;
       break;
     default:
-      LOG(WARNING) << "Unsupport FLAGS_cinn_profiler_state = "
+      LOG(WARNING) << "Unsupported FLAGS_cinn_profiler_state = "
                    << FLAGS_cinn_profiler_state << ", and will do nothing.";
   }
 }

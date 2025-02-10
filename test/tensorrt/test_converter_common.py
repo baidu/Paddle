@@ -107,6 +107,22 @@ def nearest_python_api(x, OutSize, SizeTensor, Scale, attrs):
     )
 
 
+def embedding_python_api(x, weight, attrs):
+    return _C_ops.embedding(
+        x,
+        weight,
+        attrs['padding_idx'],
+        attrs['sparse'],
+    )
+
+
+def unbind_python_api(x, attrs):
+    return _C_ops.unbind(
+        x,
+        attrs['axis'],
+    )
+
+
 class TestBilinearScaleTRTPattern(TensorRTBaseTest):
     def setUp(self):
         self.python_api = bilinear_python_api
@@ -286,6 +302,63 @@ class TestNearestSizeTensorTRTPattern(TensorRTBaseTest):
 
     def test_trt_result(self):
         self.check_trt_result()
+
+
+class TestEmbeddingTRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = embedding_python_api
+        x = np.array([[3, 16, 24], [6, 4, 47]]).astype(np.int64)
+        weight = np.random.uniform(-1, 1, [64, 4]).astype('float32')
+        self.api_args = {
+            "x": x,
+            "weight": weight,
+            "attrs": {
+                "padding_idx": -1,
+                "sparse": False,
+            },
+        }
+        self.dynamic_shape_data = {
+            "x": lambda shape: np.random.randint(1, 64, size=shape).astype(
+                "int64"
+            ),
+            "weight": lambda shape: np.random.randint(-1, 1, size=shape).astype(
+                "float32"
+            ),
+        }
+        self.program_config = {"feed_list": ["x", "weight"]}
+        self.min_shape = {"x": [1, 3], "weight": [64, 4]}
+        self.opt_shape = {"x": [2, 3], "weight": [64, 4]}
+        self.max_shape = {"x": [16, 3], "weight": [64, 4]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+    def test_trt_result_fp16(self):
+        self.check_trt_result(precision_mode="fp16")
+
+
+class TestUnbindTRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = unbind_python_api
+        x = np.random.random([3, 400, 196, 80]).astype(np.float32)
+        self.api_args = {
+            "x": x,
+            "attrs": {
+                "axis": 1,
+            },
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {
+            "x": [1, 400, 196, 80],
+        }
+        self.opt_shape = {"x": [2, 400, 196, 80]}
+        self.max_shape = {"x": [3, 400, 196, 80]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+    def test_trt_result_fp16(self):
+        self.check_trt_result(precision_mode="fp16")
 
 
 class TestNearestOutAndScaleTRTPattern(TensorRTBaseTest):

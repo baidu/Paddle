@@ -395,7 +395,7 @@ def create_parameter(
 
 def create_persistable_value(dtype, shape, name=None, **kwargs):
     """
-    Create Value that is persistable in startup program and main program. The Value is initilized in startup program and
+    Create Value that is persistable in startup program and main program. The Value is initialized in startup program and
     used in main program.
 
     Returns:

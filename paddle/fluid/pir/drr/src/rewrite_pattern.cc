@@ -371,7 +371,7 @@ bool DrrRewritePattern::MatchFromOutputToInput(
           continue;
         } else {
           VLOG(8) << drr_node->name() << "Match failed:drr_input[" << i
-                  << "] !=  pir_intput[" << i << "] , drr_input_tensor[" << i
+                  << "] !=  pir_input[" << i << "] , drr_input_tensor[" << i
                   << "] is None.";
           matched = false;
           break;

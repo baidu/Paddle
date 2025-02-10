@@ -291,7 +291,7 @@ struct SortOperands {
     PADDLE_ENFORCE_EQ(
         !operands->empty(),
         true,
-        common::errors::InvalidArgument("input op is empty, pleace check!"));
+        common::errors::InvalidArgument("input op is empty, please check!"));
     for (std::size_t i = 0; i < operands->size() - 1; ++i) {
       if (IsLhsBeforeRhs(operands->at(i + 1), operands->at(i))) {
         return false;
@@ -922,52 +922,40 @@ struct FoldRedundantSymbolicBroadcast {
 
 /*
  * Simplify Example:
- * Broadcast(dim_expr0, Broadcast(dim_expr1, dim_expr2)) =>
- * Broadcast(dim_expr0, dim_expr1, dim_expr2)
+ * Broadcast(S0,S0,S1) => Broadcast(S0,S1)
  */
 struct FoldRedundantBroadcast {
   using dim_expr_type = Broadcast<DimExpr>;
 
-  struct SearchResult {
-    std::size_t value_pos;
-    std::size_t same_value_pos;
-  };
-
   DimExpr Rewrite(const DimExpr& expr) {
     const auto& [operands] = expr.Get<Broadcast<DimExpr>>();
-    const auto& opt_searched = SearchInversedPair(operands);
-    if (!opt_searched.has_value()) {
-      return expr;
+    while (operands->size() > 1) {
+      int pos_index = SearchSameIndex(operands);
+      if (pos_index < 0) {
+        break;
+      }
+      operands->erase(operands->begin() + pos_index);
     }
-    const auto& [i, _] = opt_searched.value();
-    List<DimExpr> ret_operands{};
-    ret_operands->insert(ret_operands->end(),
-                         operands->begin(),
-                         std::next(operands->begin(), i));
-    ret_operands->insert(ret_operands->end(),
-                         std::next(operands->begin(), i + 1),
-                         operands->end());
-    if (ret_operands->size() == 1) {
-      return ret_operands->at(0);
+    if (operands->size() == 1) {
+      return operands->at(0);
     } else {
-      return Broadcast<DimExpr>{ret_operands};
+      return Broadcast<DimExpr>{operands};
     }
     PADDLE_THROW(common::errors::Fatal("Dead code."));
   }
 
-  std::optional<SearchResult> SearchInversedPair(
-      const List<DimExpr>& operands) {
+  int SearchSameIndex(const List<DimExpr>& operands) {
     for (std::size_t i = 0; i < operands->size(); ++i) {
       for (std::size_t j = 0; j < operands->size(); ++j) {
         if (i == j) {
           continue;
         }
         if (operands->at(i) == operands->at(j)) {
-          return SearchResult{i, j};
+          return i;
         }
       }
     }
-    return std::nullopt;
+    return -1;
   }
 };
 
@@ -1033,10 +1021,10 @@ struct SimplifyBroadcast {
 };
 
 template <typename PassT>
-void DoPass(bool* rewrited, DimExpr* expr) {
+void DoPass(bool* rewritten, DimExpr* expr) {
   const auto old_expr = *expr;
   *expr = TrySimplifyPass<PassT>(*expr);
-  *rewrited = *rewrited || (old_expr != *expr);
+  *rewritten = *rewritten || (old_expr != *expr);
 }
 
 DimExpr Simplify(const DimExpr& expr) {
@@ -1269,6 +1257,30 @@ IR_API PriorityComparisonStatus CompareDimExprPriority(const DimExpr& lhs,
         return PriorityComparisonStatus::EQUAL;
       }};
   return std::visit(CompareForEqualPriority, lhs.variant(), rhs.variant());
+}
+
+DimExprCompareResult Compare(const DimExpr& lhs, const DimExpr& rhs) {
+  auto CompareFunc = common::Overloaded{
+      [](const int& lhs, const int& rhs) {
+        return lhs == rhs ? DimExprCompareResult::EQ
+                          : (lhs < rhs ? DimExprCompareResult::LT
+                                       : DimExprCompareResult::GT);
+      },
+      [](const Add<DimExpr>& lhs, const Add<DimExpr>& rhs) {
+        DimExpr simplified_result =
+            SimplifyDimExpr(DimExpr{lhs} - DimExpr{rhs});
+        if (simplified_result.isa<int64_t>()) {
+          int64_t const_result = simplified_result.dyn_cast<int64_t>();
+          return const_result == 0  ? DimExprCompareResult::EQ
+                 : const_result < 0 ? DimExprCompareResult::LT
+                                    : DimExprCompareResult::GT;
+        }
+        return DimExprCompareResult::UNKNOWN;
+      },
+      [](const auto& lhs, const auto& rhs) {
+        return DimExprCompareResult::UNKNOWN;
+      }};
+  return std::visit(CompareFunc, lhs.variant(), rhs.variant());
 }
 
 }  // namespace symbol

@@ -96,7 +96,7 @@ def scatter_object_list(
 ) -> None:
     """
 
-    Scatter picklable objects from the source to all others. Similiar to scatter(), but python object can be passed in.
+    Scatter picklable objects from the source to all others. Similar to scatter(), but python object can be passed in.
 
     Args:
         out_object_list (list): The list of objects to store the scattered objects.

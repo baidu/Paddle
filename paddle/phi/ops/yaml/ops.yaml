@@ -762,7 +762,7 @@
     param : [x, nranks]
   kernel :
     func : c_concat
-  traits : paddle::dialect::ForwardOnlyTrait
+  backward: c_concat_grad
 
 - op : c_identity
   args : (Tensor x, int ring_id, bool use_calc_stream, bool use_model_parallel)
@@ -914,6 +914,7 @@
   infer_meta :
     func : UnchangedInferMeta
     param : [x]
+    spmd_rule : ClipInferSpmd
   kernel :
     func : clip
     data_type : x
@@ -3385,7 +3386,7 @@
 
 - op : meshgrid
   args : (Tensor[] inputs)
-  output : Tensor[]{inputs.size()}
+  output : Tensor[](out){inputs.size()}
   infer_meta :
     func : MeshgridInferMeta
   kernel :
@@ -3414,6 +3415,35 @@
     func : mode
   backward : mode_grad
   interfaces : paddle::dialect::InferSymbolicShapeInterface
+
+- op : moe_dispatch
+  args : (Tensor X, Tensor gating_output, int moe_topk = 2, bool group_moe = false, bool topk_only_mode = false)
+  output : Tensor(permute_input), Tensor(token_nums_per_expert), Tensor(permute_indices_per_token), Tensor(expert_scales_float), Tensor(top_k_indices)
+  infer_meta :
+    func : MoeDispatchInferMeta
+  kernel :
+    func : moe_dispatch
+    data_type : X
+
+- op : moe_ffn
+  args : (Tensor permute_input, Tensor token_nums_per_expert, Tensor ffn1_weight, Tensor ffn2_weight, Tensor ffn1_bias, Tensor ffn1_scale, Tensor ffn2_scale, str quant_method)
+  output : Tensor(ffn_out)
+  infer_meta :
+    func : MoeFFNInferMeta
+  kernel :
+    func : moe_ffn
+    data_type : permute_input
+  optional : ffn1_bias, ffn1_scale, ffn2_scale
+
+- op : moe_reduce
+  args : (Tensor ffn_out, Tensor expert_scales_float, Tensor permute_indices_per_token, Tensor top_k_indices, Tensor ffn2_bias, bool norm_topk_prob = false, float routed_scaling_factor = 1.0)
+  output : Tensor(output)
+  infer_meta :
+    func : MoeReduceInferMeta
+  kernel :
+    func : moe_reduce
+    data_type : ffn_out
+  optional : ffn2_bias
 
 - op : momentum_
   args : (Tensor param, Tensor grad, Tensor velocity, Tensor learning_rate, Tensor master_param, float mu, bool use_nesterov = false, str regularization_method = "", float regularization_coeff = 0.0f, bool multi_precision = false, float rescale_grad = 1.0f)
@@ -4434,6 +4464,7 @@
     skip_transform : input
   interfaces : paddle::dialect::InferSymbolicShapeInterface
   traits : paddle::dialect::ForwardOnlyTrait
+  no_need_buffer : input
 
 - op : shape64
   args : (Tensor input)
@@ -4447,6 +4478,7 @@
     skip_transform : input
   interfaces : paddle::dialect::InferSymbolicShapeInterface
   traits : paddle::dialect::ForwardOnlyTrait
+  no_need_buffer : input
 
 - op : shard_index
   args : (Tensor input, int index_num, int nshards, int shard_id, int ignore_value=-1)

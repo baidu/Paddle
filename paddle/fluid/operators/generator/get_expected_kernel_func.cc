@@ -63,7 +63,7 @@ static bool ReduceOpHasOptimizedOneDNNKernel(
 // only poolop
 bool CanMKLDNNSupportPool(const framework::ExecutionContext& ctx) {
   if (ctx.Attr<bool>("adaptive") == false) return true;
-  // oneDNN is supporting only unchangable in size pool window
+  // oneDNN is supporting only unchangeable in size pool window
   auto src_tz = common::vectorize(ctx.Input<phi::DenseTensor>("X")->dims());
   if (!ctx.HasAttr("ksize")) {
     return false;

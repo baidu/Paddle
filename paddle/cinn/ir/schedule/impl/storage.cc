@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "paddle/cinn/common/macros.h"
+#include "paddle/cinn/ir/ir_analyzer/ir_analyzer.h"
 #include "paddle/cinn/ir/schedule/impl/ir_schedule.h"
 #include "paddle/cinn/runtime/intrinsic.h"
 #include "paddle/common/enforce.h"
@@ -35,6 +36,59 @@
 
 namespace cinn {
 namespace ir {
+namespace {
+
+struct CacheReadRewriter : public ir::IRMutator<> {
+  explicit CacheReadRewriter(CacheBlockInfo* info, const Expr& target_load)
+      : info_(info), target_load_(target_load) {}
+
+  void operator()(Expr* expr) { IRMutator::Visit(expr, expr); }
+
+ private:
+  void Visit(const ir::Block* expr, Expr* op) override {
+    IRMutator::Visit(expr, op);
+    if (*op == info_->loc_block) {
+      op->As<Block>()->stmts.insert(
+          op->As<Block>()->stmts.begin() + info_->loc_pos, info_->cache_block);
+    }
+  }
+
+  void Visit(const ir::Load* op, Expr* expr) override {
+    IRMutator::Visit(op, expr);
+    if (!cur_block_.defined()) return;
+    if (op->tensor != Expr(info_->read_tensor)) return;
+
+    Expr expanded_load = analyzer::CanonicalizeLoopVar(
+        analyzer::ExpandIterVar(*expr, cur_block_), parent_loops_);
+    if (expanded_load == target_load_) {
+      expr->As<ir::Load>()->tensor = Expr(info_->write_tensor);
+    }
+  }
+
+  void Visit(const ir::ScheduleBlockRealize* op, Expr* expr) override {
+    Expr old_block = cur_block_;
+    cur_block_ = *expr;
+    IRMutator::Visit(op, expr);
+    cur_block_ = old_block;
+  }
+
+  void Visit(const ir::For* op, Expr* expr) override {
+    parent_loops_.push_back(*expr);
+    IRMutator::Visit(op, expr);
+    parent_loops_.pop_back();
+  }
+
+ private:
+  //! \brief The info for inserting cache stage
+  CacheBlockInfo* info_;
+  //! \brief The load to be replaced by the cache read
+  Expr target_load_;
+
+  Expr cur_block_;
+  std::vector<Expr> parent_loops_;
+};
+
+}  // namespace
 
 Expr DyScheduleImpl::CacheRead(const Expr& block,
                                int read_buffer_index,
@@ -81,7 +135,13 @@ Expr DyScheduleImpl::CacheRead(const Expr& block,
   auto new_block =
       MakeCacheBlock(read_ranges, &info, memory_type, this->GetDeviceAPI());
   FindInsertionPoint(root, &info, false);
-  auto new_root = CacheReadRewriter::Rewrite(root, &info);
+
+  Expr target_load = analyzer::CanonicalizeLoopVar(
+      analyzer::ExpandIterVar(read_expr, block), this->GetLoops(block));
+  CacheReadRewriter rewriter(&info, target_load);
+  Expr new_root = ir::ir_utils::IRCopy(root);
+  rewriter(&new_root);
+
   this->Replace(
       root.As<ScheduleBlockRealize>()->schedule_block.As<ScheduleBlock>()->body,
       new_root.As<ScheduleBlockRealize>()

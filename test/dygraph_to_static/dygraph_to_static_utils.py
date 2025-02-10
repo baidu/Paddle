@@ -359,7 +359,7 @@ def disable_test_case(flags: tuple[ToStaticMode, IrMode]):
     return decorator
 
 
-# Suger decorators
+# Sugar decorators
 # These decorators can be simply composed by base decorators
 def test_ast_only(fn):
     fn = set_to_static_mode(ToStaticMode.AST)(fn)

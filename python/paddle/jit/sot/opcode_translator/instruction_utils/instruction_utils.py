@@ -99,6 +99,7 @@ def convert_instruction(instr: dis.Instruction) -> Instruction:
 
 
 def expand_super_instrs(instructions: list[Instruction]) -> list[Instruction]:
+
     expanded_instrs = []
 
     def replace_jump_target(instrs, old_target, new_target):
@@ -142,6 +143,32 @@ def expand_super_instrs(instructions: list[Instruction]) -> list[Instruction]:
                 instr.arg & 15,
                 False,
                 False,
+            )
+            replace_jump_target(instructions, instr, instr1)
+            expanded_instrs.append(instr1)
+            expanded_instrs.append(instr2)
+        # If the LOAD_ATTR opcode will lead to load_method in 3.13+, we manually split it into two instructions,
+        # to avoid Uncontrollable specialization that changes the behavior of LOAD_ATTR,
+        # which can lead to incorrect results when the current graph is smaller than the MIN_GRAPH_SIZE
+        elif (
+            sys.version_info >= (3, 13)
+            and instr.opname == "LOAD_ATTR"
+            and instr.arg & 1
+        ):
+            instr1 = copy_instruction(
+                instr,
+                "LOAD_ATTR",
+                instr.argval,
+                instr.arg & ~1,
+                instr.is_jump_target,
+                True,
+            )
+            instr2 = Instruction(
+                dis.opmap["PUSH_NULL"],
+                "PUSH_NULL",
+                None,
+                None,
+                is_generated=True,
             )
             replace_jump_target(instructions, instr, instr1)
             expanded_instrs.append(instr1)

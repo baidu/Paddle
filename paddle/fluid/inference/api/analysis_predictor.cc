@@ -2650,7 +2650,7 @@ bool AnalysisPredictor::ZeroCopyRun(bool switch_stream) {
     static std::once_flag set_output_holder_map;
     std::call_once(set_output_holder_map, [&]() {
       auto scope = executor_->GetScope();
-      VLOG(4) << "Set ouput tensor's holder.";
+      VLOG(4) << "Set output tensor's holder.";
       for (auto name : GetOutputNames()) {
         auto out_tensor = scope->FindVar(name)->GetMutable<phi::DenseTensor>();
 
@@ -3385,6 +3385,7 @@ USE_TRT_CONVERTER(multiclass_nms3);
 USE_TRT_CONVERTER(nearest_interp);
 USE_TRT_CONVERTER(nearest_interp_v2);
 USE_TRT_CONVERTER(bilinear_interp_v2);
+USE_TRT_CONVERTER(linear_interp_v2);
 USE_TRT_CONVERTER(reshape);
 USE_TRT_CONVERTER(reshape2);
 USE_TRT_CONVERTER(gather_nd);

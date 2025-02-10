@@ -32,7 +32,7 @@ batch_size = 4
 micro_batch_size = 2
 
 
-class TestDistDPTraning(unittest.TestCase):
+class TestDistDPTraining(unittest.TestCase):
     def setUp(self):
         strategy = fleet.DistributedStrategy()
         self.model_parallel_size = 1
@@ -85,7 +85,7 @@ class TestDistDPTraning(unittest.TestCase):
         )
 
 
-class TestDistMPTraning(unittest.TestCase):
+class TestDistMPTraining(unittest.TestCase):
     def setUp(self):
         strategy = fleet.DistributedStrategy()
         self.model_parallel_size = 2

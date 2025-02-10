@@ -88,7 +88,7 @@ class TestIpuStrategy(unittest.TestCase):
 
         # The custom logger need 2 int as inputs
         logger = lambda progress, total: print(
-            f"compile progrss: {progress}/{total}"
+            f"compile progress: {progress}/{total}"
         )
         ipu_strategy.set_options({'compilation_progress_logger': logger})
 

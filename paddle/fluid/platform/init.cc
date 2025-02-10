@@ -81,7 +81,7 @@ std::once_flag glog_init_flag;
 std::once_flag memory_method_init_flag;
 
 bool InitGflags(std::vector<std::string> args) {
-  bool successed = false;
+  bool succeeded = false;
   std::call_once(gflags_init_flag, [&]() {
     FLAGS_logtostderr = true;
     // NOTE(zhiqiu): dummy is needed, since the function
@@ -104,11 +104,11 @@ bool InitGflags(std::vector<std::string> args) {
     char **arr = argv.data();
     paddle::flags::AllowUndefinedFlags();
     paddle::flags::ParseCommandLineFlags(&argc, &arr);
-    successed = true;
+    succeeded = true;
 
     VLOG(1) << "After Parse: argc is " << argc;
   });
-  return successed;
+  return succeeded;
 }
 
 #ifdef PADDLE_WITH_CUDA

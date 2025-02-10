@@ -423,7 +423,7 @@ std::vector<pir::Operation*> DecompProgram::parse_block_ops(pir::Block* block) {
       end_idx,
       ops_list.size(),
       common::errors::PreconditionNotMet(
-          "Requred end_idx <= block.ops().size() in DecompProgram."));
+          "Required end_idx <= block.ops().size() in DecompProgram."));
   return std::vector<pir::Operation*>(ops_list.begin() + start_idx,
                                       ops_list.begin() + end_idx);
 }

@@ -250,7 +250,7 @@ void SchedulerBase::FinishStageAdd() {
         auto *a_node = depend_node->safe_as<ScheduleGraphNode>();
         auto *b_node = node->safe_as<ScheduleGraphNode>();
         auto _a_edge_b_edge_ = a_node->LinkTo<ScheduleGraphEdge>(
-            b_node);  // Add link from extra depend statment to current node.
+            b_node);  // Add link from extra depend statement to current node.
         auto &a_edge = std::get<0>(_a_edge_b_edge_);
         auto &b_edge = std::get<1>(_a_edge_b_edge_);
         a_edge->as<ScheduleGraphEdge>()->level = -1;

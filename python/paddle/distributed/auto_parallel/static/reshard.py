@@ -3167,7 +3167,7 @@ class Resharder:
 
         comm_context = CommContext(cluster)
         # run communication op before computation op
-        # TODO: Communication cost is not calculated when the var has been transfered by the same group in the past
+        # TODO: Communication cost is not calculated when the var has been transferred by the same group in the past
         comm_costs = []
         comm_ranks = []
         local_rank_comp_cost = {}

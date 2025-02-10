@@ -176,7 +176,7 @@ ir::Expr CopiedReplaceExpr(const Expr& source,
   return copied_source;
 }
 
-void SubstitudeTargetExprWithDestExpr(const ir::Expr& source,
+void SubstituteTargetExprWithDestExpr(const ir::Expr& source,
                                       const ir::Expr& dest,
                                       ir::Expr* body) {
   VLOG(4) << "SubstitideExpr Start";
@@ -193,7 +193,7 @@ void SubstitudeTargetExprWithDestExpr(const ir::Expr& source,
   VLOG(5) << "SubstitideExpr Result: " << *body;
 }
 
-ir::Expr SubstitudeIndexVector(const Expr& source,
+ir::Expr SubstituteIndexVector(const Expr& source,
                                const std::vector<Var>& load_vars,
                                const std::vector<ir::Expr>& indices) {
   return CopiedReplaceExpr(source, load_vars, indices);
@@ -212,10 +212,14 @@ ExprSet ExprSetFinder::operator()(const ir::Expr& x) const { return f_(x); }
 ir::Expr ExprSetFinder::GetSingle(const ir::Expr& x) const {
   ExprSetFinder call = (*this) * ExprSetFinder::GetIdentity();
   const auto& o = call.operator()(x);
-  PADDLE_ENFORCE_EQ(o.size(),
-                    1,
-                    ::common::errors::InvalidArgument(
-                        "Try to get single result, but we get %d.", o.size()));
+  PADDLE_ENFORCE_EQ(
+      o.size(),
+      1,
+      ::common::errors::InvalidArgument(
+          "Try to get single result, but we get %d. \nRoot:\n%s \nResult:\n%s",
+          o.size(),
+          x,
+          cinn::utils::Join(o, "\n")));
   return *o.begin();
 }
 
@@ -623,7 +627,7 @@ ExprTransformer WrapReduceOperation(const ir::Reduce::ReduceType& reduce_type,
   return ExprTransformer(f);
 }
 
-ExprTransformer SubstitudeByScheduleBlockRealize(const ir::Expr& realize) {
+ExprTransformer SubstituteByScheduleBlockRealize(const ir::Expr& realize) {
   const auto& f = [=](const ir::Expr& e) -> ir::Expr {
     const auto& iter_values =
         realize.As<ir::ScheduleBlockRealize>()->iter_values;
@@ -668,10 +672,10 @@ ExprTransformer RemoveOneTransformer(int one) {
         ExprSetFinderUtils::DirectlyFather(copied).GetSingle(target_for);
     if (target_block.As<ir::ScheduleBlockRealize>() != nullptr) {
       VLOG(4) << "RemoveOneTransformer: father block is root realize";
-      ir::Expr shedule_block =
+      ir::Expr schedule_block =
           target_block.As<ir::ScheduleBlockRealize>()->schedule_block;
       PADDLE_ENFORCE_EQ(
-          shedule_block.As<ir::ScheduleBlock>()->body,
+          schedule_block.As<ir::ScheduleBlock>()->body,
           target_for,
           ::common::errors::InvalidArgument(
               "Root realize body should be equal to target for."));
@@ -679,9 +683,9 @@ ExprTransformer RemoveOneTransformer(int one) {
       const auto for_body_stmts = for_body.As<ir::Block>()->stmts;
       if (for_body_stmts.size() == 1 &&
           for_body_stmts[0].As<ir::For>() != nullptr) {
-        shedule_block.As<ir::ScheduleBlock>()->body = for_body_stmts[0];
+        schedule_block.As<ir::ScheduleBlock>()->body = for_body_stmts[0];
       } else {
-        shedule_block.As<ir::ScheduleBlock>()->body = for_body;
+        schedule_block.As<ir::ScheduleBlock>()->body = for_body;
       }
     } else if (target_block.As<ir::Block>() != nullptr) {
       std::vector<ir::Expr> new_bodies;
@@ -994,13 +998,14 @@ ir::Expr ReshapeLoop(const ir::Expr& root,
   const auto block_name = block_realize.As<ir::ScheduleBlockRealize>()
                               ->schedule_block.As<ir::ScheduleBlock>()
                               ->name;
-  const auto shape_partion = fusion::PartionReshapeAxes(in_shape, out_shape);
+  const auto shape_partition =
+      fusion::PartitionReshapeAxes(in_shape, out_shape);
 
-  for (int idx = shape_partion.size() - 1; idx > 0; --idx) {
-    const auto& in_s = shape_partion[idx - 1].first;
-    const auto& in_e = shape_partion[idx].first;
-    const auto& out_s = shape_partion[idx - 1].second;
-    const auto& out_e = shape_partion[idx].second;
+  for (int idx = shape_partition.size() - 1; idx > 0; --idx) {
+    const auto& in_s = shape_partition[idx - 1].first;
+    const auto& in_e = shape_partition[idx].first;
+    const auto& out_s = shape_partition[idx - 1].second;
+    const auto& out_e = shape_partition[idx].second;
 
     std::vector<int> fuse_indices;
     for (int i = in_e - 1; i >= in_s; --i) {

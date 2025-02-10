@@ -93,6 +93,10 @@ inline ExprVec GetSliceDims(const ExprVec &in_dims,
             (starts.at(i).Get<int64_t>() > in_dims.at(axis).Get<int64_t>())
                 ? in_dims.at(axis)
                 : starts.at(i);
+        starts.at(i) =
+            (starts.at(i).Get<int64_t>() < -(in_dims.at(axis).Get<int64_t>()))
+                ? 0
+                : starts.at(i);
       }
       start_i = starts.at(i).Get<int64_t>();
     }
@@ -150,6 +154,15 @@ inline ExprVec GetSliceDims(const ExprVec &in_dims,
           symbol::DimExpr({symbol::Min<symbol::DimExpr>({min_lists})});
     } else {
       slice_dims[axis] = out_dim;
+    }
+    // output dim is int64_t, but input dim is symbol.
+    if (out_dim.isa<int64_t>() && !in_dims[axis].isa<int64_t>()) {
+      if (out_dim.Get<int64_t>() == 1) {
+        continue;
+      }
+      symbol::List<symbol::DimExpr> min_lists{out_dim, in_dims[axis]};
+      slice_dims[axis] =
+          symbol::DimExpr({symbol::Min<symbol::DimExpr>({min_lists})});
     }
   }
 

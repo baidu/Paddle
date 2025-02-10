@@ -90,16 +90,16 @@ void FilterReducedIterator(
     const List<Iterator>& input_iterators,
     std::unordered_set<Iterator>* unused_input_iterators) {
   std::unordered_set<Iterator> used{};
-  bool is_output_infered = true;
+  bool is_output_inferred = true;
   VisitEachOutputIterator(op_ctx, [&](const Iterator& output_iterator) {
     if (infer_ctx->HasValue(output_iterator)) {
       const auto& iterator_expr = infer_ctx->GetValue(output_iterator);
       CollectTensorIndexIterators(iterator_expr, &used);
     } else {
-      is_output_infered = false;
+      is_output_inferred = false;
     }
   });
-  if (!is_output_infered) {
+  if (!is_output_inferred) {
     return;
   }
   for (const auto& input_iterator : *input_iterators) {

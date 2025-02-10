@@ -96,9 +96,9 @@ void test_moe_gate_dispatch_spmd(
         << dist_attrs.size() << " != " << dims_mappings.size();
 
     for (size_t j = 0; j < dist_attrs.size(); ++j) {
-      const ArgDistAttr& infered_attr = dist_attrs[j];
+      const ArgDistAttr& inferred_attr = dist_attrs[j];
       const std::vector<int64_t>& expected_dims_mapping = dims_mappings[j];
-      check_dim_mapping(infered_attr, expected_dims_mapping);
+      check_dim_mapping(inferred_attr, expected_dims_mapping);
     }
   }
 }

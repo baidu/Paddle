@@ -105,10 +105,10 @@ void MainWord2Vec(const ::paddle::PaddlePlace& place) {
   cpu_feeds.push_back(&fourth_word);
 
   framework::FetchType output1;
-  std::vector<::paddle::framework::FetchType*> cpu_fetchs1;
-  cpu_fetchs1.push_back(&output1);
+  std::vector<::paddle::framework::FetchType*> cpu_fetches1;
+  cpu_fetches1.push_back(&output1);
 
-  TestInference<phi::CPUPlace>(config.model_dir, cpu_feeds, cpu_fetchs1);
+  TestInference<phi::CPUPlace>(config.model_dir, cpu_feeds, cpu_fetches1);
 
   auto output1_tensor = PADDLE_GET(phi::DenseTensor, output1);
   float* lod_data = output1_tensor.data<float>();
@@ -142,11 +142,11 @@ void MainImageClassification(const ::paddle::PaddlePlace& place) {
   cpu_feeds.push_back(&input);
 
   framework::FetchType output1;
-  std::vector<framework::FetchType*> cpu_fetchs1;
-  cpu_fetchs1.push_back(&output1);
+  std::vector<framework::FetchType*> cpu_fetches1;
+  cpu_fetches1.push_back(&output1);
 
   TestInference<phi::CPUPlace, false, true>(
-      config.model_dir, cpu_feeds, cpu_fetchs1, repeat, is_combined);
+      config.model_dir, cpu_feeds, cpu_fetches1, repeat, is_combined);
 
   auto predictor = CreatePaddlePredictor(config);
   std::vector<PaddleTensor> paddle_tensor_feeds;

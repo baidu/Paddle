@@ -943,7 +943,7 @@ const int EVENT_FINISH_EPOCH = 0;     // End of sampling single epoch
 const int EVENT_CONTINUE_SAMPLE = 1;  // Continue sampling
 const int EVENT_WALKBUF_FULL = 2;  // d_walk is full, end current pass sampling
 const int EVENT_NOT_SWITCH = 0;    // Continue sampling on the current metapath.
-const int EVENT_SWTICH_METAPATH =
+const int EVENT_SWITCH_METAPATH =
     1;  // Switch to the next metapath to perform sampling
 
 struct GraphDataGeneratorConfig {

@@ -39,14 +39,14 @@ class TestReshapeBf16Op(OpTest):
             'mkldnn_data_type': self.mkldnn_data_type,
         }
         self.outputs = {
-            "Out": self.inputs["X"].reshape(self.infered_shape),
+            "Out": self.inputs["X"].reshape(self.inferred_shape),
             'XShape': np.random.random(self.ori_shape).astype(np.float32),
         }
 
     def init_data(self):
         self.ori_shape = (10, 2, 6)
         self.new_shape = (10, 0, 3, -1)
-        self.infered_shape = (10, 2, 3, -1)
+        self.inferred_shape = (10, 2, 3, -1)
 
     def init_input_data(self):
         self.input_data_fp32 = np.random.random(self.ori_shape).astype(
@@ -70,7 +70,7 @@ class TestReshapeBf16Op(OpTest):
             check_dygraph=False,
             user_defined_grads=[self.input_data_fp32],
             user_defined_grad_outputs=[
-                self.inputs["X"].reshape(self.infered_shape)
+                self.inputs["X"].reshape(self.inferred_shape)
             ],
             check_pir_onednn=(self.op_type == "reshape2"),
         )

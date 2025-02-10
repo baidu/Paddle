@@ -498,7 +498,7 @@ struct ReduceConfig {
   }
 
   // Set block and grid for launch kernel
-  // for ReduceHigherDim: if block is enough -> splite reduce_num
+  // for ReduceHigherDim: if block is enough -> split reduce_num
   //                     else init block(32, 1) grid(block_num, 1)
   // for others: block(block_num, 1) , grid(left_num, 1)
   void SetBlockDimForHigher(dim3* block_dim, dim3* grid_dim) {

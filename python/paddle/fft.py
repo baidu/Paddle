@@ -1357,7 +1357,7 @@ def fftfreq(
       f = [0, 1, ..., (n-1)/2, -(n-1)/2, ..., -1] / (d*n)   if n is odd
 
     Args:
-        n (int): Dimension inputed.
+        n (int): Dimension inputted.
         d (float, optional): Sample spacing (inverse of the sampling rate). Defaults is 1.
         dtype (str, optional): The data type of returns. Defaults is the data type of returns
             of ``paddle.get_default_dtype()``.
@@ -1411,7 +1411,7 @@ def rfftfreq(
     the Nyquist frequency component is considered to be positive.
 
     Args:
-        n (int): Dimension inputed.
+        n (int): Dimension inputted.
         d (float, optional): Sample spacing (inverse of the sampling rate). Defaults is 1.
         dtype (str, optional): The data type of returns. Defaults is the data type of returns
             of ``paddle.get_default_dtype()``.
@@ -1454,7 +1454,7 @@ def fftshift(
     Note that ``y[0]`` is the Nyquist component only if ``len(x)`` is even.
 
     Args:
-        n (int): Dimension inputed.
+        n (int): Dimension inputted.
         axes (int|tuple|None, optional): The axis on which to move. The default is none, which moves all axes.
             Default is None.
         name (str|None, optional): The default value is None.  Normally there is no need for user to set
@@ -1501,7 +1501,7 @@ def ifftshift(
     odd length 'x' is different. An example.
 
     Args:
-        n (int): Dimension inputed.
+        n (int): Dimension inputted.
         axes (int|tuple|None, optional): The axis on which to move. The default is none, which moves all axes.
             Default is None.
         name (str|None, optional): The default value is None.  Normally there is no need for user to set

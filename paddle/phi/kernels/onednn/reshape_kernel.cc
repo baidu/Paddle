@@ -22,7 +22,7 @@ static DDim ValidateShape(const std::vector<int64_t>& shape,
                                   in_dims_vec.cend(),
                                   [](int64_t i) { return i > 0; });
   // only one dimension can be set to -1, whose size will be automatically
-  // infered
+  // inferred
   const int64_t unk_dim_val = -1;
   const int64_t copy_dim_val = 0;
 

@@ -35,6 +35,9 @@ void InitLocalShapeAnalysis(const pir::Operation& op,
     for (int i = 0; i < op.num_operands(); ++i) {
       pir::Value input = op.operand_source(i);
       const auto& value_dim_exprs = GraphDimExprs4Value(input);
+      if (!input || !input.type()) {
+        continue;
+      }
       Visit(input, value_dim_exprs);
     }
   };

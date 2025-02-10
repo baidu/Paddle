@@ -18,19 +18,20 @@
 #include "paddle/fluid/framework/new_executor/interpreter/interpreter_util.h"
 #include "paddle/fluid/framework/new_executor/pir_interpreter.h"
 #include "paddle/fluid/framework/new_executor/program_interpreter.h"
+#include "paddle/fluid/ir_adaptor/translator/translate.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
+#include "paddle/fluid/pir/transforms/general/inplace_pass.h"
 #include "paddle/fluid/pir/transforms/pd_op_to_kernel_pass.h"
 #include "paddle/phi/core/platform/profiler/event_tracing.h"
-
-#include "paddle/fluid/ir_adaptor/translator/translate.h"
-#include "paddle/fluid/pir/transforms/general/inplace_pass.h"
 #include "paddle/pir/include/core/program.h"
 #include "paddle/pir/include/pass/pass.h"
 #include "paddle/pir/include/pass/pass_manager.h"
+#include "paddle/pir/include/pass/pass_registry.h"
 
 COMMON_DECLARE_bool(enable_pir_in_executor);
 COMMON_DECLARE_bool(enable_pir_api);
 COMMON_DECLARE_bool(pir_apply_inplace_pass);
+COMMON_DECLARE_string(enable_custom_engine);
 
 namespace paddle::framework {
 StandaloneExecutor::StandaloneExecutor(const phi::Place& place,
@@ -111,6 +112,25 @@ StandaloneExecutor::StandaloneExecutor(const phi::Place& place,
           job->SetFetchVarName(fetch_var_names_[index]);
         }
       }
+#if defined(PADDLE_WITH_CUSTOM_DEVICE)
+      if (!FLAGS_enable_custom_engine.empty()) {
+        std::string custom_engine_translate_pass = FLAGS_enable_custom_engine;
+        std::istringstream ss(custom_engine_translate_pass);
+        std::string pass;
+        std::vector<std::string> passes;
+
+        while (std::getline(ss, pass, ',')) {
+          passes.push_back(pass);
+          VLOG(4) << "Add CustomEngine pass : " << pass;
+        }
+
+        ::pir::PassManager pass_pm(::pir::IrContext::Instance(), 3);
+        for (std::string custom_pass : passes) {
+          pass_pm.AddPass(pir::PassRegistry::Instance().Get(custom_pass));
+          pass_pm.Run(base_program.get());
+        }
+      }
+#endif
       auto kernel_program =
           paddle::dialect::PdOpLowerToKernelPass(base_program.get(), place);
       std::shared_ptr<pir::Program> shared_program = std::move(kernel_program);
@@ -158,10 +178,10 @@ StandaloneExecutor::StandaloneExecutor(const phi::Place& place,
                           true,
                           common::errors::InvalidArgument(
                               "When using pipeline strategy in auto "
-                              "prarallelism with new executor, "
+                              "parallelism with new executor, "
                               "the backward subprogram must be built in real "
                               "static build mode, but it can not "
-                              "be staticly built in this case. You can "
+                              "be statically built in this case. You can "
                               "enable 'GLOG_v=1' to obtain log information."));
       }
     }

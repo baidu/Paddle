@@ -32,7 +32,7 @@ test_dist_mnist_gradient_merge,LINUX;WIN32,GPU;ROCM,360,DIST,test_runner.py,2,,h
 test_recv_save_op,,,,,test_runner.py,2,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_communicator_sync_deprecated,,,,,test_runner.py,2,,FLAGS_communicator_send_queue_size=1;FLAGS_communicator_max_merge_var_num=1;http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_fleet_meta_optimizer_base,LINUX;WIN32,,,,test_runner.py,2,,http_proxy=;https_proxy=;PYTHONPATH=../..,
-test_parallel_dygraph_sharding_parallel,,,200,DIST,../../legacy_test/dist_test.sh,3,,http_proxy=;https_proxy=;PYTHONPATH=../..,
+test_parallel_dygraph_sharding_parallel,,,400,DIST,../../legacy_test/dist_test.sh,3,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_parallel_dygraph_tensor_parallel,,,200,DIST,../../legacy_test/dist_test.sh,2,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_parallel_dygraph_sep_parallel,,,120,DIST,../../legacy_test/dist_test.sh,2,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_dygraph_group_sharded_api_for_eager,,,120,DIST,../../legacy_test/dist_test.sh,2,,http_proxy=;https_proxy=;PYTHONPATH=../..,

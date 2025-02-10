@@ -97,7 +97,7 @@ class BackwardAPI(BaseAPI):
             'Tensor': 'Tensor*',
             'std::vector<Tensor>': 'std::vector<Tensor*>',
         }
-        intputs_and_attrs = super().get_define_args()
+        inputs_and_attrs = super().get_define_args()
         outs = []
         for i, name in enumerate(self.outputs['names']):
             outs.append(
@@ -105,7 +105,7 @@ class BackwardAPI(BaseAPI):
                 + ' '
                 + name.split('@')[0]
             )
-        result = intputs_and_attrs + ', ' + ", ".join(outs)
+        result = inputs_and_attrs + ', ' + ", ".join(outs)
         return result
 
     def gene_return_code(self):

@@ -51,20 +51,19 @@ void SigmoidCrossEntropyWithLogitsGradKernel(
   auto pos_weight_data =
       (pos_weight.get_ptr() == nullptr ? nullptr
                                        : pos_weight.get_ptr()->data<T>());
-  // int sigmoid_cross_entropy_with_logits_grad(Context* ctx, const T* x, const
-  // T* label, const T* dy, T* dx, int64_t m, int64_t n, TH* hit = nullptr,
-  // int64_t ignore_index = -100, const T* pos_weight = nullptr);
-  int r = xpu::sigmoid_cross_entropy_with_logits_grad(
+  // int paddle_sigmoid_cross_entropy_with_logits_grad(Context* ctx, const T* x,
+  // const T* label, const T* pos_weight, const T* dy, T* dx, int* hit, int
+  // ignore_index, int64_t n);
+  int r = xpu::paddle_sigmoid_cross_entropy_with_logits_grad(
       dev_ctx.x_context(),
       reinterpret_cast<const XPUType*>(x.data<T>()),
       reinterpret_cast<const XPUType*>(label.data<T>()),
+      reinterpret_cast<const XPUType*>(pos_weight_data),
       reinterpret_cast<const XPUType*>(out_grad.data<T>()),
       reinterpret_cast<XPUType*>(in_grad->data<T>()),
-      1,
-      x.numel(),
       hit,
       ignore_index,
-      reinterpret_cast<const XPUType*>(pos_weight_data));
+      x.numel());
   PADDLE_ENFORCE_XDNN_SUCCESS(r, "sigmoid_cross_entropy_with_logits");
   if (normalize) {
     int* non_zero = RAII_GUARD.alloc_l3_or_gm<int>(1);

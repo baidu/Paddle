@@ -348,7 +348,7 @@ class DatasetImpl : public Dataset {
   int64_t fleet_send_sleep_seconds_;
   std::vector<std::thread> preload_threads_;
   std::thread* release_thread_ = nullptr;
-  bool merge_by_insid_;
+  bool merge_by_ins_id_;
   bool parse_ins_id_;
   bool parse_content_;
   bool parse_logkey_;

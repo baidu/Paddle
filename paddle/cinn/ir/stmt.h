@@ -33,6 +33,8 @@ class For;
 class Evaluate;
 class Schedule;
 
+class _Block_;
+
 /*
  * \brief Define statement type
  * \param Type The statement type
@@ -62,19 +64,21 @@ class _Stmt_ : public cinn::common::Object {
 
   virtual StmtNodeTy stmt_type() const { return StmtNodeTy::kUnk; }
 
+  const BlockRef GetParentBlockRef() const;
   const std::vector<BlockRef>& block_fields() const { return blocks_; }
-  virtual void set_block_fields(const std::vector<BlockRef>& blocks) {
-    blocks_ = blocks;
-  }
+  virtual void set_block_fields(const std::vector<BlockRef>& blocks);
   virtual Type type() const { return type_; }
   void set_type(Type type) { type_ = type; }
 
   virtual void Verify() const { CINN_NOT_IMPLEMENTED }
 
  protected:
+  _Block_* parent_;
   std::vector<BlockRef> blocks_;
 
  private:
+  friend class _Block_;
+  void set_parent(_Block_* parent) { parent_ = parent; }
   // Forbidden cast these methods of Object.
   // TODO(Hongqing-work): restruct the Object class.
   static constexpr char* __type_info__ = "StmtNode";
@@ -139,14 +143,23 @@ class StmtRef : public cinn::common::Shared<Object> {
 
 class _Block_ : public cinn::common::Object {
  public:
+  const StmtRef GetParentStmtRef() const { return StmtRef{parent_}; }
   const std::vector<StmtRef>& stmts() const { return stmts_; }
-  void set_stmts(const std::vector<StmtRef>& stmts) { stmts_ = stmts; }
+  void set_stmts(const std::vector<StmtRef>& stmts) {
+    stmts_ = stmts;
+    for (auto& stmt : stmts_) stmt->set_parent(this);
+  }
 
   static BlockRef Make(const std::vector<StmtRef>& stmts);
 
  private:
   _Block_() = default;
   std::vector<StmtRef> stmts_;
+
+  _Stmt_* parent_;
+  friend class _Stmt_;
+  void set_parent(_Stmt_* parent) { parent_ = parent; }
+
   // Forbidden cast these methods of Object.
   static constexpr char* __type_info__ = "BlockNode";
   const char* type_info() const override { return __type_info__; }
@@ -157,11 +170,15 @@ class _Block_ : public cinn::common::Object {
 
 class BlockRef : public cinn::common::Shared<Object> {
  public:
+  BlockRef() = default;
   explicit BlockRef(const std::vector<StmtRef>& stmts)
       : BlockRef(_Block_::Make(stmts)) {}
-  CINN_DEFINE_OBJECT_REF_METHODS(BlockRef,
-                                 cinn::common::Shared<Object>,
-                                 _Block_)
+  explicit BlockRef(_Block_* n) : cinn::common::Shared<Object>(n) {}
+  CINN_DEFINE_COPY_MOVE_AND_ASSIGN_FOR_OBJECT_REF(BlockRef);
+  const _Block_* operator->() const {
+    return static_cast<const _Block_*>(this->p_);
+  }
+  _Block_* operator->() { return static_cast<_Block_*>(this->p_); }
 };
 
 class _Let_ : public _Stmt_ {
@@ -320,24 +337,22 @@ class _IfThenElse_ : public _Stmt_ {
   const BlockRef& true_case() const { return blocks_[0]; }
   const BlockRef& false_case() const { return blocks_[1]; }
   void set_condition(Expr condition) { condition_ = condition; }
-  void set_true_case(BlockRef true_case) { blocks_[0] = true_case; }
-  void set_false_case(BlockRef false_case) { blocks_[1] = false_case; }
+  void set_true_case(BlockRef true_case) {
+    set_block_fields({true_case, blocks_[1]});
+  }
+  void set_false_case(BlockRef false_case) {
+    set_block_fields({blocks_[0], false_case});
+  }
 
   void Verify() const override;
 
   virtual void set_block_fields(const std::vector<BlockRef>& blocks) {
     PADDLE_ENFORCE_EQ(
-        blocks.size() == 1U || blocks.size() == 2U,
+        blocks.size() == 2U,
         true,
         ::common::errors::InvalidArgument(
-            "blocks size for IfThenElse must be 1 or 2, but got %d",
-            blocks.size()));
-    if (blocks.size() == 2U) {
-      blocks_ = blocks;
-    } else {
-      blocks_[0] = blocks[0];
-      blocks_[1] = BlockRef(std::vector<StmtRef>());
-    }
+            "blocks size for IfThenElse must be 2, but got %d", blocks.size()));
+    _Stmt_::set_block_fields(blocks);
   }
 
   CINN_DELETE_COPY_MOVE_AND_ASSIGN_FOR_OBJECT_NODE(_IfThenElse_)
@@ -376,7 +391,7 @@ class _For_ : public _Stmt_, public ForBase {
   void set_loop_var(Var loop_var) { loop_var_ = loop_var; }
   void set_min(Expr min) { min_ = min; }
   void set_extent(Expr extent) { extent_ = extent; }
-  void set_body(BlockRef body) { blocks_[0] = body; }
+  void set_body(BlockRef body) { set_block_fields({body}); }
   void set_device_api(DeviceAPI device_api) { device_api_ = device_api; }
   void set_metadata(LLVMForLoopMeta metadata) { metadata_ = metadata; }
 
@@ -388,7 +403,7 @@ class _For_ : public _Stmt_, public ForBase {
         true,
         ::common::errors::InvalidArgument(
             "blocks size for For must be 1, but got %d", blocks.size()));
-    blocks_ = blocks;
+    _Stmt_::set_block_fields(blocks);
   }
 
   CINN_DELETE_COPY_MOVE_AND_ASSIGN_FOR_OBJECT_NODE(_For_)
@@ -483,7 +498,7 @@ class _Schedule_ : public _Stmt_ {
   void set_write_buffers(const std::vector<Expr>& write_buffers) {
     write_buffers_ = write_buffers;
   }
-  void set_body(const BlockRef& body) { blocks_[0] = body; }
+  void set_body(const BlockRef& body) { set_block_fields({body}); }
   void set_attrs(const std::map<std::string, attr_t>& attrs) { attrs_ = attrs; }
   void set_name(const std::string& name) { name_ = name; }
   void set_reduce_method(const ReduceMethod& reduce_method) {
@@ -498,7 +513,7 @@ class _Schedule_ : public _Stmt_ {
         true,
         ::common::errors::InvalidArgument(
             "blocks size for For must be 1, but got %d", blocks.size()));
-    blocks_ = blocks;
+    _Stmt_::set_block_fields(blocks);
   }
 
   CINN_DELETE_COPY_MOVE_AND_ASSIGN_FOR_OBJECT_NODE(_Schedule_)

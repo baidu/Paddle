@@ -187,7 +187,7 @@ if(WITH_TESTING AND WITH_INFERENCE_API_TEST)
       --iterations=2)
   endfunction()
 
-  function(inference_analysis_api_object_dection_int8_test_run TARGET_NAME
+  function(inference_analysis_api_object_detection_int8_test_run TARGET_NAME
            test_binary model_dir data_path)
     inference_analysis_test_run(
       ${TARGET_NAME}

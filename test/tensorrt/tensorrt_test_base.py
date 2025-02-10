@@ -28,6 +28,7 @@ from paddle.tensorrt.export import (
 from paddle.tensorrt.util import (
     mark_builtin_op,
     run_pir_pass,
+    run_trt_partition,
     warmup_shape_infer,
 )
 
@@ -167,7 +168,7 @@ class TensorRTBaseTest(unittest.TestCase):
                     new_list_args[sub_arg_name] = self.api_args[arg_name][i]
                 self.api_args[arg_name] = new_list_args
 
-    def check_trt_result(self, rtol=1e-4, atol=1e-4, precision_mode="fp32"):
+    def check_trt_result(self, rtol=1e-5, atol=1e-5, precision_mode="fp32"):
         paddle.framework.set_flags({"FLAGS_trt_min_group_size": 1})
         with paddle.pir_utils.IrGuard():
             self.prepare_feed()
@@ -264,7 +265,6 @@ class TensorRTBaseTest(unittest.TestCase):
             # run pir pass(including some constant fold pass, dead code elimination pass, fusion pass and trt_op_marker_pass)
             main_program = run_pir_pass(
                 main_program,
-                partition_mode=False,
                 disable_passes=self.disable_passes,
             )
 
@@ -285,7 +285,7 @@ class TensorRTBaseTest(unittest.TestCase):
             mark_builtin_op(main_program)
 
             # run trt_sub_graph_extract_pass()
-            program_with_trt = run_pir_pass(main_program, partition_mode=True)
+            program_with_trt = run_trt_partition(main_program)
 
             # run TRTConverter(would lower group_op into tensorrt_engine_op)
             trt_config = None
@@ -340,7 +340,6 @@ class TensorRTBaseTest(unittest.TestCase):
             )
             main_program = run_pir_pass(
                 main_program,
-                partition_mode=False,
                 disable_passes=self.disable_passes,
             )
             marker_result = False

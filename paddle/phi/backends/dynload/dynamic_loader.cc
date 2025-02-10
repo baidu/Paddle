@@ -593,6 +593,8 @@ void* GetCusolverDsoHandle() {
   return GetDsoHandleFromSearchPath(
       FLAGS_cuda_dir, win_cusolver_lib, true, {cuda_lib_path});
 #endif
+#elif defined(PADDLE_WITH_HIP)
+  return GetDsoHandleFromSearchPath(FLAGS_rocm_dir, "librocsolver.so");
 #else
 #ifdef PADDLE_WITH_PIP_CUDA_LIBRARIES
   return GetDsoHandleFromSearchPath(FLAGS_cuda_dir, "libcusolver.so.11");

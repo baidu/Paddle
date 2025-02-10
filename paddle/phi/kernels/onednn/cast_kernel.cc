@@ -34,6 +34,9 @@ void CastKernel(const Context& dev_ctx,
                 const DenseTensor& x,
                 DataType out_dtype,
                 DenseTensor* out) {
+  // Should keep eye on it, since it may hide some issue action like meaningless
+  // cast (intended to transfer but due to some reason appear to be cast between
+  // same dtype)
   if (x.dtype() == out_dtype) {
     if (!out->IsSharedWith(x)) {
       phi::Copy(dev_ctx, x, dev_ctx.GetPlace(), false, out);

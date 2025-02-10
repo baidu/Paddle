@@ -139,6 +139,7 @@ class TestML3DParallel(unittest.TestCase):
             'pd_op.relu',
             'pd_op.subtract',
             'pd_op.square',
+            'pd_op.full_int_array',
             'pd_op.mean',
             'builtin.shadow_output',
             'pd_op.full',

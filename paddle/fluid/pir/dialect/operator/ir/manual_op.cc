@@ -2162,7 +2162,7 @@ std::vector<pir::Type> ArrayWrite_Op::InferMeta(
       x_type.dims(),
       dense_array_out.layout());
   // update array's dims as x's dims.
-  // TOOD(chenxi67) Do not change if dim is set by custom
+  // TODO(chenxi67) Do not change if dim is set by custom
   if (array_.type().isa<paddle::dialect::AllocatedDenseTensorArrayType>()) {
     array_.set_type(paddle::dialect::AllocatedDenseTensorArrayType::get(
         pir::IrContext::Instance(),
@@ -2190,7 +2190,7 @@ bool ArrayWrite_Op::InferSymbolicShape(
       symbol::ShapeOrDataDimExprs{
           symbol::RankedTensorArrayShapeOrDataDimExprs(x_shape)});
   // update array's shape as x's shape.
-  // TOOD(ooooo) Do not change if shape is set by custom, similar to infer_meta
+  // TODO(ooooo) Do not change if shape is set by custom, similar to infer_meta
   infer_context->SetShapeOrDataForValue(
       array(),
       symbol::ShapeOrDataDimExprs{

@@ -26,11 +26,13 @@
 #include "paddle/pir/include/core/value.h"
 #include "paddle/pir/include/pass/pass.h"
 #include "paddle/pir/include/pass/pass_manager.h"
+#include "paddle/pir/include/pass/pass_registry.h"
 
 DECLARE_FILE_SYMBOLS(print_statistics);
 
 COMMON_DECLARE_bool(pir_apply_inplace_pass);
 COMMON_DECLARE_bool(print_ir);
+COMMON_DECLARE_string(enable_custom_engine);
 
 namespace paddle::framework {
 class ProgramDesc;
@@ -176,6 +178,25 @@ std::unique_ptr<::pir::Program> ApplyIrPass(
     ::pir::Program *program,
     phi::Place place,
     const std::set<std::string> &no_need_buffer_names) {
+#if defined(PADDLE_WITH_CUSTOM_DEVICE)
+  if (!FLAGS_enable_custom_engine.empty()) {
+    std::string custom_engine_translate_pass = FLAGS_enable_custom_engine;
+    std::istringstream ss(custom_engine_translate_pass);
+    std::string pass;
+    std::vector<std::string> passes;
+
+    while (std::getline(ss, pass, ',')) {
+      passes.push_back(pass);
+      VLOG(4) << "Add CustomEngine pass : " << pass;
+    }
+
+    ::pir::PassManager pass_pm(::pir::IrContext::Instance(), 3);
+    for (std::string custom_pass : passes) {
+      pass_pm.AddPass(pir::PassRegistry::Instance().Get(custom_pass));
+      pass_pm.Run(program);
+    }
+  }
+#endif
   auto ir_res = paddle::dialect::PdOpLowerToKernelPass(program, place);
 
   if (FLAGS_pir_apply_inplace_pass) {

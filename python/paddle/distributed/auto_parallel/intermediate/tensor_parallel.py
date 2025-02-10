@@ -96,7 +96,7 @@ class PlanBase:
     def __init__(self):
         self.share_param_list = {}
 
-    def apply(self, layer, process_mesh, shard_weight, shard_bias):
+    def apply(self, layer, process_mesh, shard_param_list):
         raise NotImplementedError("Don't call the PlanBase directly.")
 
 
@@ -151,7 +151,7 @@ class ColWiseParallel(PlanBase):
 
         return gather_hook
 
-    def apply(self, layer, process_mesh, shard_weight=True, shard_bias=True):
+    def apply(self, layer, process_mesh, shard_param_list):
         index = process_mesh.dim_names.index('mp')  # get the axis for the split
         size = len(process_mesh.shape)
         placement = [dist.Replicate() for _ in range(size)]
@@ -163,41 +163,44 @@ class ColWiseParallel(PlanBase):
                 f"But got {layer.__class__.__name__}. "
                 f"Will try to shard weight and bias if the layer contains one."
             )
-        if (
-            hasattr(layer, "weight")
-            and layer.weight is not None
-            and shard_weight
-        ):
-            placement[index] = dist.Shard(1)
-            assert len(layer.weight.shape) == 2
-            # NOTE(zhangweilong):for share parameter, the parameter should be handled uniformly in the end
-            if (
-                self.share_param_list is not None
-                and layer.weight.name in self.share_param_list
-                and self.share_param_list[layer.weight.name] > 1
-            ):
-                param_placements.update({"weight": placement})
-            else:
-                layer.weight = dist.shard_tensor(
-                    layer.weight,
-                    process_mesh,
-                    placement,
-                )
-        if hasattr(layer, "bias") and layer.bias is not None and shard_bias:
-            placement[index] = dist.Shard(0)
-            assert len(layer.bias.shape) == 1
-            # NOTE(zhangweilong):for share parameter, the parameter should be handled uniformly in the end
-            if (
-                self.share_param_list is not None
-                and layer.bias.name in self.share_param_list
-                and self.share_param_list[layer.bias.name] > 1
-            ):
-                param_placements.update({"bias": placement})
-            else:
-                layer.bias = dist.shard_tensor(
-                    layer.bias, process_mesh, placement
-                )
+        shard_param_list = set(shard_param_list)
+        if len(shard_param_list) == 0:
+            shard_param_list.add("weight")
+            shard_param_list.add("bias")
 
+        def shard_param(param_name):
+            if (
+                hasattr(layer, param_name)
+                and getattr(layer, param_name) is not None
+            ):
+                layer_param = getattr(layer, param_name)
+
+                if layer_param.is_dist():
+                    return
+
+                if len(layer_param.shape) == 2:
+                    placement[index] = dist.Shard(1)
+                elif len(layer_param.shape) == 1:
+                    placement[index] = dist.Shard(0)
+                else:
+                    raise ValueError(f"{layer_param} should have 1 or 2 dims.")
+                # NOTE(zhangweilong):for share parameter, the parameter should be handled uniformly in the end
+                if (
+                    self.share_param_list is not None
+                    and layer_param.name in self.share_param_list
+                    and self.share_param_list[layer_param.name] > 1
+                ):
+                    param_placements.update({param_name: placement})
+                else:
+                    layer_param = dist.shard_tensor(
+                        layer_param,
+                        process_mesh,
+                        placement,
+                    )
+                    setattr(layer, param_name, layer_param)
+
+        for param_name in shard_param_list:
+            shard_param(param_name)
         if self.gather_output:
             layer.register_forward_post_hook(
                 self.gather_output_hook(process_mesh)
@@ -252,7 +255,7 @@ class RowWiseParallel(PlanBase):
 
         return split_hook
 
-    def apply(self, layer, process_mesh, shard_weight=True, shard_bias=False):
+    def apply(self, layer, process_mesh, shard_param_list):
         index = process_mesh.dim_names.index('mp')  # get the axis for the split
         size = len(process_mesh.shape)
         placement = [dist.Replicate() for _ in range(size)]
@@ -265,25 +268,38 @@ class RowWiseParallel(PlanBase):
                 f"But got {layer.__class__.__name__}. "
                 f"Will try to shard weight if the layer contains one."
             )
-        if (
-            hasattr(layer, "weight")
-            and layer.weight is not None
-            and shard_weight
-        ):
-            assert len(layer.weight.shape) == 2
-            # NOTE(zhangweilong):for share parameter, the parameter should be handled uniformly in the end
+        shard_param_list = set(shard_param_list)
+        shard_param_list.discard("bias")
+        if len(shard_param_list) == 0:
+            shard_param_list.add("weight")
+
+        def shard_param(param_name):
             if (
-                self.share_param_list is not None
-                and layer.weight.name in self.share_param_list
-                and self.share_param_list[layer.weight.name] > 1
+                hasattr(layer, param_name)
+                and getattr(layer, param_name) is not None
             ):
-                param_placements.update({"weight": placement})
-            else:
-                layer.weight = dist.shard_tensor(
-                    layer.weight,
-                    process_mesh,
-                    placement,
-                )
+                layer_param = getattr(layer, param_name)
+                if layer_param.is_dist():
+                    return
+                if len(layer_param.shape) != 2:
+                    raise ValueError(f"{layer_param} should have 2 dims.")
+                # NOTE(zhangweilong):for share parameter, the parameter should be handled uniformly in the end
+                if (
+                    self.share_param_list is not None
+                    and layer_param.name in self.share_param_list
+                    and self.share_param_list[layer_param.name] > 1
+                ):
+                    param_placements.update({param_name: placement})
+                else:
+                    layer_param = dist.shard_tensor(
+                        layer_param,
+                        process_mesh,
+                        placement,
+                    )
+                    setattr(layer, param_name, layer_param)
+
+        for param_name in shard_param_list:
+            shard_param(param_name)
         if not self.is_input_parallel:
             layer.register_forward_pre_hook(self.split_input_hook(process_mesh))
         return param_placements
@@ -340,7 +356,7 @@ class PrepareLayerInput(PlanBase):
         assert callable(fn)
         self.fn = fn
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         layer.register_forward_pre_hook(self.fn(process_mesh=process_mesh))
 
 
@@ -395,7 +411,7 @@ class PrepareLayerOutput(PlanBase):
         assert callable(fn)
         self.fn = fn
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         layer.register_forward_post_hook(self.fn(process_mesh=process_mesh))
 
 
@@ -445,7 +461,7 @@ class SequenceParallelBegin(PlanBase):
 
         return begin
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         layer.register_forward_post_hook(
             self.sequence_parallel_begin(process_mesh)
         )
@@ -497,7 +513,7 @@ class SequenceParallelEnd(PlanBase):
 
         return end
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         layer.register_forward_pre_hook(
             self.sequence_parallel_end(process_mesh)
         )
@@ -547,7 +563,7 @@ class SequenceParallelEnable(PlanBase):
 
         return end
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         logging.warning(
             "Sequence parallel with the usage of SequenceParallel may not reach the best throughput. "
             "Try to use SequenceParallelBegin/End to achieve better performance"
@@ -609,7 +625,7 @@ class SequenceParallelDisable(PlanBase):
 
         return end
 
-    def apply(self, layer, process_mesh, shard_weight=None, shard_bias=None):
+    def apply(self, layer, process_mesh, shard_param_list):
         layer.register_forward_pre_hook(
             self.sequence_parallel_end(process_mesh)
         )
@@ -639,22 +655,23 @@ class TensorParallel(ParallelModel):
             self.parallelize_plan = parallelize_plan
             self.tp_parallelizer = self.tensor_parallelizer_fn
 
-    def match_layer(self, name):
+    def match_layer(self, layer, name):
         # Match the layer to a plan.
         # Will return the plan if the layer hits one, otherwise return None.
         plans = []
         for key, plan in self.parallelize_plan.items():
-            shard_weight = True
-            shard_bias = True
+            attr_name = key.split('.')[-1]
+            shard_param_list = []
             # Find some plan for specific parameter, such as
             # "lm_head.weight": ColWiseParallel()
-            # Only support weight or bias.
-            if key.endswith(".weight"):
-                key = key.replace(".weight", "")
-                shard_bias = False
-            elif key.endswith(".bias"):
-                key = key.replace(".bias", "")
-                shard_weight = False
+            # "qkv_porj.lora_A" ColWiseParallel()
+            # if there is no plan for specific parameter, layer will be sharded by default: layer.weight and layer.bias
+            if key.endswith(f".{attr_name}"):
+                if hasattr(layer, attr_name) and is_tensor(
+                    getattr(layer, attr_name)
+                ):
+                    key = key.replace(f".{attr_name}", "")
+                    shard_param_list.append(attr_name)
             re_find = re.match(key, name)
             if key == name or (
                 re_find is not None
@@ -662,7 +679,7 @@ class TensorParallel(ParallelModel):
             ):
                 if isinstance(plan, PlanBase):
                     plan = [plan]
-                plans.append([plan, shard_weight, shard_bias])
+                plans.append([plan, shard_param_list])
         return plans
 
     def tensor_parallelizer_fn(self, model):
@@ -678,19 +695,16 @@ class TensorParallel(ParallelModel):
                     continue
                 share_param_list[param.name] += 1
         for name, layer in model.named_sublayers():
-            plans = self.match_layer(name)
+            plans = self.match_layer(layer, name)
             layer_param_placements[layer] = {}
             if len(plans) > 0:
                 pp_idx = getattr(layer, "pipeline_stage_index", 0)
                 for plan in plans:
-                    real_plan, shard_weight, shard_bias = plan
+                    real_plan, shard_param_list = plan
                     for p in real_plan:
                         p.share_param_list = share_param_list
                         param_placements = p.apply(
-                            layer,
-                            self.get_mesh(pp_idx),
-                            shard_weight,
-                            shard_bias,
+                            layer, self.get_mesh(pp_idx), shard_param_list
                         )
                         if param_placements is not None and param_placements:
                             layer_param_placements[layer].update(

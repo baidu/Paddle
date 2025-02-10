@@ -21,7 +21,7 @@ import paddle
 paddle.enable_static()
 
 
-class TestTranposeUnsqueezeFusePass(PassTest):
+class TestTransposeUnsqueezeFusePass(PassTest):
     def is_program_valid(self, program=None):
         return True
 
@@ -105,7 +105,7 @@ class TestMulUnsqueezeFusePass(PassTest):
         self.check_pass_correct()
 
 
-class TestFusedTranposeUnsqueezeFusePass(PassTest):
+class TestFusedTransposeUnsqueezeFusePass(PassTest):
     def is_program_valid(self, program=None):
         return True
 

@@ -296,7 +296,7 @@ class ReplaceLoopVarToGpu : public ir::IRMutator<> {
     ir::IRMutator<>::Visit(&for_ir->body, &for_ir->body);
   }
   void Visit(const ir::PolyFor *op, Expr *expr) override {
-    PADDLE_THROW(::common::errors::InvalidArgument("Unkown PolyFor!"));
+    PADDLE_THROW(::common::errors::InvalidArgument("Unknown PolyFor!"));
   }
 };
 
@@ -317,7 +317,7 @@ class SharedAxisVisitor : public ir::IRMutator<> {
         for (auto axis : gpu_axis) {
           optim::ReplaceVarWithExpr(&indice, ir::Var(axis), ir::Expr(0));
         }
-        indice = cinn::optim::ArithSimplify(indice);
+        indice = cinn::common::AutoSimplify(indice);
       }
     }
     ir::IRMutator<>::Visit(op, expr);
@@ -338,7 +338,7 @@ class SharedAxisVisitor : public ir::IRMutator<> {
         for (auto axis : gpu_axis) {
           optim::ReplaceVarWithExpr(&indice, ir::Var(axis), ir::Expr(0));
         }
-        indice = cinn::optim::ArithSimplify(indice);
+        indice = cinn::common::AutoSimplify(indice);
       }
     }
     ir::IRMutator<>::Visit(op, expr);
@@ -367,7 +367,7 @@ class LocalAxisVisitor : public ir::IRMutator<> {
         for (auto axis : gpu_axis) {
           optim::ReplaceVarWithExpr(&indice, ir::Var(axis), ir::Expr(0));
         }
-        indice = cinn::optim::ArithSimplify(indice);
+        indice = cinn::common::AutoSimplify(indice);
       }
     }
   }
@@ -388,7 +388,7 @@ class LocalAxisVisitor : public ir::IRMutator<> {
         for (auto axis : gpu_axis) {
           optim::ReplaceVarWithExpr(&indice, ir::Var(axis), ir::Expr(0));
         }
-        indice = cinn::optim::ArithSimplify(indice);
+        indice = cinn::common::AutoSimplify(indice);
       }
     }
     ir::IRMutator<>::Visit(op, expr);
@@ -418,7 +418,7 @@ class ReplaceUnitVarToZero : public ir::IRMutator<> {
       for (auto var_ : loop_var_) {
         optim::ReplaceVarWithExpr(&indice, ir::Var(var_), ir::Expr(0));
       }
-      indice = cinn::optim::ArithSimplify(indice);
+      indice = cinn::common::AutoSimplify(indice);
     }
     ir::IRMutator<>::Visit(op, expr);
   }
@@ -434,7 +434,7 @@ class ReplaceUnitVarToZero : public ir::IRMutator<> {
       for (auto var_ : loop_var_) {
         optim::ReplaceVarWithExpr(&indice, ir::Var(var_), ir::Expr(0));
       }
-      indice = cinn::optim::ArithSimplify(indice);
+      indice = cinn::common::AutoSimplify(indice);
     }
 
     ir::IRMutator<>::Visit(op, expr);
@@ -470,7 +470,12 @@ void OptimizeExprGPU(Expr *expr) {
   replace_index_to_bind_expr(expr);
 
   // resize buffer axis
-  UpdateBufferAxisPass(expr);
+  BlockPassManager pass_manager;
+  ir::stmt::BlockRef _block = ir::ConvertExprBlockToStmtBlock(*expr);
+  pass_manager.AddPass(optim::CreateUpdateBufferAxisPass());
+  pass_manager.Run(_block);
+  ir::Expr new_expr = ir::ConvertStmtBlockToExprBlock(_block);
+  *expr = new_expr;
 
   // Replace variables bound on block/thread to the actual blockIdx/threadIdx.
   ReplaceLoopVarToGpu replace_loop_var_to_gpu;

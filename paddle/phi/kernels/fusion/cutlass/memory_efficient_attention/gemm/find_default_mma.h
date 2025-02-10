@@ -19,7 +19,7 @@
 
 /*! \file
     \brief Cutlass provides helper template functions to figure out the right
-   datastructures to instanciate to run a GEMM with various parameters (see
+   datastructures to instantiate to run a GEMM with various parameters (see
    `cutlass/gemm/threadblock/default_mma.h`). However, due to template
    instantiation priority rules, it will only create an MmaMultiStage with
    kStages=3 (otherwise creates an MmePipelined - which is not compatible with
@@ -71,7 +71,7 @@ template <
     typename InstructionShape,
     /// Number of stages used in the pipelined mainloop
     int Stages,
-    /// Operation perfomed by GEMM
+    /// Operation performed by GEMM
     typename Operator,
     typename Enable_ = void>
 struct FindDefaultMma {

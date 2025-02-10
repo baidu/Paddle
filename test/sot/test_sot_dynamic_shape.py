@@ -83,6 +83,10 @@ class CustomConv(paddle.nn.Conv2D):
         )
 
 
+def pool2d_fallback(x, kernel_size):
+    return paddle.nn.functional.max_pool2d(x, kernel_size=kernel_size)
+
+
 class TestOpcodeExecutorDynamicShapeCache(TestCaseBase):
     def test_dynamic_int_input_cache_hit_case1(self):
         with allow_dynamic_shape_guard(
@@ -180,13 +184,22 @@ class TestOpcodeExecutorDynamicShapeCache(TestCaseBase):
                 )
                 self.assertEqual(ctx.translate_count, 2)
 
-    def test_conv_dynamic_shape_fallback(self):
+    def test_conv_dynamic_shape_stride_fallback(self):
         with allow_dynamic_shape_guard(
             True
         ), test_instruction_translator_cache_context() as ctx:
             for i in range(1, 5):
                 conv = CustomConv(3, 3, 3, stride=i)
                 conv(paddle.randn([1, 3, 224, 224]))
+                self.assertEqual(ctx.translate_count, i)
+
+    def test_conv_dynamic_shape_kernel_size_fallback(self):
+        with allow_dynamic_shape_guard(
+            True
+        ), test_instruction_translator_cache_context() as ctx:
+            for i in range(1, 5):
+                x = paddle.randn([1, 3, 224, 224])
+                self.assert_results(pool2d_fallback, x, i)
                 self.assertEqual(ctx.translate_count, i)
 
     def test_pad_dynamic_shape_fallback(self):

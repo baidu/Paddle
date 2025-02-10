@@ -58,7 +58,14 @@ class FuncPass : public Pass<ir::LoweredFunc> {
  public:
   explicit FuncPass(const std::string& name) : Pass(PassKind::PK_FUNC, name) {}
 
+  // Run on the whole function.
   virtual LogicalResult Run(ir::LoweredFunc f) = 0;
+  // Only run on function body.
+  virtual LogicalResult Run(ir::stmt::BlockRef block) {
+    LOG(WARNING) << name()
+                 << "should run on the whole function, not on the body block.";
+    return LogicalResult::failure();
+  }
 };
 
 class BlockPass : public Pass<ir::stmt::BlockRef> {
@@ -74,10 +81,10 @@ class StmtPass : public Pass<ir::stmt::StmtRef> {
   virtual LogicalResult Run(ir::stmt::StmtRef stmt) = 0;
 };
 
-class ExprPass : public Pass<ir::Expr> {
+class ExprPass : public Pass<ir::Expr*> {
  public:
   explicit ExprPass(const std::string& name) : Pass(PassKind::PK_STMT, name) {}
-  virtual LogicalResult Run(ir::Expr expr) = 0;
+  virtual LogicalResult Run(ir::Expr* expr) = 0;
 };
 
 }  // namespace optim

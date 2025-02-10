@@ -140,7 +140,7 @@ class ReduceBlockCreator {
               original_loops_[i].As<For>()->loop_var->name) > 0;
       bool is_rf_loop = rf_loop_.As<For>()->loop_var->name ==
                         original_loops_[i].As<For>()->loop_var->name;
-      // Outter loop should not skip.
+      // Outer loop should not skip.
       if (is_rf_loop) {
         is_inside_rf_loop = false;
       }

@@ -23,7 +23,7 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 1000
 
-    - name: Merge pr
+    - name: Merge PR to test branch
       run: |
         git fetch origin pull/${PR_ID}/merge
         git checkout -b test FETCH_HEAD

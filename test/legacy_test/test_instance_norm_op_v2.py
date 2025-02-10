@@ -228,7 +228,7 @@ class TestInstanceNormFP32OP(OpTest):
         self.init_dtype()
         self.init_shape()
         self.init_value()
-        self.set_err_thre()
+        self.set_err_threshold()
         self.inputs = {'X': self.value, 'Scale': self.scale, 'Bias': self.bias}
         self.attrs = {
             'epsilon': self.eps,
@@ -284,7 +284,7 @@ class TestInstanceNormFP32OP(OpTest):
         self.scale = np.random.random([self.shape[1]]).astype(np.float32)
         self.bias = np.random.random([self.shape[1]]).astype(np.float32)
 
-    def set_err_thre(self):
+    def set_err_threshold(self):
         self.atol = 1e-3
         self.fw_comp_rtol = 1e-6
         self.fw_comp_atol = 1e-6
@@ -322,8 +322,8 @@ class TestInstanceNormWithNC(TestInstanceNormFP32OP):
     def init_shape(self):
         self.shape = [4, 100]
 
-    def set_err_thre(self):
-        super().set_err_thre()
+    def set_err_threshold(self):
+        super().set_err_threshold()
         self.fw_comp_atol = 3e-5
 
     def test_check_output(self):
@@ -358,7 +358,7 @@ class TestInstanceNormFP16OP(TestInstanceNormFP32OP):
     def init_dtype(self):
         self.dtype = np.float16
 
-    def set_err_thre(self):
+    def set_err_threshold(self):
         self.atol = 0.03125
         self.max_relative_error = 8e-3
 

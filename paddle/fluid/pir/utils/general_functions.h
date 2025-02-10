@@ -96,7 +96,7 @@ pir::Type TranslateToIrDataType(phi::DataType dtype);
  *
  * @return pir::Operation*
  */
-pir::Operation* CreateOpeartionByName(const std::string& op_name,
+pir::Operation* CreateOperationByName(const std::string& op_name,
                                       const std::vector<pir::Value>& inputs,
                                       const pir::AttributeMap& attrs,
                                       const pir::PatternRewriter& rewriter);

@@ -181,7 +181,7 @@ static std::vector<ir::Var> GetAllForIters(const ir::Expr& expr) {
   return vars;
 }
 
-static int counter = 0;
+static thread_local std::atomic<int> counter = 0;
 ir::Expr UnSqueezeExpr(const ir::Expr& expr,
                        const std::vector<int>& padding_vec) {
   VLOG(4) << "UnSqueezeExpr: " << expr

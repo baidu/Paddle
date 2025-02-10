@@ -70,6 +70,19 @@ ir::Expr ReplaceVarWithExpr(const ir::Expr& source,
                             const std::vector<ir::Var>& candidates,
                             const std::vector<ir::Expr>& targets);
 
+/**
+ * Expand the iter_vars in `expr` to the iter_values of `block`.
+ */
+Expr ExpandIterVar(const Expr& expr, const Expr& block);
+
+constexpr char* kLoopVar = "loop_var_";
+
+/**
+ * Replace the loop_vars in `expr` to the canonicalized form such that the
+ * loop_var of loop[i] has name `loop_var_i`.
+ */
+Expr CanonicalizeLoopVar(const Expr& expr, const std::vector<Expr>& loops);
+
 std::vector<ir::Expr> GetIterValuesOfAccess(ir::Expr load_or_store,
                                             ir::Expr block);
 

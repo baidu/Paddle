@@ -889,7 +889,7 @@ void MergeReduceToReduce(
       }
     } else {
       PADDLE_THROW(::common::errors::InvalidArgument(
-          "Error! Unkown Reduce Type, Please Check!"));
+          "Error! Unknown Reduce Type, Please Check!"));
     }
   }
 }
@@ -1222,20 +1222,63 @@ void LoopAssignReduce(
       copy_loop_info(nloops, rloops);
     } else {
       PADDLE_THROW(
-          ::common::errors::InvalidArgument("Error! Unkown Reduce Type!"));
+          ::common::errors::InvalidArgument("Error! Unknown Reduce Type!"));
     }
   }
 }
 
-std::unordered_map<std::string, ::pir::Value> GetOutValueSet(
-    PrettyNamer* pretty_name,
-    const std::unordered_set<::pir::Operation*>& ops_set) {
-  std::unordered_map<std::string, ::pir::Value> out_value_set;
-  for (auto* op : ops_set) {
-    out_value_set[pretty_name->GetOrNew(
-        op->result(0), CompatibleInfo::kNamePrefix)] = op->result(0);
+void UnifyTempSpaceArgs(std::vector<ir::LoweredFunc>* funcs) {
+  auto InsertPlaceholders = [&](ir::LoweredFunc func, int count) {
+    auto insert_pos = std::find_if(
+        func->args.begin(), func->args.end(), [&](const ir::Argument& arg) {
+          return arg.is_var();
+        });
+
+    for (int i = 0; i < count; ++i) {
+      std::string name = "_plchdr_" + std::to_string(i);
+      ir::Buffer buffer = ir::_Buffer_::Make(name, cinn::common::UInt(8));
+      ir::Argument arg(buffer, ir::Argument::IO::kOutput);
+      insert_pos = func->args.insert(insert_pos, arg);
+      int arg_idx = insert_pos - func->args.begin();
+      func->temp_spaces.emplace_back(ir::Expr(0), arg_idx);
+      ++insert_pos;
+    }
+  };
+
+  size_t max_count = 0;
+  for (int i = 0; i + 1 < funcs->size(); ++i) {  // ignore the last X86 kernel
+    max_count = std::max(max_count, (*funcs)[i]->temp_spaces.size());
   }
-  return out_value_set;
+  for (int i = 0; i + 1 < funcs->size(); ++i) {
+    size_t cur_count = (*funcs)[i]->temp_spaces.size();
+    if (cur_count < max_count) {
+      InsertPlaceholders((*funcs)[i], max_count - cur_count);
+    }
+  }
+}
+
+std::vector<int64_t> CollectTempSpaceSizes(
+    const std::vector<ir::LoweredFunc>& funcs) {
+  std::vector<int64_t> sizes;
+  // Ignore the last X86 kernel
+  for (int func_idx = 0; func_idx + 1 < funcs.size(); ++func_idx) {
+    auto& temp_spaces = funcs[func_idx]->temp_spaces;
+    if (func_idx == 0) {
+      sizes.resize(temp_spaces.size());
+    }
+    for (int i = 0; i < temp_spaces.size(); ++i) {
+      int64_t size = -1;
+      if (temp_spaces[i].size().is_constant()) {
+        size = temp_spaces[i].size().as_int64();
+      }
+      if (func_idx == 0) {
+        sizes[i] = size;
+      } else if (sizes[i] != size) {
+        sizes[i] = -1;
+      }
+    }
+  }
+  return sizes;
 }
 
 }  // namespace pir

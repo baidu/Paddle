@@ -277,7 +277,7 @@ def wait(
     Args:
         tensor (Tensor): The Tensor used before sync.
         group (Group): The Group instance to perform sync.
-        use_calc_stream (bool): Wether to use calculation stream (True) or communication stream (False).
+        use_calc_stream (bool): Whether to use calculation stream (True) or communication stream (False).
             Default to True.
 
     Returns:

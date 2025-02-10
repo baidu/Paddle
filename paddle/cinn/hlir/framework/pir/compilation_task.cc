@@ -22,6 +22,7 @@
 #include "paddle/cinn/hlir/framework/op_lowering.h"
 #include "paddle/cinn/hlir/framework/pir/op_lowering_group.h"
 #include "paddle/cinn/hlir/framework/pir/utils.h"
+#include "paddle/cinn/ir/utils/stmt_converter.h"
 #include "paddle/common/enforce.h"
 namespace cinn {
 namespace hlir {
@@ -39,6 +40,13 @@ void GroupCompilationContext::SetLoweredFuncs(
        funcs.predicate2funcsCX86) {
     CX86_predicates_.push_back(std::move(predicate2func.first));
     CX86_lowered_funcs_.push_back(std::move(predicate2func.second));
+  }
+  // TODO(Dmovic): remove expr body after update all the backend.
+  for (ir::LoweredFunc& func : lowered_funcs_) {
+    func->body_block = ir::ConvertExprBlockToStmtBlock(func->body);
+  }
+  for (ir::LoweredFunc& func : CX86_lowered_funcs_) {
+    func->body_block = ir::ConvertExprBlockToStmtBlock(func->body);
   }
   infer_shape_lowered_func_ = std::move(funcs.infer_shape_func);
 
@@ -63,7 +71,7 @@ void GroupCompilationContext::PrepareModuleBuilder() {
   PADDLE_ENFORCE_EQ(predicates_.size(),
                     priorities_.size(),
                     ::common::errors::InvalidArgument(
-                        "The size of predicates and priorites should be "
+                        "The size of predicates and priorities should be "
                         "the same."));
   for (const ir::Expr& predicate : predicates_) {
     module_builder_.AddPredicate(predicate);

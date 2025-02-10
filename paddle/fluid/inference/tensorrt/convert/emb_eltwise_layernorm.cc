@@ -25,7 +25,7 @@ class EmbEltwiseLayerNormOpConverter : public OpConverter {
                   const framework::Scope& scope,
                   bool test_mode) override {
     VLOG(4) << "convert EmbEltwiseLayerNorm op to tensorrt layer";
-    // get the presistable var's data
+    // get the persistable var's data
     auto GetWeight = [&](const std::string& var_name,
                          phi::DDim* dim) -> TensorRTEngine::Weight {
       auto* temp_var = scope.FindVar(var_name);

@@ -32,7 +32,7 @@ class TestReshape2OneDNNOp(OpTest):
         self.inputs = {"X": np.random.random(self.ori_shape).astype("float32")}
         self.attrs = {"shape": self.new_shape}
         self.outputs = {
-            "Out": self.inputs["X"].reshape(self.infered_shape),
+            "Out": self.inputs["X"].reshape(self.inferred_shape),
             'XShape': np.random.random(self.ori_shape).astype("float32"),
         }
         self.x = self.inputs["X"]
@@ -43,7 +43,7 @@ class TestReshape2OneDNNOp(OpTest):
     def init_data(self):
         self.ori_shape = (2, 60)
         self.new_shape = (12, 10)
-        self.infered_shape = (12, 10)
+        self.inferred_shape = (12, 10)
 
     def init_dtype(self):
         self.dtype = np.float32
@@ -69,35 +69,35 @@ class TestReshape2OneDNNOpZeroDim(TestReshape2OneDNNOp):
     def init_data(self):
         self.ori_shape = ()
         self.new_shape = (1,)
-        self.infered_shape = (1,)
+        self.inferred_shape = (1,)
 
 
 class TestReshape2OneDNNOpZeroDim2(TestReshape2OneDNNOpZeroDim):
     def init_data(self):
         self.ori_shape = (1,)
         self.new_shape = ()
-        self.infered_shape = ()
+        self.inferred_shape = ()
 
 
 class TestReshape2OneDNNOpDimInfer1(TestReshape2OneDNNOp):
     def init_data(self):
         self.ori_shape = (5, 25)
         self.new_shape = (5, -1, 5)
-        self.infered_shape = (5, -1, 5)
+        self.inferred_shape = (5, -1, 5)
 
 
 class TestReshape2OneDNNOpDimInfer2(TestReshape2OneDNNOp):
     def init_data(self):
         self.ori_shape = (6, 20)
         self.new_shape = (0, -1, 20)
-        self.infered_shape = (2, 3, 20)
+        self.inferred_shape = (2, 3, 20)
 
     def set_additional_inputs(self):
-        self.inputs["Shape"] = np.array(self.infered_shape, dtype="int32")
+        self.inputs["Shape"] = np.array(self.inferred_shape, dtype="int32")
 
     def set_outputs(self):
         self.outputs = {
-            "Out": self.inputs["X"].reshape(self.infered_shape),
+            "Out": self.inputs["X"].reshape(self.inferred_shape),
             'XShape': np.random.random(self.ori_shape).astype("float32"),
         }
 
@@ -108,14 +108,14 @@ class TestReshape2OneDNNOp_attr_OnlyShape(TestReshape2OneDNNOp):
 
     def set_outputs(self):
         self.outputs = {
-            "Out": self.inputs["X"].reshape(self.infered_shape),
+            "Out": self.inputs["X"].reshape(self.inferred_shape),
             'XShape': np.random.random(self.ori_shape).astype("float32"),
         }
 
     def init_data(self):
         self.ori_shape = (4, 25)
         self.new_shape = (10, 10)
-        self.infered_shape = (10, 10)
+        self.inferred_shape = (10, 10)
 
 
 class TestReshape2OneDNNOpDimInfer1_attr_OnlyShape(
@@ -124,7 +124,7 @@ class TestReshape2OneDNNOpDimInfer1_attr_OnlyShape(
     def init_data(self):
         self.ori_shape = (5, 20)
         self.new_shape = (5, -1, 10)
-        self.infered_shape = (5, -1, 10)
+        self.inferred_shape = (5, -1, 10)
         self.shape = (5, -1, -1)
 
 
@@ -141,7 +141,7 @@ class TestReshape2OneDNNOpDimInfer1_attr_ShapeTensor(TestReshape2OneDNNOp):
     def init_data(self):
         self.ori_shape = (5, 20)
         self.new_shape = (5, -1, 10)
-        self.infered_shape = (5, -1, 10)
+        self.inferred_shape = (5, -1, 10)
         self.shape = (5, -1, -1)
 
 
@@ -165,7 +165,7 @@ class TestReshapeOneDNNOp(TestReshape2OneDNNOp):
         self.op_type = "reshape"
 
     def set_outputs(self):
-        self.outputs = {"Out": self.inputs["X"].reshape(self.infered_shape)}
+        self.outputs = {"Out": self.inputs["X"].reshape(self.inferred_shape)}
 
     def test_check_output(self):
         self.check_output(check_dygraph=False)
@@ -175,7 +175,7 @@ class TestReshapeOneDNNOpDimInfer1(TestReshapeOneDNNOp):
     def init_data(self):
         self.ori_shape = (5, 25)
         self.new_shape = (5, -1, 5)
-        self.infered_shape = (5, -1, 5)
+        self.inferred_shape = (5, -1, 5)
 
 
 class TestReshapeOneDNNOp_attr_OnlyShape(TestReshape2OneDNNOp_attr_OnlyShape):
@@ -184,7 +184,7 @@ class TestReshapeOneDNNOp_attr_OnlyShape(TestReshape2OneDNNOp_attr_OnlyShape):
         self.op_type = "reshape"
 
     def set_outputs(self):
-        self.outputs = {"Out": self.inputs["X"].reshape(self.infered_shape)}
+        self.outputs = {"Out": self.inputs["X"].reshape(self.inferred_shape)}
 
     def test_check_output(self):
         self.check_output(check_dygraph=False)
@@ -196,7 +196,7 @@ class TestReshapeOneDNNOpDimInfer1_attr_OnlyShape(
     def init_data(self):
         self.ori_shape = (5, 20)
         self.new_shape = (5, -1, 10)
-        self.infered_shape = (5, -1, 10)
+        self.inferred_shape = (5, -1, 10)
         self.shape = (5, -1, -1)
 
 

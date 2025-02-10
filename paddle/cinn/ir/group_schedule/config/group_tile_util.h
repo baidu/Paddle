@@ -16,6 +16,12 @@
 #include "paddle/cinn/ir/ir.h"
 
 namespace cinn {
+namespace hlir::framework::pir {
+struct GroupVectorizeInfo;
+}  // namespace hlir::framework::pir
+
+using hlir::framework::pir::GroupVectorizeInfo;
+
 namespace ir {
 
 /**
@@ -55,6 +61,11 @@ std::vector<int64_t> GetLoopStrides(const ir::Expr& reduce_compute_body);
 // in this group.
 bool GetCanApplyGridReduce(const std::vector<ir::Expr>& op_compute_bodies,
                            const std::vector<int64_t>& reduce_axis);
+
+// Check whether we can apply vectorize in this group.
+GroupVectorizeInfo GetCanApplyVectorize(
+    const std::vector<ir::Expr>& op_compute_bodies,
+    const std::unordered_set<std::string>& group_args);
 
 }  // namespace ir
 }  // namespace cinn

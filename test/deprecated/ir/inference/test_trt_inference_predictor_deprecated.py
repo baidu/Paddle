@@ -66,7 +66,7 @@ class BackendPaddle:
     def name(self):
         return "paddle"
 
-    def load(self, config_arg, inputs=None, outpus=None):
+    def load(self, config_arg, inputs=None, outputs=None):
         self.args = config_arg
         if os.path.exists(self.args.model_dir):
             model_file = os.path.join(

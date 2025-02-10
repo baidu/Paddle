@@ -941,47 +941,6 @@ struct ChangeBodyToBlock : public ir::IRMutator<> {
   }
 };
 
-struct CacheReadRewriter : public ir::IRMutator<> {
- public:
-  static Expr Rewrite(const Expr& root, CacheBlockInfo* info) {
-    CacheReadRewriter rewriter(root, info);
-    Expr new_root = ir::ir_utils::IRCopy(root);
-    rewriter(&new_root);
-    return new_root;
-  }
-
-  void operator()(Expr* expr) { IRMutator::Visit(expr, expr); }
-
- private:
-  explicit CacheReadRewriter(const Expr& root, CacheBlockInfo* info)
-      : root_(root), info_(info) {}
-
-  void Visit(const ir::Block* expr, Expr* op) override {
-    if (*op == info_->loc_block) {
-      IRMutator::Visit(expr, op);
-      op->As<Block>()->stmts.insert(
-          op->As<Block>()->stmts.begin() + info_->loc_pos, info_->cache_block);
-    } else {
-      IRMutator::Visit(expr, op);
-    }
-  }
-
-  void Visit(const ir::Load* expr, Expr* op) override {
-    if (expr->tensor == Expr(info_->read_tensor)) {
-      IRMutator::Visit(expr, op);
-      op->As<Load>()->tensor = Expr(info_->write_tensor);
-    } else {
-      IRMutator::Visit(expr, op);
-    }
-  }
-
- private:
-  /*! \brief The parent scope of the insertion */
-  const Expr& root_;
-  /*! \brief The info for inserting cache stage */
-  CacheBlockInfo* info_;
-};
-
 struct CacheWriteRewriter : public ir::IRMutator<> {
  public:
   static Expr Rewrite(const Expr& root, CacheBlockInfo* info) {

@@ -77,7 +77,7 @@ class Edge {
   }
 
   void SetGradNode(const std::shared_ptr<GradNodeBase>& node) {
-    VLOG(7) << "Reseting Edge's Grad Node";
+    VLOG(7) << "Resetting Edge's Grad Node";
     grad_node_ = node;
   }
 

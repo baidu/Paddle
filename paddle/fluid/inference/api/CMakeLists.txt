@@ -71,14 +71,8 @@ endif()
 
 set(ANALYSIS_PREDICTOR_SRCS analysis_predictor.cc resource_manager.cc
                             infer_context.cc)
-set(ANALYSIS_PREDICTOR_DEPS
-    ${inference_deps}
-    zero_copy_tensor
-    ir_pass_manager
-    op_compatible_info
-    infer_io_utils
-    model_utils
-    fleet_executor)
+set(ANALYSIS_PREDICTOR_DEPS ${inference_deps} zero_copy_tensor ir_pass_manager
+                            op_compatible_info infer_io_utils model_utils)
 
 if(WITH_ONNXRUNTIME)
   set(ANALYSIS_PREDICTOR_SRCS ${ANALYSIS_PREDICTOR_SRCS}

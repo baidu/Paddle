@@ -316,7 +316,7 @@ class TEST_API ResultPattern {
   // {"complex64", phi::DataType::COMPLEX64},
   // {"complex128", phi::DataType::COMPLEX128},
   // {"Undefined", phi::DataType::UNDEFINED},
-  // {"psting", phi::DataType::PSTRING},
+  // {"pstring", phi::DataType::PSTRING},
   // {"float16", phi::DataType::FLOAT16},
   // {"bfloat16", phi::DataType::BFLOAT16},
   // {"float64", phi::DataType::FLOAT64}};

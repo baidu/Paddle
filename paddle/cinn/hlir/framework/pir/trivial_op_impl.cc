@@ -26,6 +26,7 @@
 #include "paddle/cinn/ir/dim.h"
 #include "paddle/cinn/ir/group_schedule/base_group_scheduler.h"
 #include "paddle/cinn/ir/group_schedule/config/group_tile_util.h"
+#include "paddle/cinn/ir/ir_analyzer/ir_analyzer.h"
 #include "paddle/cinn/ir/schedule/ir_schedule.h"
 #include "paddle/cinn/ir/schedule/ir_schedule_util.h"
 #include "paddle/cinn/lang/placeholder.h"
@@ -37,6 +38,7 @@
 #include "paddle/pir/include/dialect/control_flow/ir/cf_op.h"
 
 PD_DECLARE_bool(cinn_enable_grid_reduce);
+PD_DECLARE_bool(cinn_enable_vectorize);
 
 namespace cinn {
 namespace hlir {
@@ -92,7 +94,7 @@ ir::Expr GetComputeBody(const FusibleOp& op) {
       const auto& compute_body =
           (ExprSetFinderUtils::ChildStores * ExprSetFinderUtils::Store2Value)
               .GetSingle(compute_realize);
-      return ExprTransformerUtils::SubstitudeByScheduleBlockRealize(
+      return ExprTransformerUtils::SubstituteByScheduleBlockRealize(
           compute_realize)(compute_body);
     }
     ir::Expr operator()(const TrivialOp& op) {
@@ -102,7 +104,7 @@ ir::Expr GetComputeBody(const FusibleOp& op) {
       const auto& compute_body =
           (ExprSetFinderUtils::ChildStores * ExprSetFinderUtils::Store2Value)
               .GetSingle(compute_realize);
-      return ExprTransformerUtils::SubstitudeByScheduleBlockRealize(
+      return ExprTransformerUtils::SubstituteByScheduleBlockRealize(
           compute_realize)(compute_body);
     }
   };
@@ -323,7 +325,7 @@ ir::Expr CreateExprWithNewComputeBody(const FusibleOp& fusible_op,
 }
 
 int GetTensorCounter() {
-  static int counter = 1;
+  static thread_local std::atomic<int> counter = 1;
   return counter++;
 }
 
@@ -539,7 +541,8 @@ std::vector<ir::Var> GetAllForIters(const ir::Expr& expr) {
 }  // namespace trivial_fusion_detail
 
 std::shared_ptr<FusionGroupInfo> GetFusionGroupInfo(
-    const std::vector<ir::Expr>& op_compute_bodies) {
+    const std::vector<ir::Expr>& op_compute_bodies,
+    const std::unordered_set<std::string>& group_args) {
   using trivial_fusion_detail::AppendBound;
   using trivial_fusion_detail::GetAllForIters;
   using trivial_fusion_detail::IsReduceBody;
@@ -597,6 +600,11 @@ std::shared_ptr<FusionGroupInfo> GetFusionGroupInfo(
   if (FLAGS_cinn_enable_grid_reduce) {
     group_info->can_apply_grid_reduce =
         GetCanApplyGridReduce(op_compute_bodies, group_info->reduce_axis);
+  }
+
+  if (FLAGS_cinn_enable_vectorize) {
+    group_info->vectorize_info =
+        GetCanApplyVectorize(op_compute_bodies, group_args);
   }
 
   VLOG(4) << group_info->DebugPrint();

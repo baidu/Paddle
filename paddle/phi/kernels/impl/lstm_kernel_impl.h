@@ -143,7 +143,7 @@ void LSTMKernel(const Context& dev_ctx,
                   static_cast<T>(1.0));
     } else if (hidden_t0 != nullptr) {
       // If n == 0 and there is no initialized hidden state, that is to say
-      // the H0 is zeros, the calculation W_h * H0 will be skiped.
+      // the H0 is zeros, the calculation W_h * H0 will be skipped.
       // If n == 0 and there is initialized hidden state, calculate W_h * H0.
 
       // Since the batch computing for LSTM reorders the input sequence

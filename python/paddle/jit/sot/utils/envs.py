@@ -55,6 +55,9 @@ ENV_SOT_BREAK_GRAPH_ON_GET_SYMBOLIC_VALUE = BooleanEnvironmentVariable(
     "SOT_BREAK_GRAPH_ON_GET_SYMBOLIC_VALUE", False
 )
 ENV_SOT_COLLECT_INFO = StringListEnvironmentVariable("SOT_COLLECT_INFO", [])
+ENV_SOT_FORCE_FALLBACK_SIR_IDS = StringEnvironmentVariable(
+    "SOT_FORCE_FALLBACK_SIR_IDS", ""
+)
 
 
 @contextmanager

@@ -59,16 +59,18 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
 
         # axis: 0
@@ -82,15 +84,17 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, 0, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 0, -1]
+        )
 
         # axis: 0
         # dims_mapping: [0, -1, -1], [0] --> [-1, -1, -1], [0], [0, -1, -1]
@@ -102,15 +106,19 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
 
         # 0-d tensor
         # axis: 1
@@ -125,15 +133,17 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1])
+        self.assertEqual(
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, -1])
         self.index_spec.shape = [16]
 
     def test_multi_mesh_dim(self):
@@ -151,14 +161,14 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, 1, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1])
 
         # [0, 1, -1], [0] --> [0, -1, -1], [0], [0, -1, -1]
         self.attrs['axis'] = 1
@@ -169,14 +179,16 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.index_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
 
     def test_reverse_multi_mesh_dim(self):
         process_mesh = auto.ProcessMesh(mesh=[[0, 1, 2], [3, 4, 5]])
@@ -194,15 +206,15 @@ class TestScatterSPMDRule(unittest.TestCase):
             self.out_spec,
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, 0, -1])
 
 
 if __name__ == "__main__":

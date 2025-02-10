@@ -227,7 +227,7 @@ class TestPirAMPProgram(unittest.TestCase):
 class Net(paddle.nn.Layer):
     def __init__(self):
         super().__init__()
-        self.linear = lienar = paddle.nn.Linear(2, 2)
+        self.linear = paddle.nn.Linear(2, 2)
 
     def forward(self, x):
         out1 = self.linear(x)

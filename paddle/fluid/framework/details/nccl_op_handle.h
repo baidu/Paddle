@@ -123,7 +123,7 @@ class NCCLOpHandleBase : public OpHandleBase {
                       1,
                       common::errors::InvalidArgument(
                           "HierarchicalAllReduce can only run "
-                          "one proccess with one card mode, but got %d cards.",
+                          "one process with one card mode, but got %d cards.",
                           places_.size()));
 
     for (auto& p : places_) {

@@ -51,10 +51,10 @@ void NativePaddlePredictor::PrepareFeedFetch() {
       feed_names_[op->Output("Out")[0]] = idx;
     } else if (op->Type() == "fetch") {
       int idx = PADDLE_GET_CONST(int, op->GetAttr("col"));
-      if (fetchs_.size() <= static_cast<size_t>(idx)) {
-        fetchs_.resize(idx + 1);
+      if (fetches_.size() <= static_cast<size_t>(idx)) {
+        fetches_.resize(idx + 1);
       }
-      fetchs_[idx] = op;
+      fetches_[idx] = op;
     }
   }
 }
@@ -319,9 +319,9 @@ void NativePaddlePredictor::GetFetchOne(const phi::DenseTensor &fetch,
 bool NativePaddlePredictor::GetFetch(std::vector<PaddleTensor> *outputs,
                                      framework::Scope *scope) {
   VLOG(3) << "Predictor::get_fetch";
-  outputs->resize(fetchs_.size());
-  for (size_t i = 0; i < fetchs_.size(); ++i) {
-    int idx = PADDLE_GET_CONST(int, fetchs_[i]->GetAttr("col"));
+  outputs->resize(fetches_.size());
+  for (size_t i = 0; i < fetches_.size(); ++i) {
+    int idx = PADDLE_GET_CONST(int, fetches_[i]->GetAttr("col"));
     PADDLE_ENFORCE_EQ(
         static_cast<size_t>(idx),
         i,
@@ -334,7 +334,7 @@ bool NativePaddlePredictor::GetFetch(std::vector<PaddleTensor> *outputs,
     auto fetch = PADDLE_GET_CONST(phi::DenseTensor, fetch_var);
     auto type = framework::TransToProtoVarType(fetch.dtype());
     auto output = &(outputs->at(i));
-    output->name = fetchs_[idx]->Input("X")[0];
+    output->name = fetches_[idx]->Input("X")[0];
     if (type == framework::DataTypeTrait<float>::DataType()) {
       GetFetchOne<float>(fetch, output);
       output->dtype = PaddleDType::FLOAT32;

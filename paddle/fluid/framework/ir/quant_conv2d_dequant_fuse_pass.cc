@@ -433,7 +433,7 @@ void QuantDequantFusePass::FuseDequant(ir::Graph* graph,
     const auto& w_dims = weight_tensor->dims();
     float* quantized_weight_data =
         weight_tensor->mutable_data<float>(phi::CPUPlace());
-    //  Determine whether this weight tensor has been re-writed, avoiding
+    //  Determine whether this weight tensor has been re-written, avoiding
     //  re-write it again when this weight tensor is shared among many ops.
     if (!quantized_op_weight_node_set.count(quantized_op_weight_node)) {
       quantized_op_weight_node_set.insert(quantized_op_weight_node);

@@ -116,7 +116,7 @@ class ValueWrapper:
         else:
             if not isinstance(value, (type(None), pir.Value)):
                 raise TypeError(
-                    "Value Wrapper is onlys support None and pir.Value"
+                    "Value Wrapper is only support None and pir.Value"
                 )
         self._value = value._value if isinstance(value, ValueWrapper) else value
 
@@ -706,7 +706,7 @@ def update_if_output_stopgradient(if_op, true_yield_op, false_yield_op):
         true_yield_op.name() != 'cf.yield'
         or false_yield_op.name() != 'cf.yield'
     ):
-        raise ValueError("param isnot yield op")
+        raise ValueError("param is not yield op")
 
     # Check if operands_source sizes match
     if len(true_yield_op.operands_source()) != len(

@@ -303,7 +303,7 @@ std::vector<ir::Expr> CustomCallArgsForCublas(
                             b_height));
     }
   } else {
-    PADDLE_THROW(::common::errors::InvalidArgument("Unkown Matmul Setting!"));
+    PADDLE_THROW(::common::errors::InvalidArgument("Unknown Matmul Setting!"));
   }
 
   PADDLE_ENFORCE_EQ(
@@ -495,7 +495,7 @@ std::vector<ir::Expr> CustomCallArgsForBatchedCublas(
                             b_height));
     }
   } else {
-    PADDLE_THROW(::common::errors::InvalidArgument("Unkown Matmul Setting!"));
+    PADDLE_THROW(::common::errors::InvalidArgument("Unknown Matmul Setting!"));
   }
 
   PADDLE_ENFORCE_EQ(
@@ -1209,7 +1209,7 @@ std::vector<ir::Expr> CustomCallArgsForMemset(
     void operator()(int64_t v) { *scalar_ = static_cast<int>(v); }
     void operator()(bool v) { *scalar_ = v ? 0xFFFFFFFF : 0; }
 
-#define EXPAND_MEMSET_TYPE_UNSUPPORT(TYPE)                            \
+#define EXPAND_MEMSET_TYPE_UNSUPPORTED(TYPE)                          \
   void operator()(const TYPE &) {                                     \
     std::stringstream ss;                                             \
     ss << "The type of \"value\" of memset custom_call not support: " \
@@ -1217,16 +1217,16 @@ std::vector<ir::Expr> CustomCallArgsForMemset(
     PADDLE_THROW(::common::errors::InvalidArgument(ss.str()));        \
   }
 
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::string)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<int>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<int64_t>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<float>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<double>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<bool>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<std::string>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<symbol::DimExpr>)
-    EXPAND_MEMSET_TYPE_UNSUPPORT(std::vector<cinn::dialect::SymbolBinding>)
-#undef EXPAND_MEMSET_TYPE_UNSUPPORT
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::string)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<int>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<int64_t>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<float>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<double>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<bool>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<std::string>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<symbol::DimExpr>)
+    EXPAND_MEMSET_TYPE_UNSUPPORTED(std::vector<cinn::dialect::SymbolBinding>)
+#undef EXPAND_MEMSET_TYPE_UNSUPPORTED
   };
 
   int value = 0;

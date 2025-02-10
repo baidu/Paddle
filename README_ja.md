@@ -19,7 +19,7 @@ PaddlePaddle は、工業化に対するコミットメントを持つ工業的�
 
 ## インストール
 
-### PaddlePaddle の最新リリース: [v2.6](https://github.com/PaddlePaddle/Paddle/tree/release/2.6)
+### PaddlePaddle の最新リリース: [3.0-rc](https://github.com/PaddlePaddle/Paddle/tree/release/3.0-rc)
 
 私たちのビジョンは、PaddlePaddle を通じて、誰もが深層学習を行えるようにすることです。
 PaddlePaddle の最新機能を追跡するために、私たちの[リリースのお知らせ](https://github.com/PaddlePaddle/Paddle/releases)を参照してください。

@@ -24,7 +24,7 @@ void Group::DivNRanks(phi::DenseTensor *tensor,
 #ifdef PADDLE_WITH_HIP
   if (dtype_ == paddle::framework::proto::VarType_Type_BF16) {
     PADDLE_THROW(
-        common::errors::Fatal("Unsupport BF16 in DataParallel for now"));
+        common::errors::Fatal("Unsupported BF16 in DataParallel for now"));
   }
   framework::VisitDataTypeForHIP(
       dtype_, DivNRanksForAllReduce<phi::GPUContext>(tensor, nranks, context));

@@ -1376,6 +1376,34 @@ PyObject* eager__is_run_in_backward(PyObject* self,
   EAGER_CATCH_AND_THROW_RETURN_NULL
 }
 
+PyObject* eager__for_test_check_cuda_error(PyObject* self,
+                                           PyObject* args,
+                                           PyObject* kwargs) {
+  EAGER_TRY
+#ifdef PADDLE_WITH_CUDA
+  // 1. wait all kernel finish
+  PADDLE_ENFORCE_GPU_SUCCESS(cudaDeviceSynchronize());
+
+  // 2. get error state
+  PADDLE_ENFORCE_GPU_SUCCESS(cudaGetLastError());
+
+  // 3. check if cuda 700
+  size_t bytes = 256;
+  char* cuda_mem;
+  char* cpu_mem = new char[bytes + 1];
+
+  cudaMalloc(&cuda_mem, bytes + 1);
+  cudaMemset(&cuda_mem, 0, bytes + 1);
+  cudaMemcpyAsync(cpu_mem, cuda_mem, bytes, cudaMemcpyDeviceToHost);
+
+  cudaFree(cuda_mem);
+  delete[] cpu_mem;
+#endif
+  RETURN_PY_NONE
+
+  EAGER_CATCH_AND_THROW_RETURN_NULL
+}
+
 PyMethodDef variable_functions[] = {  // NOLINT
     // TODO(jiabin): Remove scale when we have final state tests
     {"scale",
@@ -1451,6 +1479,10 @@ PyMethodDef variable_functions[] = {  // NOLINT
      nullptr},
     {"_is_run_in_backward",
      (PyCFunction)(void (*)())eager__is_run_in_backward,
+     METH_VARARGS | METH_KEYWORDS,
+     nullptr},
+    {"_for_test_check_cuda_error",
+     (PyCFunction)(void (*)())eager__for_test_check_cuda_error,
      METH_VARARGS | METH_KEYWORDS,
      nullptr},
 /**sparse functions**/

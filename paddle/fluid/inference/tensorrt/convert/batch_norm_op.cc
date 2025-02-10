@@ -83,38 +83,38 @@ class BatchNormOpConverter : public OpConverter {
     auto* scale_data = scale_tensor.mutable_data<float>(phi::CPUPlace());
     auto* variance_data = variance_tensor.mutable_data<float>(phi::CPUPlace());
 
-    std::unique_ptr<phi::DenseTensor> combile_scale_tensor(
+    std::unique_ptr<phi::DenseTensor> combine_scale_tensor(
         new phi::DenseTensor());
-    std::unique_ptr<phi::DenseTensor> combile_bias_tensor(
+    std::unique_ptr<phi::DenseTensor> combine_bias_tensor(
         new phi::DenseTensor());
 
-    combile_scale_tensor->Resize(scale_tensor.dims());
-    combile_bias_tensor->Resize(bias_tensor.dims());
+    combine_scale_tensor->Resize(scale_tensor.dims());
+    combine_bias_tensor->Resize(bias_tensor.dims());
 
-    auto* combile_scale_data =
-        combile_scale_tensor->mutable_data<float>(phi::CPUPlace());
-    auto* combile_bias_data =
-        combile_bias_tensor->mutable_data<float>(phi::CPUPlace());
+    auto* combine_scale_data =
+        combine_scale_tensor->mutable_data<float>(phi::CPUPlace());
+    auto* combine_bias_data =
+        combine_bias_tensor->mutable_data<float>(phi::CPUPlace());
 
-    size_t ele_num = combile_scale_tensor->memory_size() / sizeof(float);
+    size_t ele_num = combine_scale_tensor->memory_size() / sizeof(float);
 
     for (size_t i = 0; i < ele_num; i++) {
       float scale = scale_data[i];
       float bias = bias_data[i];
       float mean = mean_data[i];
       float variance = variance_data[i];
-      combile_scale_data[i] = scale / sqrtf(variance + eps);
-      combile_bias_data[i] = bias - mean * combile_scale_data[i];
+      combine_scale_data[i] = scale / sqrtf(variance + eps);
+      combine_bias_data[i] = bias - mean * combine_scale_data[i];
     }
 
     TensorRTEngine::Weight scale_weights{
         nvinfer1::DataType::kFLOAT,
-        static_cast<void*>(combile_scale_data),
-        combile_scale_tensor->memory_size() / sizeof(float)};
+        static_cast<void*>(combine_scale_data),
+        combine_scale_tensor->memory_size() / sizeof(float)};
     TensorRTEngine::Weight shift_weights{
         nvinfer1::DataType::kFLOAT,
-        static_cast<void*>(combile_bias_data),
-        combile_bias_tensor->memory_size() / sizeof(float)};
+        static_cast<void*>(combine_bias_data),
+        combine_bias_tensor->memory_size() / sizeof(float)};
     TensorRTEngine::Weight power_weights{
         nvinfer1::DataType::kFLOAT, nullptr, 0};
 
@@ -152,9 +152,9 @@ class BatchNormOpConverter : public OpConverter {
                                  1);
 
     engine_->SetWeights(op_desc.Input("Bias").front(),
-                        std::move(combile_bias_tensor));
+                        std::move(combine_bias_tensor));
     engine_->SetWeights(op_desc.Input("Scale").front(),
-                        std::move(combile_scale_tensor));
+                        std::move(combine_scale_tensor));
     if (x_dim.nbDims < 4) {
       layer->getOutput(0)->setName(("BN: ScaleNd: " + output_name).c_str());
       layer->setName(("BN: ScaleNd: (Output: " + output_name + ")").c_str());

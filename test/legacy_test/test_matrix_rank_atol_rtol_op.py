@@ -50,13 +50,13 @@ def np_matrix_rank_atol_rtol(x, atol=None, rtol=None, hermitian=False):
     return np.linalg.matrix_rank(x, tol, hermitian=hermitian)
 
 
-def matrix_rank_atol_rtol_wraper(x, atol=None, rtol=None, hermitian=False):
+def matrix_rank_atol_rtol_wrapper(x, atol=None, rtol=None, hermitian=False):
     return paddle.linalg.matrix_rank(x, None, hermitian, atol, rtol)
 
 
 class TestMatrixRankAtolRtolOP(OpTest):
     def setUp(self):
-        self.python_api = matrix_rank_atol_rtol_wraper
+        self.python_api = matrix_rank_atol_rtol_wrapper
         self.op_type = "matrix_rank_atol_rtol"
         self.init_data()
         self.process_data()

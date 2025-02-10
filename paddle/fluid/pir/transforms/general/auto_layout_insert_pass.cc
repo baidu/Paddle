@@ -293,7 +293,7 @@ class AutoLayoutInsertPass : public pir::Pass {
 
     for (auto& operand : op->operands()) {
       if (!JudgeValue(operand.source())) continue;
-      // Canbe optimize with cache when not eliminate the transpose op.
+      // Can be optimize with cache when not eliminate the transpose op.
       auto transpose_op = builder.Build<paddle::dialect::TransposeOp>(
           operand.source(), NCHW2NHWC_);
       transpose_op->set_attribute(
@@ -339,7 +339,7 @@ const std::set<std::string> ops_in_NCHW = {"pd_op.max_pool2d_with_index",
                                            "cf.yield",
                                            "pd_op.reshape",
                                            "pd_op.instance_norm",
-                                           "pd_op.batch_norm_",
+                                           //  "pd_op.batch_norm_",
                                            "pd_op.bilinear_interp",
                                            "pd_op.shape",
                                            "pd_op.deformable_conv",

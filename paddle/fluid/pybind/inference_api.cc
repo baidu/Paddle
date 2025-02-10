@@ -46,6 +46,10 @@
 #include "paddle/phi/core/cuda_stream.h"
 #endif
 
+#if defined(PADDLE_WITH_CUDA)
+#include "paddle/fluid/pybind/cuda_multiprocess_helper.h"
+#endif
+
 #ifdef PADDLE_WITH_ONNXRUNTIME
 #include "paddle/fluid/inference/api/onnxruntime_predictor.h"
 #endif
@@ -246,6 +250,59 @@ paddle_infer::PlaceType ToPaddleInferPlace(
   } else {
     return paddle_infer::PlaceType::kCPU;
   }
+}
+
+void PaddleInferShareExternalDataByPtrName(
+    paddle_infer::Tensor &tensor,  // NOLINT
+    const std::string &shm_name,
+    const std::vector<int> &shape,
+    int dtype,
+    int place) {
+#if defined(PADDLE_WITH_CUDA)
+  phi::AllocationType place_ = static_cast<phi::AllocationType>(place);
+  paddle_infer::PlaceType place_type = ToPaddleInferPlace(place_);
+
+  volatile shmStruct *shm = NULL;
+  sharedMemoryInfo info;
+  if (sharedMemoryOpen(shm_name.c_str(), sizeof(shmStruct), &info) != 0) {
+    PADDLE_THROW(phi::errors::Fatal("Failed to create shared memory slab."));
+  }
+  shm = (volatile shmStruct *)info.addr;
+  void *ptr = nullptr;
+  PADDLE_ENFORCE_GPU_SUCCESS(
+      cudaIpcOpenMemHandle(&ptr,
+                           *(cudaIpcMemHandle_t *)&shm->memHandle,  // NOLINT
+                           cudaIpcMemLazyEnablePeerAccess));
+
+  // NOTE(Zhenyu Li): Unable to enter the correct branch when using enum
+  if (dtype == 22) {
+    phi::dtype::bfloat16 *data_ptr =
+        reinterpret_cast<phi::dtype::bfloat16 *>(ptr);
+    tensor.ShareExternalData(data_ptr, shape, place_type);
+  } else if (dtype == 10) {
+    float *data_ptr = reinterpret_cast<float *>(ptr);
+    tensor.ShareExternalData(data_ptr, shape, place_type);
+  } else if (dtype == 15) {
+    phi::dtype::float16 *data_ptr =
+        reinterpret_cast<phi::dtype::float16 *>(ptr);
+    tensor.ShareExternalData(data_ptr, shape, place_type);
+  } else if (dtype == 3) {
+    int8_t *data_ptr = reinterpret_cast<int8_t *>(ptr);
+    tensor.ShareExternalData(data_ptr, shape, place_type);
+  } else if (dtype == 2) {
+    uint8_t *data_ptr = reinterpret_cast<uint8_t *>(ptr);
+    tensor.ShareExternalData(data_ptr, shape, place_type);
+  } else {
+    PADDLE_THROW(phi::errors::Unimplemented(
+        "Unsupported data type. Now share_external_data_by_ptr only supports "
+        "UINT8, INT8, FLOAT32, BFLOAT16 and FLOAT16, but got %d.",
+        dtype));
+  }
+  sharedMemoryClose(&info);
+#else
+  PADDLE_THROW(phi::errors::Unimplemented(
+      "share_external_data_by_ptr_name only supports CUDA device."));
+#endif
 }
 
 void PaddleInferShareExternalData(paddle_infer::Tensor &tensor,  // NOLINT
@@ -1192,6 +1249,8 @@ void BindPaddleInferTensor(py::module *m) {
       .def("_copy_from_cpu_bind", &PaddleInferTensorCreate<double>)
       .def("_copy_from_cpu_bind", &PaddleInferTensorCreate<bool>)
       .def("_copy_from_cpu_bind", &PaddleInferStringTensorCreate)
+      .def("_share_external_data_by_ptr_name_bind",
+           &PaddleInferShareExternalDataByPtrName)
       .def("_share_external_data_bind", &PaddleInferShareExternalData)
       .def("_share_external_data_paddle_tensor_bind",
            [](paddle_infer::Tensor &self, const py::handle &input) {

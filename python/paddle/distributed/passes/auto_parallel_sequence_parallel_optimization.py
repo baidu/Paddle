@@ -71,7 +71,7 @@ class SequenceParallelOptimizationPass(PassBase):
 
     def _fuse_allreduce_split(self):
         # allreduce is added by dist op and split is added by reshard, so we need this pass to fuse them as reducescatter.
-        # reducescatter should be infered by local reshard in future.
+        # reducescatter should be inferred by local reshard in future.
 
         block = default_main_program().global_block()
 

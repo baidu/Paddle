@@ -1309,7 +1309,7 @@ class ShardingPass(PassBase):
                 # op on the comm-stream, and then released by the scale op on the comp-stream. Since
                 # the generated and released op are both in comp-stream, the allocation of the
                 # coalesce_var can be fast-GC and reused by subsequent comp-op. However in reduce_avg
-                # parrent, the coalesce_var is released on the reduce_avg op in comm-stream,
+                # parent, the coalesce_var is released on the reduce_avg op in comm-stream,
                 # triggering a cross-stream GC. In such case, an event is recorded on the underlying
                 # allocation, and the memory is unable to reused by other comp-ops, resulting in an
                 # increase in memory usage. For more details, see the code of StreamSafeCUDAAllocator.

@@ -26,27 +26,22 @@ template <typename T, typename Context>
 void NonZeroKernel(const Context& dev_ctx,
                    const DenseTensor& condition,
                    DenseTensor* out) {
+  const T* cond_data = condition.data<T>();
   auto numel = condition.numel();
   auto dims = condition.dims();
   const int rank = dims.size();
 
-  using XPUType = typename XPUTypeTrait<T>::Type;
-
   xpu::ctx_guard RAII_GUARD(dev_ctx.x_context());
-  int* true_num = RAII_GUARD.alloc_l3_or_gm<int>(1);
-  int* workspace =
-      RAII_GUARD.alloc_l3_or_gm<int>(dev_ctx.x_context()->ncluster() * 64);
-  auto cond_data = reinterpret_cast<const XPUType*>(condition.data<T>());
-  int ret = xpu::nonzero_count<XPUType, int>(
-      dev_ctx.x_context(), cond_data, true_num, numel, workspace);
+  int* true_num = RAII_GUARD.alloc_l3_or_gm<int32_t>(1);
+  int true_num_cpu;
+  int ret = xpu::nonzero_count(dev_ctx.x_context(), cond_data, true_num, numel);
   PADDLE_ENFORCE_XDNN_SUCCESS(ret, "nonzero_count");
 
-  int true_num_cpu;
   memory_utils::Copy(phi::CPUPlace(),
                      static_cast<void*>(&true_num_cpu),
                      dev_ctx.GetPlace(),
                      static_cast<void*>(true_num),
-                     sizeof(int));
+                     sizeof(int32_t));
   if (std::getenv("XPUSIM_SKIP_RUN") &&
       std::strcmp(std::getenv("XPUSIM_SKIP_RUN"), "1") == 0) {
     VLOG(3) << "WARNING: In the simulator mode, the variable true_num_cpu "
@@ -62,14 +57,10 @@ void NonZeroKernel(const Context& dev_ctx,
     return;
   }
 
-  auto condition_shape = common::vectorize<int64_t>(dims);
-  ret = xpu::nonzero_compute<XPUType, int64_t, int>(dev_ctx.x_context(),
-                                                    cond_data,
-                                                    out_data,
-                                                    condition_shape,
-                                                    true_num_cpu,
-                                                    workspace);
-  PADDLE_ENFORCE_XDNN_SUCCESS(ret, "nonzero_compute");
+  auto condition_shape = common::vectorize<int>(dims);
+  ret = xpu::where(
+      dev_ctx.x_context(), cond_data, out_data, condition_shape, true_num_cpu);
+  PADDLE_ENFORCE_XDNN_SUCCESS(ret, "where");
 }
 
 }  // namespace phi

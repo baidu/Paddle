@@ -40,7 +40,7 @@ MultiTransformerLayerPattern::operator()(bool enable_int8,
 
   std::unordered_map<std::string, std::string> node_reprs;
 
-  // x0 and src_mask is unqiue input of subgraph
+  // x0 and src_mask is unique input of subgraph
   auto* x0 = pattern->NewNode(x0_repr());
   x0->assert_is_op_input(fused_multi_transformer_name, "X")->AsInput();
   auto* src_mask = pattern->NewNode(src_mask_repr());

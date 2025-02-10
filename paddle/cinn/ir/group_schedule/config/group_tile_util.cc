@@ -106,6 +106,240 @@ ir::Expr GetLargestLoad(const std::vector<ir::Expr>& exprs) {
   return res;
 }
 
+std::vector<ir::Expr> GetOpComputeBodyScheduleBlockRealizeExprSet(
+    const ir::Expr& body) {
+  using hlir::framework::pir::trivial_fusion_detail::ExprSetFinderUtils::
+      ChildScheduleBlockRealizes;
+  using hlir::framework::pir::trivial_fusion_detail::ExprSetFinderUtils::
+      ExprSetFinder;
+  ExprSetFinder finder =
+      ChildScheduleBlockRealizes * ExprSetFinder::GetIdentity();
+  std::vector<ir::Expr> exprs = finder(body);
+  return std::move(exprs);
+}
+
+bool ScheduleBlockRealizesShouldVectorizeCheck(
+    const std::vector<ir::Expr>& exprs) {
+  if (exprs.size() != 1) return false;
+
+  ir::Expr expr_schedule_block_realize = exprs[0];
+  bool is_reduce = ir::analyzer::IsReductionSBlock(expr_schedule_block_realize);
+  if (is_reduce) return false;
+  return true;
+}
+
+void CollectScheduleBlockRealizeLoadTensorsAndIndex(
+    ir::Expr block,
+    std::unordered_map<std::string, std::vector<std::vector<Expr>>>&
+        load_tensor_and_indexes) {
+  ir::ir_utils::CollectIRNodesWithoutTensor(
+      block,
+      [&](const ir::Expr* expr) {
+        if (expr->As<ir::Load>()) {
+          auto* node = expr->As<ir::Load>();
+          PADDLE_ENFORCE_NOT_NULL(
+              node,
+              ::common::errors::InvalidArgument(
+                  "Expected Load node, but received nullptr."));
+          auto* tensor = node->tensor.As<ir::_Tensor_>();
+          PADDLE_ENFORCE_NOT_NULL(
+              tensor,
+              ::common::errors::InvalidArgument(
+                  "Expected _Tensor_ node in load, but received nullptr."));
+          load_tensor_and_indexes[tensor->name].push_back(node->indices);
+          return true;
+        }
+        return false;
+      },
+      /* uniq_target = */ false);
+  return;
+}
+
+void CollectScheduleBlockRealizeStoreTensorsAndIndex(
+    ir::Expr block,
+    std::unordered_map<std::string, std::vector<std::vector<Expr>>>&
+        store_tensor_and_indexes) {
+  ir::ir_utils::CollectIRNodesWithoutTensor(
+      block,
+      [&](const ir::Expr* expr) {
+        if (expr->As<ir::Store>()) {
+          auto* node = expr->As<ir::Store>();
+          PADDLE_ENFORCE_NOT_NULL(
+              node,
+              ::common::errors::InvalidArgument(
+                  "Expected Load node, but received nullptr."));
+          auto* tensor = node->tensor.As<ir::_Tensor_>();
+          PADDLE_ENFORCE_NOT_NULL(
+              tensor,
+              ::common::errors::InvalidArgument(
+                  "Expected _Tensor_ node in load, but received nullptr."));
+          store_tensor_and_indexes[tensor->name].push_back(node->indices);
+          return true;
+        }
+        return false;
+      },
+      /* uniq_target = */ false);
+  return;
+}
+
+bool ScheduleBlockRealizeHasSpecialOp(
+    Expr block, std::function<bool(const ir::Expr* e)>&& special_op_check) {
+  bool has_special_op = false;
+  ir::ir_utils::CollectIRNodesWithoutTensor(
+      block,
+      [&](const ir::Expr* expr) {
+        if (special_op_check(expr)) {
+          has_special_op = true;
+          return true;
+        }
+        return false;
+      },
+      /* uniq_target = */ false);
+  return has_special_op;
+}
+
+bool CheckTensorIsBroadcastAndContinuous(
+    const std::vector<Expr>& indices,
+    const std::vector<ir::Var>& for_iters,
+    const std::unordered_map<ir::Var, ir::Expr>& iter_var2value) {
+  int loop_idx = 0;
+  bool is_broadcast = false;
+  for (int i = 0; i < indices.size(); ++i) {
+    ir::Expr index = indices[i];
+    cinn::optim::Simplify(&index);
+    if (index.is_constant() && index.get_constant() == 0) {
+      is_broadcast = true;
+      continue;
+    }
+
+    if (!index.is_var()) return false;
+    ir::Var iter_var = index.as_var_ref();
+    if (!iter_var2value.count(iter_var)) {
+      return false;
+    }
+    ir::Expr iter_value = iter_var2value.at(iter_var);
+
+    if (!iter_value.as_var() && !iter_value.is_constant()) return false;
+
+    for (; loop_idx < for_iters.size(); ++loop_idx) {
+      if (for_iters[loop_idx] == iter_value.as_var_ref()) {
+        break;
+      }
+    }
+
+    if (loop_idx == for_iters.size()) {
+      return false;
+    }
+  }
+
+  if (is_broadcast || indices.size() < for_iters.size()) {
+    return true;
+  }
+  return false;
+}
+
+bool CheckTensorIsContinuous(
+    const std::vector<Expr>& indices,
+    const std::vector<ir::Var>& for_iters,
+    const std::unordered_map<ir::Var, ir::Expr>& iter_var2value) {
+  for (int i = 0; i < indices.size(); ++i) {
+    ir::Expr index = indices[i];
+    cinn::optim::Simplify(&index);
+    if (index.is_constant()) return false;
+    if (!index.is_var()) return false;
+    ir::Var iter_var = index.as_var_ref();
+    if (!iter_var2value.count(iter_var)) {
+      return false;
+    }
+    ir::Expr iter_value = iter_var2value.at(iter_var);
+    if (!iter_value.as_var() && !iter_value.is_constant()) return false;
+    if (for_iters[i] != iter_value.as_var_ref()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool TensorCanBeVectorized(
+    const std::string& tensor_name,
+    const std::vector<std::vector<Expr>>& indices,
+    const std::vector<ir::Var>& for_iters,
+    const std::unordered_map<ir::Var, ir::Expr>& iter_var2value,
+    std::unordered_set<std::string>* continue_tensors) {
+  bool can_vectorize = true;
+  for (auto indice : indices) {
+    if (CheckTensorIsBroadcastAndContinuous(
+            indice, for_iters, iter_var2value)) {
+      continue;
+    }
+
+    if (CheckTensorIsContinuous(indice, for_iters, iter_var2value)) {
+      continue_tensors->insert(tensor_name);
+      continue;
+    }
+    can_vectorize = false;
+    break;
+  }
+
+  return can_vectorize;
+}
+
+bool ScheduleBlockRealizeCanVectorize(
+    const ir::Expr& expr_schedule_block_realize,
+    const std::vector<ir::Var>& for_iters,
+    std::unordered_set<std::string>* continue_tensors) {
+  if (!expr_schedule_block_realize.As<ir::ScheduleBlockRealize>()) return false;
+  std::vector<ir::Expr> iter_values =
+      expr_schedule_block_realize.As<ir::ScheduleBlockRealize>()->iter_values;
+  std::unordered_map<ir::Var, ir::Expr> iter_var2value =
+      ir::analyzer::GetIterVarToValueOfSBlock(expr_schedule_block_realize);
+  std::unordered_map<std::string, std::vector<std::vector<Expr>>>
+      load_tensor_and_indexes;
+  CollectScheduleBlockRealizeLoadTensorsAndIndex(expr_schedule_block_realize,
+                                                 load_tensor_and_indexes);
+  for (const auto& tensor : load_tensor_and_indexes) {
+    if (TensorCanBeVectorized(tensor.first,
+                              tensor.second,
+                              for_iters,
+                              iter_var2value,
+                              continue_tensors)) {
+      continue;
+    }
+    return false;
+  }
+
+  std::unordered_map<std::string, std::vector<std::vector<Expr>>>
+      store_tensor_and_indexes;
+  CollectScheduleBlockRealizeStoreTensorsAndIndex(expr_schedule_block_realize,
+                                                  store_tensor_and_indexes);
+
+  for (const auto& tensor : store_tensor_and_indexes) {
+    if (TensorCanBeVectorized(tensor.first,
+                              tensor.second,
+                              for_iters,
+                              iter_var2value,
+                              continue_tensors)) {
+      continue;
+    }
+    return false;
+  }
+
+  return true;
+}
+
+int CalculateContinueTensorSizeInGroupArgs(
+    const std::unordered_set<std::string>& group_args,
+    const std::unordered_set<std::string>& continuous_tensors) {
+  int is_continuous_tensor_size = 0;
+  for (auto tensor_name : continuous_tensors) {
+    if (group_args.count(tensor_name)) {
+      is_continuous_tensor_size++;
+    }
+  }
+
+  return is_continuous_tensor_size;
+}
+
 }  // namespace
 
 std::vector<int64_t> GetLoopStrides(const ir::Expr& body) {
@@ -218,6 +452,51 @@ bool GetCanApplyGridReduce(const std::vector<ir::Expr>& op_compute_bodies,
     }
   }
   return true;
+}
+
+GroupVectorizeInfo GetCanApplyVectorize(
+    const std::vector<ir::Expr>& op_compute_bodies,
+    const std::unordered_set<std::string>& group_args) {
+  bool can_vectorize = true;
+  bool has_if_else_op = false;
+  bool has_select_op = false;
+  std::unordered_set<std::string> continuous_tensors;
+
+  for (const auto& body : op_compute_bodies) {
+    std::vector<ir::Expr> blocks =
+        GetOpComputeBodyScheduleBlockRealizeExprSet(body);
+
+    if (!ScheduleBlockRealizesShouldVectorizeCheck(blocks)) continue;
+    ir::Expr expr_schedule_block_realize = blocks[0];
+    const std::vector<ir::Var> for_iters =
+        hlir::framework::pir::trivial_fusion_detail::GetAllForIters(body);
+    if (ScheduleBlockRealizeHasSpecialOp(
+            expr_schedule_block_realize,
+            [](const ir::Expr* e) { return e->As<ir::IfThenElse>(); })) {
+      has_if_else_op = true;
+    }
+
+    if (ScheduleBlockRealizeHasSpecialOp(
+            expr_schedule_block_realize,
+            [](const ir::Expr* e) { return e->As<ir::Select>(); })) {
+      has_select_op = true;
+    }
+
+    if (ScheduleBlockRealizeCanVectorize(
+            expr_schedule_block_realize, for_iters, &continuous_tensors))
+      continue;
+    can_vectorize = false;
+    break;
+  }
+
+  int continue_tensor_nums =
+      CalculateContinueTensorSizeInGroupArgs(group_args, continuous_tensors);
+
+  return {can_vectorize,
+          has_if_else_op,
+          has_select_op,
+          continue_tensor_nums,
+          group_args.size()};
 }
 
 }  // namespace ir

@@ -49,15 +49,15 @@ void HeterServer::StartHeterService(bool need_encrypt) {
 
   {
     std::lock_guard<std::mutex> lock(this->mutex_ready_);
-    stoped_ = false;
+    stopped_ = false;
     ready_ = 1;
   }
   condition_ready_.notify_all();
-  VLOG(4) << "stopped: " << stoped_ << ", ready_: " << ready_;
+  VLOG(4) << "stopped: " << stopped_ << ", ready_: " << ready_;
   std::unique_lock<std::mutex> running_lock(mutex_);
   cv_.wait(running_lock, [&] {
-    VLOG(4) << "Heter Server is Stop? " << stoped_;
-    return stoped_;
+    VLOG(4) << "Heter Server is Stop? " << stopped_;
+    return stopped_;
   });
   VLOG(4) << "start service done";
 }
@@ -85,15 +85,15 @@ void HeterServer::StartHeterInterService(bool need_encrypt) {
   }
   {
     std::lock_guard<std::mutex> lock(this->mutex_ready_);
-    stoped_ = false;
+    stopped_ = false;
     ready_ = 1;
   }
   condition_ready_.notify_all();
-  VLOG(4) << "stopped: " << stoped_ << ", ready_: " << ready_;
+  VLOG(4) << "stopped: " << stopped_ << ", ready_: " << ready_;
   std::unique_lock<std::mutex> running_lock(mutex_);
   cv_.wait(running_lock, [&] {
-    VLOG(4) << "Heter Server is Stop? " << stoped_;
-    return stoped_;
+    VLOG(4) << "Heter Server is Stop? " << stopped_;
+    return stopped_;
   });
   VLOG(4) << "start service done";
 }

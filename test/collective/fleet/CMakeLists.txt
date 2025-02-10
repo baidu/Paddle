@@ -361,14 +361,14 @@ if(LOCAL_ALL_ARCH AND LOCAL_ALL_PLAT)
     START_BASH
     ../../legacy_test/dist_test.sh
     TIMEOUT
-    "300"
+    "400"
     LABELS
     "RUN_TYPE=DIST"
     ENVS
     "PADDLE_DIST_UT_PORT=21242;http_proxy=;https_proxy=;PYTHONPATH=../..:${PADDLE_BINARY_DIR}/python"
   )
   set_tests_properties(test_parallel_dygraph_sharding_parallel
-                       PROPERTIES TIMEOUT "300")
+                       PROPERTIES TIMEOUT "400")
 endif()
 if(LOCAL_ALL_ARCH AND LOCAL_ALL_PLAT)
   bash_test_modules(

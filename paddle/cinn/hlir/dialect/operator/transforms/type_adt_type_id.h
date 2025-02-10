@@ -46,7 +46,7 @@ class SparseCsrTensorType;
 }  // namespace paddle::dialect
 
 // clang-format off
-#define FOR_EACH_PIR_ALTERNATIVE_TYPLE(__macro)     \
+#define FOR_EACH_PIR_ALTERNATIVE_TYPE(__macro)     \
   __macro(::pir::VectorType)                        \
   __macro(::pir::DenseTensorType)                   \
   __macro(::pir::BFloat16Type)                      \
@@ -76,7 +76,7 @@ class UnclassifiedType;
 using TypeAdtTypeIdBase =
     ::common::AdtBaseTypeId<NullType,
 #define MAKE_TYPE_ADT_TYPE_ID_ALTERNATIVE(cls) cls,
-                            FOR_EACH_PIR_ALTERNATIVE_TYPLE(
+                            FOR_EACH_PIR_ALTERNATIVE_TYPE(
                                 MAKE_TYPE_ADT_TYPE_ID_ALTERNATIVE)
 #undef MAKE_TYPE_ADT_TYPE_ID_ALTERNATIVE
                                 UnclassifiedType>;

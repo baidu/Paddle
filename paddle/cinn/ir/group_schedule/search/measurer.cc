@@ -96,14 +96,14 @@ void Measurer::Run(const std::unordered_map<std::string, std::vector<int64_t>>&
     float* data = tensor.mutable_data<float>(ddim, place_);
     input_tensors.push_back(tensor);
   }
-  std::string intput_shape_label = ConcatShapeAsLabel(input_name_and_shape);
+  std::string input_shape_label = ConcatShapeAsLabel(input_name_and_shape);
 
   common::PerformanceStatistician& ps =
       common::PerformanceStatistician::Instance();
   for (int i = 0; i < repeat; ++i) {
-    ps.Start(execute_label_ + "\n" + intput_shape_label);
+    ps.Start(execute_label_ + "\n" + input_shape_label);
     executor_->Run(input_names, input_tensors, true);
-    ps.End(execute_label_ + "\n" + intput_shape_label);
+    ps.End(execute_label_ + "\n" + input_shape_label);
   }
 }
 

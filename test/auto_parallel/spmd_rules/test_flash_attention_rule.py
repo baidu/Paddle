@@ -88,26 +88,26 @@ class TestFlashAttentionSPMDRule(unittest.TestCase):
             False,
             False,
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 5)
-        self.assertEqual(len(infered_output_dist_attrs), 4)
+        self.assertEqual(len(inferred_input_dist_attrs), 5)
+        self.assertEqual(len(inferred_output_dist_attrs), 4)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[2].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[2].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[2].dims_mapping, [0, 1, -1])
+        self.assertEqual(inferred_output_dist_attrs[2].dims_mapping, [0, 1, -1])
 
     def test_infer_backward(self):
         result_dist_attrs = self.rule.infer_backward(
@@ -125,26 +125,26 @@ class TestFlashAttentionSPMDRule(unittest.TestCase):
             False,
             False,
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 5)
-        self.assertEqual(len(infered_output_dist_attrs), 4)
+        self.assertEqual(len(inferred_input_dist_attrs), 5)
+        self.assertEqual(len(inferred_output_dist_attrs), 4)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[2].dims_mapping, [0, -1, 1, -1]
+            inferred_input_dist_attrs[2].dims_mapping, [0, -1, 1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, 1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[2].dims_mapping, [0, 1, -1])
+        self.assertEqual(inferred_output_dist_attrs[2].dims_mapping, [0, 1, -1])
 
 
 if __name__ == "__main__":

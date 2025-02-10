@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /**
- * This file defines some math extern functions thouse can be called in CINN IR.
+ * This file defines some math extern functions those can be called in CINN IR.
  */
 #pragma once
 

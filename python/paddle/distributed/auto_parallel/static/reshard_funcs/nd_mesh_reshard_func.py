@@ -177,7 +177,7 @@ class NdMeshReshardFunction(ReshardFunction):
                 if partial_dim in out_partial_status:
                     if out_partial_status[partial_dim] != partial_type:
                         raise NotImplementedError(
-                            f"Reshard tensor from one partial type {partial_type} to another parital type {out_partial_status[partial_dim]} is not supported yet."
+                            f"Reshard tensor from one partial type {partial_type} to another partial type {out_partial_status[partial_dim]} is not supported yet."
                         )
                     continue
 

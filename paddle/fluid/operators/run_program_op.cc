@@ -72,7 +72,7 @@ class RunProgramOpMaker : public framework::OpProtoAndCheckerMaker {
              "of loaded program.")
         .AsDuplicable();
     AddInput("Params",
-             "(vector<phi::DenseTensor or SelecetedRows>)"
+             "(vector<phi::DenseTensor or SelectedRows>)"
              "The input parameter of RunProgram operator, also the parameters "
              "of the loaded program.")
         .AsDuplicable()

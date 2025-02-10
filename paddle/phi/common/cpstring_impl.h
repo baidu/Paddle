@@ -143,7 +143,7 @@ typedef struct PD_PString_Small {  // NOLINT
 
 typedef struct PD_PString {  // NOLINT
   union {
-    PD_PString_Small smll;
+    PD_PString_Small small;
     PD_PString_Large large;
     PD_PString_Offset offset;
     PD_PString_View view;
@@ -275,7 +275,7 @@ HOSTDEVICE static inline void PD_PString_Dealloc(PD_PString *str) {
 HOSTDEVICE static inline size_t PD_PString_GetSize(const PD_PString *str) {
   switch (PD_PString_GetType(str)) {
     case PD_PSTR_SMALL:
-      return str->u.smll.size >> 2;
+      return str->u.small.size >> 2;
     case PD_PSTR_LARGE:
       return PD_PString_ToActualSizeT(str->u.large.size);
     case PD_PSTR_OFFSET:
@@ -304,7 +304,7 @@ HOSTDEVICE static inline const char *PD_PString_GetDataPointer(
     const PD_PString *str) {
   switch (PD_PString_GetType(str)) {
     case PD_PSTR_SMALL:
-      return str->u.smll.str;
+      return str->u.small.str;
     case PD_PSTR_LARGE:
       return str->u.large.ptr;
     case PD_PSTR_OFFSET:
@@ -327,18 +327,18 @@ HOSTDEVICE static inline char *PD_PString_ResizeUninitialized(PD_PString *str,
 
   // Case: SMALL/LARGE/VIEW/OFFSET -> SMALL
   if (new_size <= PD_PString_SmallCapacity) {
-    str->u.smll.size = (uint8_t)((new_size << 2) | PD_PSTR_SMALL);  // NOLINT
-    str->u.smll.str[new_size] = '\0';
+    str->u.small.size = (uint8_t)((new_size << 2) | PD_PSTR_SMALL);  // NOLINT
+    str->u.small.str[new_size] = '\0';
 
     if (curr_type != PD_PSTR_SMALL && copy_size) {
-      PD_Memcpy(str->u.smll.str, curr_ptr, copy_size);
+      PD_Memcpy(str->u.small.str, curr_ptr, copy_size);
     }
 
     if (curr_type == PD_PSTR_LARGE) {
       PD_Free((void *)curr_ptr, str->u.large.cap + 1);  // NOLINT
     }
 
-    return str->u.smll.str;
+    return str->u.small.str;
   }
 
   // Case: SMALL/LARGE/VIEW/OFFSET -> LARGE
@@ -380,12 +380,12 @@ HOSTDEVICE static inline char *PD_PString_GetMutableDataPointer(
     PD_PString *str) {
   switch (PD_PString_GetType(str)) {
     case PD_PSTR_SMALL:
-      return str->u.smll.str;
+      return str->u.small.str;
     case PD_PSTR_OFFSET:
     case PD_PSTR_VIEW:
       // Convert OFFSET/VIEW to SMALL/LARGE
       PD_PString_ResizeUninitialized(str, PD_PString_GetSize(str));
-      return (PD_PString_GetType(str) == PD_PSTR_SMALL) ? str->u.smll.str
+      return (PD_PString_GetType(str) == PD_PSTR_SMALL) ? str->u.small.str
                                                         : str->u.large.ptr;
     case PD_PSTR_LARGE:
       return str->u.large.ptr;

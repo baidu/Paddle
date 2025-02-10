@@ -52,7 +52,7 @@ from ...utils import (
     map_if,
     switch_symbol_registry,
 )
-from ...utils.exceptions import BreakGraphError
+from ...utils.exceptions import BreakGraphError, SotExtraInfo
 from ..instruction_utils import get_instructions
 from .guard import Guard, StringifiedExpression, make_guard
 from .mutable_data import MutationDel, MutationNew, MutationSet
@@ -369,8 +369,9 @@ class FunctionGraph:
         # here is not update changed values, it just give names to stack vars
         # and want keep same interface as _build_compile_fn_with_name_store
         for var in stack_vars[::-1]:
-            if not store_var_info[var.id]:
+            if not store_var_info.get(var.id, []):
                 name = name_gen.next()
+                store_var_info.setdefault(var.id, [])
                 store_var_info[var.id].append(name)
                 self.pycode_gen.gen_store_fast(name)
             else:
@@ -398,8 +399,9 @@ class FunctionGraph:
         name_gen = NameGenerator("___graph_fn_saved_")
 
         for var in to_store_vars[::-1]:
-            if not store_var_info[var.id]:
+            if not store_var_info.get(var.id, []):
                 name = name_gen.next()
+                store_var_info.setdefault(var.id, [])
                 store_var_info[var.id].append(name)
                 self.pycode_gen.gen_store_fast(name)
             else:
@@ -417,7 +419,7 @@ class FunctionGraph:
         ret_items = [
             ret_item
             for ret_var in ret_vars
-            for ret_item in ret_var.flatten_items()
+            for ret_item in ret_var.flatten_inner_vars()
         ]
 
         symbolic_outputs = self._find_tensor_outputs(ret_items)
@@ -656,7 +658,7 @@ class FunctionGraph:
                     and e.name in bound_arguments.arguments
                 ):
                     original_var = bound_arguments.arguments[e.name]
-                    flatten_vars = original_var.flatten_items()
+                    flatten_vars = original_var.flatten_inner_vars()
                     if not any(
                         isinstance(arg, SymbolicVariable)
                         for arg in flatten_vars
@@ -677,7 +679,7 @@ class FunctionGraph:
                 else:
                     flatten_vars = reduce(
                         lambda x, y: (
-                            x + y.flatten_items()
+                            x + y.flatten_inner_vars()
                             if isinstance(y, VariableBase)
                             else x
                         ),
@@ -700,6 +702,13 @@ class FunctionGraph:
                 metas = convert_to_meta(args)
                 kwmetas = convert_to_meta(kwargs)
                 return args, kwargs, infer_meta_fn(func, *metas, **kwmetas)
+
+            except Exception as e:
+                if SotExtraInfo.from_exception(e).need_breakgraph:
+                    raise BreakGraphError(
+                        f"API {func} encountered a need break graph error {e}"
+                    )
+                raise e
 
         if ENV_SOT_ALLOW_DYNAMIC_SHAPE.get():
             args, kwargs, out_metas = try_infer_meta_fn(args, kwargs)
@@ -908,7 +917,7 @@ class FunctionGraph:
         # Find Tensor Variables from side effects Variables.
         for side_effect_var in self.side_effects.proxy_variables:
             if isinstance(side_effect_var, (ListVariable, DictVariable)):
-                for var in side_effect_var.flatten_items():
+                for var in side_effect_var.flatten_inner_vars():
                     if (
                         is_graph_output(var)
                         and side_effect_var.tracker.is_traceable()
@@ -924,12 +933,12 @@ class FunctionGraph:
                     continue
                 for record in proxy_records:
                     if isinstance(record, (MutationSet, MutationNew)):
-                        for var in record.value.flatten_items():
+                        for var in record.value.flatten_inner_vars():
                             if is_graph_output(var):
                                 output_tensors.add(var)
         # Find Tensor in print_stmts
         for print_stmt in self._print_variables:
-            for var in print_stmt.flatten_items():
+            for var in print_stmt.flatten_inner_vars():
                 if is_graph_output(var):
                     output_tensors.add(var)
 

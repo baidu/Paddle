@@ -128,7 +128,7 @@ inline DDim GetUnsqueezeShape(const std::vector<int64_t> unsqz_dims,
     PADDLE_ENFORCE_LE(cur,
                       cur_output_rank,
                       common::errors::InvalidArgument(
-                          "The insert dimension value shoule not be larger "
+                          "The insert dimension value should not be larger "
                           "than the dimension size of input tensor"));
     // Move old axis, and insert new axis
     for (int i = cur_output_rank; i >= cur; --i) {

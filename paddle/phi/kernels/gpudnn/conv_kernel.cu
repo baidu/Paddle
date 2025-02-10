@@ -176,7 +176,7 @@ void ConvCudnnKernelImplV7(const DenseTensor* transformed_input,
   ScalingParamType<T> alpha = 1.0f;
   ScalingParamType<T> beta = 0.0f;
 
-  // NOTE(zhiqiu): inplace addto is not supportted in double grad yet.
+  // NOTE(zhiqiu): inplace addto is not supported in double grad yet.
   // ScalingParamType<T> beta = ctx.Attr<bool>("use_addto") ? 1.0f : 0.0f;
   // VLOG(4) << "Conv: use_addto = " << ctx.Attr<bool>("use_addto");
 

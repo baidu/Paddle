@@ -543,12 +543,12 @@ class Xdoctester(DocTester):
         if self._use_multiprocessing:
             _ctx = multiprocessing.get_context('spawn')
             result_queue = _ctx.Queue()
-            exec_processer = functools.partial(_ctx.Process, daemon=True)
+            exec_processor = functools.partial(_ctx.Process, daemon=True)
         else:
             result_queue = queue.Queue()
-            exec_processer = functools.partial(threading.Thread, daemon=True)
+            exec_processor = functools.partial(threading.Thread, daemon=True)
 
-        processer = exec_processer(
+        processor = exec_processor(
             target=self._execute_with_queue,
             args=(
                 result_queue,
@@ -557,11 +557,11 @@ class Xdoctester(DocTester):
             ),
         )
 
-        processer.start()
+        processor.start()
         result = result_queue.get(
             timeout=directives.get('timeout', TEST_TIMEOUT)
         )
-        processer.join()
+        processor.join()
 
         return result
 

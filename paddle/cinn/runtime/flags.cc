@@ -80,9 +80,17 @@ PD_DEFINE_bool(cinn_enable_tile_broadcast,
                BoolFromEnv("FLAGS_cinn_enable_tile_broadcast", true),
                "Whether to enable the tile broadcast tactic.");
 
+PD_DEFINE_bool(cinn_enable_tile_transpose,
+               BoolFromEnv("FLAGS_cinn_enable_tile_transpose", true),
+               "Whether to enable the tile transpose tactic.");
+
 PD_DEFINE_bool(cinn_enable_rearrange_load,
                BoolFromEnv("FLAGS_cinn_enable_rearrange_load", true),
                "Whether to enable rearranging load instructions.");
+
+PD_DEFINE_bool(cinn_enable_vectorize,
+               BoolFromEnv("FLAGS_cinn_enable_vectorize", false),
+               "Whether to enable the grid reduce method.");
 
 PD_DEFINE_bool(cinn_use_op_fusion,
                BoolFromEnv("FLAGS_cinn_use_op_fusion", true),
@@ -256,10 +264,11 @@ PD_DEFINE_bool(
     BoolFromEnv("FLAGS_enhance_vertical_fusion_with_recompute", true),
     "Whether to enhance check logic on vertical fusion with recompute");
 
-PD_DEFINE_bool(verbose_function_register,
-               BoolFromEnv("FLAGS_verbose_function_register", false),
-               "Whether to verbose function regist log. This will only work if "
-               "CINN build with flag -DWITH_DEBUG=ON.");
+PD_DEFINE_bool(
+    verbose_function_register,
+    BoolFromEnv("FLAGS_verbose_function_register", false),
+    "Whether to verbose function register log. This will only work if "
+    "CINN build with flag -DWITH_DEBUG=ON.");
 
 PD_DEFINE_int32(
     cinn_profiler_state,
@@ -299,6 +308,10 @@ PD_DEFINE_bool(cinn_check_tensor_buffer_map,
 PD_DEFINE_bool(cinn_longlong2int,
                BoolFromEnv("FLAGS_cinn_longlong2int", true),
                "Whether to cast long long to int for integer.");
+
+PD_DEFINE_bool(cinn_check_jit_instruction_shape,
+               BoolFromEnv("FLAGS_cinn_check_jit_instruction_shape", false),
+               "Whether to check shape in jit instruction.");
 
 namespace cinn {
 namespace runtime {

@@ -134,7 +134,7 @@ class TestDistMnistAsync2x2WithDecay(TestFleetBase):
         )
 
 
-class TestDistMnistAsync2x2WithUnifrom(TestFleetBase):
+class TestDistMnistAsync2x2WithUniform(TestFleetBase):
     def _setup_config(self):
         self._mode = "async"
         self._reader = "pyreader"

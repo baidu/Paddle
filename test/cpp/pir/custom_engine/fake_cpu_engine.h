@@ -17,6 +17,8 @@
 
 #include "paddle/fluid/custom_engine/custom_engine_ext.h"
 #include "paddle/fluid/framework/new_executor/instruction/custom_engine_instruction.h"
+#include "paddle/fluid/framework/new_executor/pir_adaptor/pir_adaptor_util.h"
+#include "paddle/fluid/pir/transforms/pd_op_to_kernel_pass.h"
 #include "test/cpp/pir/custom_engine/custom_engine_op.h"
 #include "test/cpp/pir/custom_engine/fake_cpu_engine_base.h"
 
@@ -88,10 +90,42 @@ C_Status CustomEngineOpLower(C_CustomEngineLowerParams* lower_param) {
 
   pir::OpInfo custom_engine_op_info =
       ctx->GetRegisteredOpInfo(paddle::dialect::FakeEngineOp::name());
-  pir::Operation* op = pir::Operation::Create(
-      vec_inputs, op_attribute, op_output_types, custom_engine_op_info);
+  pir::Operation* op = pir::Operation::Create(vec_inputs,
+                                              op_attribute,
+                                              op_output_types,
+                                              custom_engine_op_info,
+                                              1,
+                                              {},
+                                              true);
   op->set_attribute("origin_id", pir::Int64Attribute::get(ctx, op->id()));
   op->set_attribute("op_name", pir::StrAttribute::get(ctx, op->name()));
+
+  VLOG(3) << "CustomEngineOpLower get op_item subgraph block.";
+  pir::Region& op_item_region = op_item->region(0);
+  PADDLE_ENFORCE_EQ(op_item_region.empty(),
+                    false,
+                    ::common::errors::Unavailable(
+                        "Required CustomEngineOp's region must not be empty."));
+  pir::Block* sub_graph_block = &(op_item_region.front());
+
+  VLOG(3) << "CustomEngineOpLower set new op subgraph block.";
+  pir::Region& region = op->region(0);
+  if (region.empty()) {
+    region.emplace_back();
+  }
+  pir::Block* op_block = &(region.front());
+
+  // process subgraph block
+  paddle::dialect::ProcessBlock(
+      *place, sub_graph_block, op_block, ctx, map_op_pair, map_value_pair);
+
+  if (VLOG_IS_ON(3)) {
+    std::stringstream ss;
+    ss << "CustomEngineOpLower new op:";
+    op->Print(ss);
+    VLOG(3) << ss.str();
+  }
+
   (*map_op_pair)[op_item] = op;
   // only deal with single output
   if (op_item->num_results() > 0) {

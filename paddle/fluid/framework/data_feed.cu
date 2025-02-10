@@ -1804,7 +1804,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
       slot_num);
 
   std::vector<std::shared_ptr<phi::Allocation>> ins_slot_num(slot_num, nullptr);
-  std::vector<uint64_t *> ins_slot_num_vecotr(slot_num, NULL);
+  std::vector<uint64_t *> ins_slot_num_vector(slot_num, NULL);
   std::shared_ptr<phi::Allocation> d_ins_slot_num_vector =
       memory::AllocShared(place_, (slot_num) * sizeof(uint64_t *));
   uint64_t **d_ins_slot_num_vector_ptr =
@@ -1815,7 +1815,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
     if ((*feed_info_)[feed_vec_idx + 2 * i].type[0] == 'u') {
       ins_slot_num[ii] =
           memory::AllocShared(place_, key_num * sizeof(uint64_t));
-      ins_slot_num_vecotr[ii] =
+      ins_slot_num_vector[ii] =
           reinterpret_cast<uint64_t *>(ins_slot_num[ii]->ptr());
       ii++;
     }
@@ -1823,7 +1823,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
   if (slot_num > 0) {
     CUDA_CHECK(
         cudaMemcpyAsync(reinterpret_cast<char *>(d_ins_slot_num_vector_ptr),
-                        ins_slot_num_vecotr.data(),
+                        ins_slot_num_vector.data(),
                         sizeof(uint64_t *) * slot_num,
                         cudaMemcpyHostToDevice,
                         train_stream_));
@@ -1844,7 +1844,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
     size_t temp_storage_bytes = 0;
     CUDA_CHECK(cub::DeviceScan::InclusiveSum(NULL,
                                              temp_storage_bytes,
-                                             ins_slot_num_vecotr[0],
+                                             ins_slot_num_vector[0],
                                              slot_lod_tensor_ptr_[0] + 1,
                                              key_num,
                                              train_stream_));
@@ -1863,7 +1863,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
             slot_lod_tensor_ptr_[ii], 0, sizeof(uint64_t), train_stream_));
         CUDA_CHECK(cub::DeviceScan::InclusiveSum(d_temp_storage->ptr(),
                                                  temp_storage_bytes,
-                                                 ins_slot_num_vecotr[ii],
+                                                 ins_slot_num_vector[ii],
                                                  slot_lod_tensor_ptr_[ii] + 1,
                                                  key_num,
                                                  train_stream_));
@@ -1893,7 +1893,7 @@ int GraphDataGenerator::FillSlotFeature(uint64_t *d_walk,
             d_feature_list_ptr,
             d_feature_size_prefixsum_ptr,
             d_each_ins_slot_num_inner_prefix_ptr,
-            ins_slot_num_vecotr[ii],
+            ins_slot_num_vector[ii],
             slot_lod_tensor_ptr_[ii],
             slot_tensor_ptr_[ii],
             ii,
@@ -2109,7 +2109,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
 
   std::vector<std::shared_ptr<phi::Allocation>> ins_slot_num(float_slot_num_,
                                                              nullptr);
-  std::vector<uint64_t *> ins_slot_num_vecotr(float_slot_num_, NULL);
+  std::vector<uint64_t *> ins_slot_num_vector(float_slot_num_, NULL);
   std::shared_ptr<phi::Allocation> d_ins_slot_num_vector =
       memory::AllocShared(place_, (float_slot_num_) * sizeof(uint64_t *));
   uint64_t **d_ins_slot_num_vector_ptr =
@@ -2120,7 +2120,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
     if ((*feed_info_)[feed_vec_idx + 2 * i].type[0] == 'f') {
       ins_slot_num[ii] =
           memory::AllocShared(place_, key_num * sizeof(uint64_t));
-      ins_slot_num_vecotr[ii] =
+      ins_slot_num_vector[ii] =
           reinterpret_cast<uint64_t *>(ins_slot_num[ii]->ptr());
       ii++;
     }
@@ -2129,7 +2129,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
   if (float_slot_num_ > 0) {
     CUDA_CHECK(
         cudaMemcpyAsync(reinterpret_cast<char *>(d_ins_slot_num_vector_ptr),
-                        ins_slot_num_vecotr.data(),
+                        ins_slot_num_vector.data(),
                         sizeof(uint64_t *) * float_slot_num_,
                         cudaMemcpyHostToDevice,
                         train_stream_));
@@ -2152,7 +2152,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
     size_t temp_storage_bytes = 0;
     CUDA_CHECK(cub::DeviceScan::InclusiveSum(NULL,
                                              temp_storage_bytes,
-                                             ins_slot_num_vecotr[0],
+                                             ins_slot_num_vector[0],
                                              slot_lod_tensor_ptr_[0] + 1,
                                              key_num,
                                              train_stream_));
@@ -2170,7 +2170,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
             slot_lod_tensor_ptr_[ii], 0, sizeof(uint64_t), train_stream_));
         CUDA_CHECK(cub::DeviceScan::InclusiveSum(d_temp_storage->ptr(),
                                                  temp_storage_bytes,
-                                                 ins_slot_num_vecotr[ii],
+                                                 ins_slot_num_vector[ii],
                                                  slot_lod_tensor_ptr_[ii] + 1,
                                                  key_num,
                                                  train_stream_));
@@ -2200,7 +2200,7 @@ int GraphDataGenerator::FillFloatFeature(uint64_t *d_walk,
             d_feature_list_ptr,
             d_feature_size_prefixsum_ptr,
             d_each_ins_slot_num_inner_prefix_ptr,
-            ins_slot_num_vecotr[ii],
+            ins_slot_num_vector[ii],
             slot_lod_tensor_ptr_[ii],
             slot_tensor_ptr_[ii],
             ii,
@@ -3168,7 +3168,7 @@ int FillWalkBuf(const std::vector<uint64_t> &h_device_keys_len,
       if (FLAGS_enable_graph_multi_node_sampling) {
         if (sample_flag == EVENT_CONTINUE_SAMPLE) {
           // Switching only occurs when multi machine sampling continues
-          switch_flag = EVENT_SWTICH_METAPATH;
+          switch_flag = EVENT_SWITCH_METAPATH;
         }
       } else {
         cursor += 1;

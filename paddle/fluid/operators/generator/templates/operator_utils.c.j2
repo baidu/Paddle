@@ -741,8 +741,8 @@ class {{op_name | to_composite_grad_opmaker_name}} : public prim::CompositeGradO
 {{construct_composite_output(outputs, fluid_outputs, forward_fluid_inputs, forward_fluid_orig_inputs, output_dict)}}
     //get output ptr
 {{construct_composite_output_ptr(outputs, output_dict)}}
-    //get output orginal name
-{{get_composite_output_orginal_name(outputs, output_dict)}}
+    //get output original name
+{{get_composite_output_original_name(outputs, output_dict)}}
     //call composite backward func
 {{call_composite_backward_api(composite_func_info)}}
     //recover output name
@@ -868,7 +868,7 @@ class {{op_name | to_composite_grad_opmaker_name}} : public prim::CompositeGradO
   {%- endfor %}
 {%- endmacro %}
 
-{% macro get_composite_output_orginal_name(outputs, output_dict) %}
+{% macro get_composite_output_original_name(outputs, output_dict) %}
   {% set outputs_length = outputs | length %}
   {% for i in range(outputs_length) %}
     {% set output_typename = output_dict[outputs[i]]["typename"] %}
@@ -881,7 +881,7 @@ class {{op_name | to_composite_grad_opmaker_name}} : public prim::CompositeGradO
 {%- endmacro %}
 
 {% macro call_composite_backward_api(composite_func_info) %}
-    VLOG(6) << "Runing {{composite_func_info["func_name"]}} composite func";
+    VLOG(6) << "Running {{composite_func_info["func_name"]}} composite func";
     prim::{{composite_func_info["func_name"]}}<prim::DescTensor>({{composite_func_info["func_args"]}});
 {%- endmacro %}
 

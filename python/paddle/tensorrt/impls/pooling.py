@@ -16,7 +16,10 @@
 import numpy as np
 import tensorrt as trt
 
-from paddle.tensorrt.converter_utils import get_input_constant_value
+from paddle.tensorrt.converter_utils import (
+    get_input_constant_value,
+    get_trt_plugin,
+)
 from paddle.tensorrt.register import converter_registry
 
 
@@ -307,4 +310,96 @@ def pool2d_converter(network, paddle_op, inputs):
     if layer is None:
         raise RuntimeError("Failed to create pooling layer in TensorRT.")
 
+    return layer.get_output(0)
+
+
+@converter_registry.register("pd_op.pool3d", trt_version="8.x")
+def pool3d_converter(network, paddle_op, inputs):
+    input_tensor = inputs[0]
+    global_pooling = paddle_op.attrs()["global_pooling"]
+    pooling_type = paddle_op.attrs()["pooling_type"]
+    ksize = paddle_op.attrs()["kernel_size"]
+    strides = paddle_op.attrs()["strides"]
+    paddings = paddle_op.attrs()["paddings"]
+    exclusive = paddle_op.attrs().get("exclusive", True)
+    ceil_mode = paddle_op.attrs()["ceil_mode"]
+    adaptive = paddle_op.attrs().get("adaptive", False)
+    padding_algorithm = paddle_op.attrs().get("padding_algorithm", "EXPLICIT")
+
+    if padding_algorithm == "VALID" or padding_algorithm == "SAME":
+        paddings = [0] * len(paddings)
+
+    nv_pool_type = trt.PoolingType.MAX
+    reduce_operation = trt.ReduceOperation.MAX
+
+    if pooling_type == "max":
+        nv_pool_type = trt.PoolingType.MAX
+        reduce_operation = trt.ReduceOperation.MAX
+    elif pooling_type == "avg":
+        nv_pool_type = trt.PoolingType.AVERAGE
+        reduce_operation = trt.ReduceOperation.AVG
+
+    nv_ksize = trt.Dims3(ksize[0], ksize[1], ksize[2])
+    nv_strides = trt.Dims3(strides[0], strides[1], strides[2])
+    nv_paddings = trt.Dims3(paddings[0], paddings[1], paddings[2])
+
+    layer = None
+    if not adaptive and not global_pooling and not ceil_mode:
+        pool_layer = network.add_pooling_nd(
+            input_tensor, nv_pool_type, nv_ksize
+        )
+        pool_layer.stride_nd = nv_strides
+        pool_layer.padding_nd = nv_paddings
+        pool_layer.average_count_excludes_padding = exclusive
+        layer = pool_layer
+    elif global_pooling:
+        reduce_layer = network.add_reduce(
+            input_tensor, reduce_operation, 28, True
+        )
+        layer = reduce_layer
+    else:
+        plugin_fields = [
+            trt.PluginField(
+                "ceil_mode",
+                np.array([ceil_mode], dtype=np.bool_),
+                trt.PluginFieldType.INT32,
+            ),
+            trt.PluginField(
+                "pool3d_type",
+                np.array(list(pooling_type), dtype=np.bytes_),
+                trt.PluginFieldType.CHAR,
+            ),
+            trt.PluginField(
+                "adaptive",
+                np.array([adaptive], dtype=np.bool_),
+                trt.PluginFieldType.INT32,
+            ),
+            trt.PluginField(
+                "ksize",
+                np.array(ksize, dtype=np.int32),
+                trt.PluginFieldType.INT32,
+            ),
+            trt.PluginField(
+                "strides",
+                np.array(strides, dtype=np.int32),
+                trt.PluginFieldType.INT32,
+            ),
+            trt.PluginField(
+                "paddings",
+                np.array(paddings, dtype=np.int32),
+                trt.PluginFieldType.INT32,
+            ),
+            trt.PluginField(
+                "is_global",
+                np.array([global_pooling], dtype=np.bool_),
+                trt.PluginFieldType.INT32,
+            ),
+        ]
+        plugin_field_collection = trt.PluginFieldCollection(plugin_fields)
+        plugin_name = "pir_pool3d_plugin_dynamic"
+        plugin_version = "1"
+        plugin = get_trt_plugin(
+            plugin_name, plugin_field_collection, plugin_version
+        )
+        layer = network.add_plugin_v2([input_tensor], plugin)
     return layer.get_output(0)

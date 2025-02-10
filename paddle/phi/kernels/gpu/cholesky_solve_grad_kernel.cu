@@ -12,18 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PADDLE_WITH_HIP
-// backward reuse forward, HIP not support forward
-
 #include "paddle/phi/backends/gpu/gpu_context.h"
 #include "paddle/phi/core/kernel_registry.h"
 #include "paddle/phi/kernels/impl/cholesky_solve_grad_kernel_impl.h"
 
-PD_REGISTER_KERNEL(cholesky_solve_grad,  // cuda_only
+PD_REGISTER_KERNEL(cholesky_solve_grad,
                    GPU,
                    ALL_LAYOUT,
                    phi::CholeskySolveGradKernel,
                    float,
                    double) {}
-
-#endif  // not PADDLE_WITH_HIP

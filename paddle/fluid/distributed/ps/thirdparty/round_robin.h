@@ -1579,7 +1579,7 @@ class Table
   // first insert.
   // This tremendously speeds up ctor & dtor of a map that never receives an
   // element. The
-  // penalty is payed at the first insert, and not before. Lookup of this empty
+  // penalty is paid at the first insert, and not before. Lookup of this empty
   // map works
   // because everybody points to DummyInfoByte::b. parameter bucket_count is
   // dictated by the

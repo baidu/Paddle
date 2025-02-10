@@ -96,6 +96,7 @@ list(
   reverse_roll_op.cc
   tanhshrink_op.cc
   take_along_axis_op.cc
+  linear_interp_v2_op.cc
   logsigmoid_op.cc
   preln_layernorm_shift_partition_op.cc
   trans_layernorm_op.cc
@@ -168,7 +169,6 @@ elseif(WITH_CINN)
          common
          custom_operator
          init_phi
-         fleet_executor
          python)
 else()
   nv_test(
@@ -180,7 +180,6 @@ else()
          common
          custom_operator
          init_phi
-         fleet_executor
          python)
 endif()
 

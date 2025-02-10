@@ -403,20 +403,20 @@ void ElementwiseCompute(const CPUContext &dev_ctx,
 
   int pre, n, post, is_run_common_broadcast, axis_trim = 0;
   if (is_xsize_larger) {
-    auto y_dims_trimed = TrimTrailingSingularDims(y_dims);
-    axis_trim = (y_dims_trimed.size() == 0) ? x_dims.size() : axis;
+    auto y_dims_trimmed = TrimTrailingSingularDims(y_dims);
+    axis_trim = (y_dims_trimmed.size() == 0) ? x_dims.size() : axis;
     GetMidDims(x_dims,
-               y_dims_trimed,
+               y_dims_trimmed,
                axis_trim,
                &pre,
                &n,
                &post,
                &is_run_common_broadcast);
   } else {
-    auto x_dims_trimed = TrimTrailingSingularDims(x_dims);
-    axis_trim = (x_dims_trimed.size() == 0) ? y_dims.size() : axis;
+    auto x_dims_trimmed = TrimTrailingSingularDims(x_dims);
+    axis_trim = (x_dims_trimmed.size() == 0) ? y_dims.size() : axis;
     GetMidDims(y_dims,
-               x_dims_trimed,
+               x_dims_trimmed,
                axis_trim,
                &pre,
                &n,

@@ -152,7 +152,7 @@ class BeamSearchFunctor<phi::CPUContext, T> {
   /*
    * Prune the source sentences all branches finished, and it is optional.
    * Pruning must one step later than finishing (thus pre_ids is needed here),
-   * since the end tokens must be writed out.
+   * since the end tokens must be written out.
    */
   void PruneEndBeams(const phi::DenseTensor *pre_ids,
                      const phi::LegacyLoD &abs_lod,

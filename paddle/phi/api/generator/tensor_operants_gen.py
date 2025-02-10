@@ -534,7 +534,7 @@ class OperantsAPI(ForwardAPI):
             func_args_code = ", ".join(["", *func_args])
         else:
             func_args_code = ""
-        # func decalaration
+        # func declaration
         if func_name[-1] != '_':
             return f"""
 {self.get_return_type()} Tensor::{func_name}({self.get_define_args_without_first_tensor()}) const {{
@@ -564,7 +564,7 @@ class OperantsAPI(ForwardAPI):
         func_name = self.get_api_func_name()
         func_args = self.inputs['names'] + self.attrs['names']
         func_args_code = ", ".join(func_args)
-        # func decalaration
+        # func declaration
         if func_name[-1] != '_':
             return f"""
 {self.get_return_type()} PhiTensorOperants::{func_name}({self.get_define_args()}) {{
@@ -635,7 +635,7 @@ class OperantsAPI(ForwardAPI):
 
 {self.get_return_type()} OperantsManager::{specific_ops_map[func_name]}(const Tensor& x, const Scalar& y) {{{self.gene_operants_manager_code(is_specific_op=True)}}}
 """
-        # func decalaration
+        # func declaration
         if func_name[-1] != '_':
             return (
                 final_code

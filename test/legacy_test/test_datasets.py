@@ -75,13 +75,13 @@ class TestFolderDatasets(unittest.TestCase):
         def fake_transform(img):
             return img
 
-        transfrom = fake_transform
-        dataset_folder = DatasetFolder(self.data_dir, transform=transfrom)
+        transform = fake_transform
+        dataset_folder = DatasetFolder(self.data_dir, transform=transform)
 
         for _ in dataset_folder:
             pass
 
-        loader = ImageFolder(self.data_dir, transform=transfrom)
+        loader = ImageFolder(self.data_dir, transform=transform)
         for _ in loader:
             pass
 

@@ -46,7 +46,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (2, 60)
             self.new_shape = (12, 10)
-            self.infered_shape = (12, 10)
+            self.inferred_shape = (12, 10)
 
         def init_test_input(self):
             self.inputs = {
@@ -55,7 +55,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
 
         def init_test_output(self):
             self.outputs = {
-                "Out": self.inputs["X"].reshape(self.infered_shape),
+                "Out": self.inputs["X"].reshape(self.inferred_shape),
                 'XShape': np.random.random(self.ori_shape).astype(self.dtype),
             }
 
@@ -76,13 +76,13 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (5, 25)
             self.new_shape = (5, -1, 5)
-            self.infered_shape = (5, -1, 5)
+            self.inferred_shape = (5, -1, 5)
 
     class TestReshapeOpDimInfer2(TestReshapeOp):
         def init_data(self):
             self.ori_shape = (10, 2, 6)
             self.new_shape = (10, 0, 3, -1)
-            self.infered_shape = (10, 2, 3, -1)
+            self.inferred_shape = (10, 2, 3, -1)
 
     # situation 2: have shape(list, no tensor), have actual shape(Tensor)
     class TestReshapeOpWithInputShape(TestReshapeOp):
@@ -108,7 +108,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (4, 25)
             self.new_shape = (10, 10)
-            self.infered_shape = (10, 10)
+            self.inferred_shape = (10, 10)
             self.shape = (-1, -1)
 
         def init_test_input(self):
@@ -132,7 +132,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (5, 20)
             self.new_shape = (5, -1, 20)
-            self.infered_shape = (5, -1, 20)
+            self.inferred_shape = (5, -1, 20)
             self.shape = (5, -1, -1)
 
     class TestReshapeOpDimInfer2_attr_ShapeTensor(
@@ -141,7 +141,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (10, 2, 6)
             self.new_shape = (10, 0, 3, -1)
-            self.infered_shape = (10, 2, 3, -1)
+            self.inferred_shape = (10, 2, 3, -1)
             self.shape = (10, 0, 3, -1)
 
     # Situation 4: have shape(Tensor), no actual shape(Tensor)
@@ -149,7 +149,7 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (4, 25)
             self.new_shape = (10, 10)
-            self.infered_shape = (10, 10)
+            self.inferred_shape = (10, 10)
 
         def init_test_input(self):
             self.inputs = {
@@ -164,14 +164,14 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (5, 20)
             self.new_shape = (5, -1, 10)
-            self.infered_shape = (5, -1, 10)
+            self.inferred_shape = (5, -1, 10)
             self.shape = (5, -1, -1)
 
     class TestReshapeOpDimInfer2_attr_OnlyShape(TestReshapeOp_attr_OnlyShape):
         def init_data(self):
             self.ori_shape = (10, 2, 6)
             self.new_shape = (10, 0, 3, -1)
-            self.infered_shape = (10, 2, 3, -1)
+            self.inferred_shape = (10, 2, 3, -1)
             self.shape = (10, 0, 3, -1)
 
     @check_run_big_shape_test()
@@ -179,35 +179,35 @@ class XPUTestReshapeOp(XPUOpTestWrapper):
         def init_data(self):
             self.ori_shape = (5120, 32)
             self.new_shape = (32, 5120)
-            self.infered_shape = (32, 5120)
+            self.inferred_shape = (32, 5120)
 
     @check_run_big_shape_test()
     class TestReshapeOpLargeShape2(TestReshapeOp):
         def init_data(self):
             self.ori_shape = (1, 8192, 5120)
             self.new_shape = (8192, 5120)
-            self.infered_shape = (8192, 5120)
+            self.inferred_shape = (8192, 5120)
 
     @check_run_big_shape_test()
     class TestReshapeOpLargeShape3(TestReshapeOp):
         def init_data(self):
             self.ori_shape = (1, 8192)
             self.new_shape = (8192,)
-            self.infered_shape = (8192,)
+            self.inferred_shape = (8192,)
 
     @check_run_big_shape_test()
     class TestReshapeOpLargeShape4(TestReshapeOp):
         def init_data(self):
             self.ori_shape = (1, 8192, 5, 64, 2)
             self.new_shape = (1, 8192, 5, 128)
-            self.infered_shape = (1, 8192, 5, 128)
+            self.inferred_shape = (1, 8192, 5, 128)
 
     @check_run_big_shape_test()
     class TestReshapeOpLargeShape5(TestReshapeOp):
         def init_data(self):
             self.ori_shape = (1, 8192, 5, 128)
             self.new_shape = (1, 8192, 640)
-            self.infered_shape = (1, 8192, 640)
+            self.inferred_shape = (1, 8192, 640)
 
 
 support_types = get_xpu_op_support_types("reshape2")

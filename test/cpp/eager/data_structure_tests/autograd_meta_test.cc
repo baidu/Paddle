@@ -49,7 +49,7 @@ TEST(AutogradMeta, MemberFunction) {
   VLOG(6) << "Test Grad";
   PADDLE_ENFORCE_EQ(tmp_auto->Grad().defined(),
                     false,
-                    common::errors::Fatal("grad shoule not be defined now"));
+                    common::errors::Fatal("grad should not be defined now"));
   auto* grad_t = tmp_auto->MutableGrad();
   phi::DenseTensorMeta meta =
       phi::DenseTensorMeta(phi::DataType::FLOAT32, common::make_ddim({1, 2}));

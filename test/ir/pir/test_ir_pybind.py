@@ -54,6 +54,7 @@ class TestPybind(unittest.TestCase):
     def test_block(self):
         pir_program = get_ir_program()
         block = pir_program.global_block()
+        print(block)  # test print block
         ops = block.ops
         self.assertEqual(
             len(ops), 6

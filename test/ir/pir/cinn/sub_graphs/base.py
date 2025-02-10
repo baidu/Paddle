@@ -31,7 +31,7 @@ class TestBase(unittest.TestCase):
         self.train_atol = 1e-6
         self.with_precision_compare = True
         self.with_train = True
-        # override customized settting
+        # override customized setting
         self.init()
         if self.inputs:
             self.set_input_grad()

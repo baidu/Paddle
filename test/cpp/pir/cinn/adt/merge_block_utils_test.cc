@@ -49,12 +49,13 @@ bool IsBlockForAllEqual(const ForTreeNode& first, const ForTreeNode& second) {
 ir::stmt::For MakeForLoops(const std::vector<int> extents, int index) {
   ir::stmt::StmtRef body_stmt;
   if (index == extents.size() - 1) {
-    body_stmt = ir::stmt::Schedule(std::vector<Var>(),
-                                   std::vector<Expr>(),
-                                   std::vector<Expr>(),
-                                   std::vector<Expr>(),
-                                   "block",
-                                   ir::stmt::BlockRef(0));
+    body_stmt = ir::stmt::Schedule(
+        std::vector<Var>(),
+        std::vector<Expr>(),
+        std::vector<Expr>(),
+        std::vector<Expr>(),
+        "block",
+        ir::stmt::BlockRef(std::vector<ir::stmt::StmtRef>()));
   } else {
     body_stmt = MakeForLoops(extents, index + 1);
   }

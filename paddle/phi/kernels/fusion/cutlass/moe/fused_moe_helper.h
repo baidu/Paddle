@@ -75,15 +75,15 @@ class MoeHelper {
 
   // --------      getWorkspaceSize      -------- //
   template <typename KeyT>
-  size_t getWorkspaceSize(const int num_rows,
-                          const int hidden_size,
-                          const int inter_size,
-                          const int num_experts,
-                          const int k) {
-    const int buf_size = AlignTo16(k * num_rows * hidden_size);
-    const int interbuf_size = AlignTo16(k * num_rows * inter_size);
-    const int padded_experts = AlignTo16(num_experts);
-    const int num_moe_inputs = AlignTo16(k * num_rows);
+  size_t getWorkspaceSize(const int64_t num_rows,
+                          const int64_t hidden_size,
+                          const int64_t inter_size,
+                          const int64_t num_experts,
+                          const int64_t k) {
+    const size_t buf_size = AlignTo16(k * num_rows * hidden_size);
+    const size_t interbuf_size = AlignTo16(k * num_rows * inter_size);
+    const size_t padded_experts = AlignTo16(num_experts);
+    const size_t num_moe_inputs = AlignTo16(k * num_rows);
     // softmax output, permuted_rows and permuted_experts have moved to outside
     // of moe kernel, allocate them in Encoder or Decoder before invoking
     // FfnLayer forward.
@@ -94,14 +94,14 @@ class MoeHelper {
     total_ws_bytes +=
         padded_experts * sizeof(int64_t);  // Hold total_rows_before_expert_
 
-    const int bytes_for_fc1_result = interbuf_size * sizeof(KeyT);
-    const int sorter_ws_size_bytes =
+    const size_t bytes_for_fc1_result = interbuf_size * sizeof(KeyT);
+    const size_t sorter_ws_size_bytes =
         AlignTo16(sorter_.getWorkspaceSize(num_rows));
     sorter_.update_num_experts(num_experts);
 
-    int bytes_for_intermediate_and_sorting = bytes_for_fc1_result;
+    int64_t bytes_for_intermediate_and_sorting = bytes_for_fc1_result;
     if (sorter_ws_size_bytes > bytes_for_fc1_result) {
-      int remaining_bytes =
+      int64_t remaining_bytes =
           AlignTo16(sorter_ws_size_bytes - bytes_for_fc1_result);
       bytes_for_intermediate_and_sorting += remaining_bytes;
     }
@@ -110,7 +110,7 @@ class MoeHelper {
         bytes_for_intermediate_and_sorting;  // intermediate (fc1) output + cub
                                              // sorting workspace
 
-    int num_softmax_outs = 0;
+    int64_t num_softmax_outs = 0;
     const bool is_pow_2 =
         (num_experts != 0) && ((num_experts & (num_experts - 1)) == 0);
     if (!is_pow_2 || num_experts > 256) {
@@ -132,7 +132,9 @@ class MoeHelper {
                   const DenseTensor *ffn2_bias,
                   const DenseTensor *moe_token_type_ids,
                   const int moe_topk,
+                  const bool group_moe,
                   const bool norm_topk_prob,
+                  const float routed_scaling_factor,
                   const std::string moe_type,
                   DenseTensor *output) {
     auto *input_activations = X->data<T>();
@@ -145,16 +147,16 @@ class MoeHelper {
 
     auto input_dims = X->dims();
     auto ffn1_dims = ffn1_weight->dims();
-    int token_num = 0;
+    int64_t token_num = 0;
     if (input_dims.size() == 3) {
       token_num = input_dims[0] * input_dims[1];
     } else {
       token_num = input_dims[0];
     }
-    const int num_rows = token_num;
+    const int64_t num_rows = token_num;
 
-    const int hidden_size = ffn1_dims[1];
-    int inter_dim = 0;
+    const int64_t hidden_size = ffn1_dims[1];
+    int64_t inter_dim = 0;
     if (moe_type == "qkv") {
       inter_dim = ffn1_dims[2] * ffn1_dims[3] * ffn1_dims[4];
     } else {
@@ -165,12 +167,17 @@ class MoeHelper {
       inter_dim = inter_dim * 2;
     }
 
-    const int inter_size = inter_dim;
-    const int num_experts = ffn1_dims[0];
-    const int k = moe_topk;
+    const int64_t inter_size = inter_dim;
+    const int64_t num_experts = ffn1_dims[0];
+    const int64_t k = moe_topk;
 
-    VLOG(4) << "num_rows: " << num_rows << "   " << hidden_size << "   "
-            << inter_size << "    " << num_experts << "k " << k;
+    VLOG(4) << "[MoE Info] "
+            << "num_rows: " << num_rows << ", "
+            << "hidden_size: " << hidden_size << ", "
+            << "inter_size: " << inter_size << ", "
+            << "num_experts: " << num_experts << ", "
+            << "k: " << k << ", "
+            << "group_moe: " << std::boolalpha << group_moe;
 
     DenseTensor gate_tensor = Empty<float>(ctx, {num_rows, num_experts});
     DenseTensor X_tensor = Empty<float>(ctx, {num_rows, hidden_size});
@@ -194,10 +201,10 @@ class MoeHelper {
     DenseTensor ws_ptr_tensor = Empty<int8_t>(ctx, {bytes});
     int8_t *ws_ptr = ws_ptr_tensor.data<int8_t>();
 
-    const int buf_size = AlignTo16(k * num_rows * hidden_size);
-    const int interbuf_size = AlignTo16(k * num_rows * inter_size);
-    const int padded_experts = AlignTo16(num_experts);
-    const int num_moe_inputs = AlignTo16(k * num_rows);
+    const int64_t buf_size = AlignTo16(k * num_rows * hidden_size);
+    const int64_t interbuf_size = AlignTo16(k * num_rows * inter_size);
+    const int64_t padded_experts = AlignTo16(num_experts);
+    const int64_t num_moe_inputs = AlignTo16(k * num_rows);
 
     expert_for_source_row = reinterpret_cast<int *>(ws_ptr);
     source_rows_ = expert_for_source_row + num_moe_inputs;
@@ -229,10 +236,19 @@ class MoeHelper {
     DenseTensor expert_scales_tensor_float = Empty<float>(ctx, {num_rows, k});
     float *expert_scales_float = expert_scales_tensor_float.data<float>();
 
+    float *softmax_max_prob = nullptr;
+    if (group_moe) {
+      DenseTensor softmax_max_prob_tensor = Empty<float>(ctx, {num_rows, k});
+      softmax_max_prob = softmax_max_prob_tensor.data<float>();
+      funcs::SetConstant<GPUContext, float> zero_float;
+      zero_float(ctx, &softmax_max_prob_tensor, false);
+    }
+
     DenseTensor fc1_out_tensor = Empty<T>(ctx, {num_rows * k, inter_size});
     T *fc1_out = fc1_out_tensor.data<T>();
 
-    VLOG(4) << " gemm_method_ :" << gemm_method_;
+    VLOG(4) << " gemm method is :" << gemm_method_
+            << ". group_moe is :" << group_moe;
 
     DenseTensor mixgemm_workspace;
     auto gate_compute = GEMMHelper<float>(
@@ -266,13 +282,15 @@ class MoeHelper {
                                               softmax_out_,
                                               expert_for_source_row,
                                               source_rows_,
+                                              softmax_max_prob,
                                               num_rows,
                                               num_experts,
                                               k,
+                                              group_moe,
                                               ctx.stream());
 
-    const int sorter_ws_size_bytes =
-        AlignTo16(sorter_.getWorkspaceSize(k * num_rows));
+    const int64_t sorter_ws_size_bytes =
+        AlignTo16(sorter_.getWorkspaceSize(int64_t(k * num_rows)));
 
     sorter_.run(fc1_result_,
                 sorter_ws_size_bytes,
@@ -295,7 +313,7 @@ class MoeHelper {
         k,
         ctx.stream());
 
-    const int expanded_active_expert_rows = k * num_rows;
+    const int64_t expanded_active_expert_rows = k * num_rows;
 
     compute_total_rows_before_expert<T>(permuted_experts_,
                                         input_activations,
@@ -419,6 +437,7 @@ class MoeHelper {
           k,
           static_cast<int>(1),
           norm_topk_prob,
+          routed_scaling_factor,
           ctx.stream());
     } else {
       finalize_moe_routing_kernelLauncher(
@@ -434,6 +453,7 @@ class MoeHelper {
           k,
           static_cast<int>(0),
           norm_topk_prob,
+          routed_scaling_factor,
           ctx.stream());
     }
     VLOG(4) << " Finished EXPERT \n";

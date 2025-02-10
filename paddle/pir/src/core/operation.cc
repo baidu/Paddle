@@ -266,7 +266,7 @@ Operation::Operation(const AttributeMap &attributes,
       id_(GenerateId()) {}
 
 ///
-/// \brief op ouput related public interfaces implementation
+/// \brief op output related public interfaces implementation
 ///
 std::vector<Value> Operation::results() const {
   std::vector<Value> res;

@@ -51,14 +51,16 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['start_index'],
             self.attrs['vocab_size'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # table row-wise parallel
         self.table_dist_tensor_spec.set_dims_mapping([1, -1])
@@ -69,15 +71,15 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['start_index'],
             self.attrs['vocab_size'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1])
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, -1])
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), True)
-        self.assertEqual(infered_output_dist_attrs[0]._partial_dims(), {1})
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), True)
+        self.assertEqual(inferred_output_dist_attrs[0]._partial_dims(), {1})
 
     def test_c_embedding_infer_backward(self):
         # backward setup
@@ -111,15 +113,17 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['start_index'],
             self.attrs['vocab_size'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 3)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1])
-        self.assertEqual(infered_input_dist_attrs[2].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 3)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, -1])
+        self.assertEqual(
+            inferred_input_dist_attrs[2].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, -1])
 
         # data parallel
         self.x_dist_tensor_spec.set_dims_mapping([0, -1])
@@ -131,15 +135,15 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['start_index'],
             self.attrs['vocab_size'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 3)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1])
-        self.assertEqual(infered_input_dist_attrs[2].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 3)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1])
+        self.assertEqual(inferred_input_dist_attrs[2].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, -1])
 
 
 if __name__ == "__main__":

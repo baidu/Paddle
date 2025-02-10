@@ -27,9 +27,8 @@ from paddle.autograd.backward_utils import ValueDict
 from paddle.autograd.ir_backward import grad
 from paddle.base import core, framework
 from paddle.base.compiler import BuildStrategy
-from paddle.base.data_feeder import check_type, convert_dtype
+from paddle.base.data_feeder import check_type
 from paddle.base.dygraph.base import switch_to_static_graph
-from paddle.optimizer.lr import LRScheduler
 from paddle.pir import Value, fake_value, is_fake_value
 
 from .logging_utils import TranslatorLogger
@@ -107,7 +106,7 @@ class NestSequence:
 
     def restore(self, tensor_result_list):
         """
-        Restores the nested sequence from tenosr list.
+        Restores the nested sequence from tensor list.
         """
         assert len(self._var_list) == len(tensor_result_list)
 
@@ -243,6 +242,53 @@ class RunnableProgram:
         self.p_grad_names = self.convert_name(grad_in_out_values[1])
         self.o_grad_names = self.convert_name(grad_in_out_values[2])
 
+        # Flag operator, indicating the operator between the forward subgraph and the backward subgraph. After self.program is updated by the pass, it is recommended to use the self.update_op_range interface to update the forward_range and backward_range.
+        self.fwd_end_next_op = (
+            self.program.global_block().ops[self.forward_range[1]]
+            if self.forward_range[1] < len(self.program.global_block().ops)
+            else None
+        )
+        self.bwd_start_pre_op = (
+            self.program.global_block().ops[self.backward_range[0] - 1]
+            if (
+                self.backward_range[0] > 0
+                and self.backward_range[0] - 1
+                < len(self.program.global_block().ops)
+            )
+            else None
+        )
+        self.bwd_end_nex_op = (
+            self.program.global_block().ops[self.backward_range[1]]
+            if self.backward_range[1] < len(self.program.global_block().ops)
+            else None
+        )
+
+    def update_op_range(self):
+        if self.fwd_end_next_op is None or self.bwd_start_pre_op is None:
+            self.forward_range = (0, len(self.program.global_block().ops))
+            self.backward_range = (
+                len(self.program.global_block().ops),
+                len(self.program.global_block().ops),
+            )
+        else:
+            fwd_start = self.forward_range[0]
+            fwd_end = self.forward_range[1]
+            bwd_start = self.backward_range[0]
+            bwd_end = self.backward_range[1]
+            for idx, op in enumerate(self.program.global_block().ops):
+                if op == self.fwd_end_next_op:
+                    fwd_end = idx
+                if op == self.bwd_start_pre_op:
+                    bwd_start = idx + 1
+                if op == self.bwd_end_nex_op:
+                    bwd_end = idx
+
+            if self.bwd_end_nex_op is None:
+                bwd_end = len(self.program.global_block().ops)
+
+            self.forward_range = (fwd_start, fwd_end)
+            self.backward_range = (bwd_start, bwd_end)
+
     def clone(self):
         cloned_program, _ = paddle.base.libpaddle.pir.clone_program(
             self.program
@@ -260,6 +306,7 @@ class RunnableProgram:
             self.has_splited is False
         ), "Please ensure only split once! don't call split_forward_backward manually."
         self.has_splited = True
+        self.update_op_range()
         [
             fwd_prog,
             bwd_prog,
@@ -312,6 +359,34 @@ class RunnableProgram:
             1,
             f"******** [JIT] PIR backward program after PIR PASS ********\n{origin_bwd} ",
         )
+
+    def is_distributed_program(self):
+        for op in self.program.global_block().ops:
+            if op.dist_attr is not None:
+                return True
+        return False
+
+    def apply_dist_pass_for_origin_program(self):
+        if self.is_distributed_program():
+            paddle.distributed.auto_parallel.static.mix_to_dist_pass.apply_mix2dist_pass(
+                self.program
+            )
+
+    def apply_dist_pass_for_whole_program(self):
+        if self.is_distributed_program():
+            paddle.distributed.auto_parallel.static.mix_to_dist_pass.apply_mix2dist_pass(
+                self.program
+            )
+            paddle.distributed.auto_parallel.static.pir_pass.apply_partition_pass(
+                self.program
+            )
+            paddle.distributed.auto_parallel.static.pir_pass.ReshardPasses.apply_reshard_pass(
+                self.program
+            )
+            paddle.base.libpaddle.pir.apply_dist2dense_pass(self.program)
+            paddle.distributed.auto_parallel.static.pir_pass.remove_unuseful_comm_op_pass(
+                self.program
+            )
 
     # cached property can ensure program is splited only once.
     @cached_property
@@ -439,7 +514,7 @@ class OperatorIndexPreservePass:
             ):
                 break
             new_index += 1
-        # remove forward_backward_seperator
+        # remove forward_backward_separator
         if new_index >= len(program.global_block().ops):
             raise RuntimeError(
                 f"Can't find index preserve label {self.name}, don't remove it in pass."
@@ -673,21 +748,6 @@ class PartialProgramLayer:
             self._origin_main_program, (inputs, params, outputs)
         )
 
-    def _sync_lr_value_with_scheduler(self):
-        """Update lr_var value with calculated by lr_scheduler."""
-        main_program = self._origin_main_program
-        if hasattr(main_program, 'lr_scheduler') and hasattr(
-            main_program, 'lr_var'
-        ):
-            lr_scheduler = main_program.lr_scheduler
-            lr_var = main_program.lr_var
-
-            assert isinstance(lr_scheduler, LRScheduler), "must be LRScheduler"
-            lr_scheduler = self._origin_main_program.lr_scheduler
-            lr_value = lr_scheduler()
-            data = np.array(lr_value).astype(convert_dtype(lr_var.dtype))
-            lr_var.set_value(data)
-
     def add_hooker(self, hooker):
         self._hookers.append(hooker)
 
@@ -706,8 +766,7 @@ class PartialProgramLayer:
 
     # whole
     @switch_to_static_graph
-    def _create_program(self, is_infer_mode=False):
-
+    def _create_program(self, is_infer_mode=False) -> RunnableProgram:
         if is_infer_mode:
 
             def pass_fn(forward_program, backward_program, program_name_attr):
@@ -750,6 +809,8 @@ class PartialProgramLayer:
             train_program: RunnableProgram = (
                 self.origin_runnable_program.clone()
             )
+            train_program.apply_dist_pass_for_origin_program()
+
             # Author(liujinnan): auto_layout_pass should be applied to the original_program, before append backward. So we put it here.
             if auto_layout_is_enabled():
                 pm = paddle.pir.PassManager(2)
@@ -848,7 +909,7 @@ class PartialProgramLayer:
         return paddle.utils._hash_with_id(self.infer_program, self)
 
     @property
-    def program(self):
+    def program(self) -> RunnableProgram:
         """
         Return current train or eval program.
         """
@@ -868,11 +929,11 @@ class PartialProgramLayer:
             return self._infer_program_id
 
     @cached_property
-    def train_program(self):
+    def train_program(self) -> RunnableProgram:
         return self._create_program()
 
     @cached_property
-    def infer_program(self):
+    def infer_program(self) -> RunnableProgram:
         return self._create_program(is_infer_mode=True)
 
     def _verify_program(self, main_program, outputs):
@@ -885,86 +946,10 @@ class PartialProgramLayer:
 
         return main_program
 
-    def prepare_gradient_aggregation(
-        self, start_idx, main_program, target_program
-    ):
-        """
-        Why we need add gradient aggregation operation ?
-        In some cases, if non leaf nodes are used as output, gradient overwriting will occur, such as
-        def forward(self, in):
-            x = 2 * in  # <---- x is a non-leaf node in program.
-            y = x + 3
-            return x, y
-
-        loss = forward(in)[0].sum()
-        loss.backward()  # <----- x@grad will be overwritten by elementwise_add_grad Op
-        """
-
-        def _need_aggregation(var):
-            """
-            if exist a op whose inputs is var, then return True
-            """
-            if var.type not in [
-                core.VarDesc.VarType.DENSE_TENSOR,
-                core.VarDesc.VarType.SELECTED_ROWS,
-            ]:
-                return False
-            if var.dtype not in [paddle.float32, paddle.float64]:
-                return False
-            for op in main_program.global_block().ops:
-                for in_arg in op.input_arg_names:
-                    if in_arg == var.name:
-                        return True
-            return False
-
-        def _insert_aggregation_ops_for_var(target_program, var):
-            suffix = "@dy2static"
-            var_grad_name = var.grad_name
-            new_grad_name = var.name + suffix + "@GRAD"
-            found_ops = list(
-                filter(
-                    lambda x: x[0] >= start_idx
-                    and any(
-                        out_arg == var_grad_name
-                        for out_arg in x[1].output_arg_names
-                    ),
-                    enumerate(target_program.global_block().ops),
-                )
-            )
-
-            # len(found_ops) may equals zero when stop_gradient works.
-            # len(found_ops) may > 1, because we may have fill_constant op.
-            if len(found_ops) == 0:
-                return None
-            # step1: create a new var named var.name@GRAD
-            target_program.global_block().create_var(
-                name=new_grad_name,
-                type=var.type,
-                dtype=var.dtype,
-                shape=var.shape,
-            )
-            # step2: rename the var.name@GRAD to var.name@GRAD@dy2static
-            for _, op in found_ops:
-                op._rename_input(var_grad_name, new_grad_name)
-                op._rename_output(var_grad_name, new_grad_name)
-            # step3: insert sum op to aggregate the gradient.
-            #        var.name@GRAD = sum(var.name@dy2static@GRAD, var.name@GRAD)
-            target_program.global_block()._insert_op(
-                found_ops[-1][0] + 1,
-                type='sum',
-                inputs={'X': [var_grad_name, new_grad_name]},
-                outputs={"Out": var_grad_name},
-            )
-            return None
-
-        to_processed_vars = list(
-            filter(_need_aggregation, self._outputs.var_list)
-        )
-        for _var in to_processed_vars:
-            _insert_aggregation_ops_for_var(target_program, _var)
-
     @switch_to_static_graph
-    def _append_backward_desc(self, train_runnable_program: RunnableProgram):
+    def _append_backward_desc(
+        self, train_runnable_program: RunnableProgram
+    ) -> RunnableProgram:
         program = train_runnable_program.program
         targets = train_runnable_program.out_values
         # TODO(@zhuoge): refine the interface, use runnable_program to apply passes.
@@ -1048,10 +1033,6 @@ class PartialProgramLayer:
                     forward_end_idx,
                     forward_end_idx + op_between_forward_and_backward,
                 )
-            # TODO: add later
-            # self.prepare_gradient_aggregation(
-            # start_idx + 1, main_program, program
-            # )
 
         mapping_value = lambda x: x if isinstance(x, Value) else fake_value()
         inputs_size = len(inputs)
@@ -1103,13 +1084,15 @@ class PartialProgramLayer:
             backward_end_op_index,
         ) = forward_index_pass.new_indices
 
-        return RunnableProgram(
+        whole_program = RunnableProgram(
             program,
             (inputs, params, targets),
             (x_grad_value, p_grad_value, o_grad_value),
             (0, forward_end_idx),
             (backward_start_op_index, backward_end_op_index),
         )
+        whole_program.apply_dist_pass_for_whole_program()
+        return whole_program
 
     def _prepare_attributes(self, in_sot_mode=False):
         attrs = [
@@ -1195,15 +1178,6 @@ class PartialProgramLayer:
         )
         var.stop_gradient = True
         return var
-
-    def _update_stop_gradient(self, out_vars):
-        # Update stop_gradient for all outputs
-        def set_stop_gradient(var, eager_tensor):
-            assert isinstance(var, Value)
-            eager_tensor.stop_gradient = var.stop_gradient
-
-        for idx, var in zip(self._outputs.var_list, out_vars):
-            set_stop_gradient(idx, var)
 
     def _restore_out(self, out_vars):
         """

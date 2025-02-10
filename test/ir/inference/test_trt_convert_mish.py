@@ -41,7 +41,7 @@ class TrtConvertMishTest(TrtLayerAutoScanTest):
             for dim1 in [0, 3]:
                 for dim2 in [0, 16]:
                     for dim3 in [0, 32]:
-                        for thre in [5.0, 20.0]:
+                        for threshold in [5.0, 20.0]:
                             self.dim1 = dim1
                             self.dim2 = dim2
                             self.dim3 = dim3
@@ -56,7 +56,7 @@ class TrtConvertMishTest(TrtLayerAutoScanTest):
                                     "op_type": "mish",
                                     "op_inputs": {"X": ["input_data"]},
                                     "op_outputs": {"Out": ["mish_output_data"]},
-                                    "op_attrs": {"threshold": thre},
+                                    "op_attrs": {"threshold": threshold},
                                 }
                             ]
 

@@ -292,7 +292,7 @@ std::vector<std::shared_ptr<egr::EagerVariable>> EagerUtils::TrySyncToVars(
         tensor,
         common::errors::Fatal(
             "Tensor is null and cannot be copied. "
-            "We are tring to TrySyncToVars tensor from its "
+            "We are trying to TrySyncToVars tensor from its "
             "shared_ptr, this error may indicate some outputs "
             "are nullptr"));
     res.emplace_back(TrySyncToVar(*tensor));
@@ -420,7 +420,7 @@ std::vector<paddle::Tensor> EagerUtils::GetOutputs(
         out.get(),
         common::errors::Fatal(
             "Eager Tensor %s is null and cannot be copied. "
-            "We are tring to Get Output tensor from its "
+            "We are trying to Get Output tensor from its "
             "shared_ptr, this error may indicate some outputs "
             "are nullptr",
             out->name()));
@@ -435,7 +435,7 @@ paddle::Tensor EagerUtils::GetOutput(
       out.get(),
       common::errors::Fatal(
           "Eager Tensor %s is null and cannot be copied. We "
-          "are tring to Get Output tensor from its shared_ptr, "
+          "are trying to Get Output tensor from its shared_ptr, "
           "this error may indicate output is nullptr",
           out->name()));
   return paddle::Tensor(out->GetTensorBase(), out->name());
@@ -446,7 +446,7 @@ void EagerUtils::GetOutput(const std::shared_ptr<EagerVariable>& out,
   PADDLE_ENFORCE_NOT_NULL(
       out_var,
       common::errors::Fatal("Tensor is null and cannot be copied. "
-                            "We are tring to OverwriteOutput from its "
+                            "We are trying to OverwriteOutput from its "
                             "shared_ptr, this error may indicate some outputs "
                             "are nullptr"));
   out_var->set_impl(out->GetTensorBase());
@@ -469,7 +469,7 @@ void EagerUtils::GetOutputs(
         out_var[i],
         common::errors::Fatal(
             "Tensor is null and cannot be copied. "
-            "We are tring to OverwriteOutput from its "
+            "We are trying to OverwriteOutput from its "
             "shared_ptr, this error may indicate some outputs "
             "are nullptr"));
     out_var[i]->set_impl(outs[i]->GetTensorBase());
@@ -486,7 +486,7 @@ void EagerUtils::GetOutputs(const std::shared_ptr<EagerVariable>& out,
   PADDLE_ENFORCE_NOT_NULL(
       out_var[0],
       common::errors::Fatal("Tensor is null and cannot be copied. "
-                            "We are tring to OverwriteOutput from its "
+                            "We are trying to OverwriteOutput from its "
                             "shared_ptr, this error may indicate some outputs "
                             "are nullptr"));
   out_var[0]->set_impl(out->GetTensorBase());

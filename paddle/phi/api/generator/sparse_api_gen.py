@@ -16,7 +16,7 @@ import argparse
 
 import yaml
 from api_base import PREFIX_TENSOR_NAME
-from api_gen import ForwardAPI
+from api_gen import ForwardAPI, backward_api_black_list
 
 
 class SparseAPI(ForwardAPI):
@@ -438,11 +438,13 @@ def source_include(header_file_path):
 #include "paddle/phi/infermeta/binary.h"
 #include "paddle/phi/infermeta/ternary.h"
 #include "paddle/phi/infermeta/multiary.h"
+#include "paddle/phi/infermeta/backward.h"
 #include "paddle/utils/none.h"
 
 #include "paddle/phi/infermeta/sparse/unary.h"
 #include "paddle/phi/infermeta/sparse/binary.h"
 #include "paddle/phi/infermeta/sparse/multiary.h"
+#include "paddle/phi/infermeta/sparse/backward.h"
 
 COMMON_DECLARE_int32(low_precision_op_list);
 COMMON_DECLARE_bool(benchmark);
@@ -467,8 +469,13 @@ namespace sparse {
 
 
 def generate_api(api_yaml_path, header_file_path, source_file_path):
-    with open(api_yaml_path, 'r') as f:
-        apis = yaml.load(f, Loader=yaml.FullLoader)
+    apis = []
+
+    for each_api_yaml in api_yaml_path:
+        with open(each_api_yaml, 'r') as f:
+            api_list = yaml.load(f, Loader=yaml.FullLoader)
+            if api_list:
+                apis.extend(api_list)
     header_file = open(header_file_path, 'w')
     source_file = open(source_file_path, 'w')
 
@@ -483,7 +490,10 @@ def generate_api(api_yaml_path, header_file_path, source_file_path):
     source_file.write(namespace[0])
 
     for api in apis:
+
         sparse_api = SparseAPI(api)
+        if sparse_api.api in backward_api_black_list:
+            continue
         if sparse_api.is_dygraph_api:
             sparse_api.is_dygraph_api = False
         header_file.write(sparse_api.gene_api_declaration())
@@ -503,6 +513,7 @@ def main():
     parser.add_argument(
         '--api_yaml_path',
         help='path to sparse api yaml file',
+        nargs='+',
         default='paddle/phi/ops/yaml/sparse_ops.yaml',
     )
 

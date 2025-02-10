@@ -175,7 +175,7 @@ void FusionInfo::ParseOpInfos(const OpLoweringGroup& group) {
 void FusionInfo::ParseInputDimExprs(const OpLoweringGroup& group) {
   // NOTE(Aurelius84): [Why try get DimExpr from Group firstly? ]
   // In case of BroadcastTree, we will clone many Groups containing same ops.
-  // But its input valus is defining outside and will have same DimExprs in
+  // But its input values is defining outside and will have same DimExprs in
   // global ShapeAnalysis, which leading hash conflict unexpected.
   const auto TryGetDimExprsFromGroup = [&](const ::pir::Value& value) -> bool {
     if (!group.HasShapeOrDataExprs(value)) return false;
@@ -184,8 +184,7 @@ void FusionInfo::ParseInputDimExprs(const OpLoweringGroup& group) {
   };
   // NOTE(Aurelius84): If we can't get DimExpr from Group, we will find them
   // from global ShapeAnalysis.
-  const auto TryeGetDimExprsFromGlobal =
-      [&](const ::pir::Value& value) -> bool {
+  const auto TryGetDimExprsFromGlobal = [&](const ::pir::Value& value) -> bool {
     auto& shape_analysis =
         ::pir::ShapeAnalysisManager::Instance().Get(group.GetParentProgram());
     input_dim_exprs_.push_back(shape_analysis.GetShapeOrDataForValue(value));
@@ -196,7 +195,7 @@ void FusionInfo::ParseInputDimExprs(const OpLoweringGroup& group) {
     if (group.IsBroadcastLeaf()) {
       TryGetDimExprsFromGroup(value);
     } else {
-      TryeGetDimExprsFromGlobal(value);
+      TryGetDimExprsFromGlobal(value);
     }
   }
 }

@@ -48,7 +48,7 @@ namespace paddle::framework::ir::patterns {
 //
 // -> fused to
 //
-//   input_qk intput_v
+//   input_qk input_v
 //           |
 //     qk_multihead_matmul
 //           |

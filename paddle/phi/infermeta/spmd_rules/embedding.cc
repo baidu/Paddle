@@ -27,10 +27,11 @@ namespace phi::distributed {
 
 using phi::distributed::auto_parallel::str_join;
 
-SpmdInfo EmbeddingInferSpmdUnsupportVocabParallel(const DistMetaTensor& x,
-                                                  const DistMetaTensor& weight,
-                                                  int padding_idx,
-                                                  bool sparse) {
+SpmdInfo EmbeddingInferSpmdUnsupportedVocabParallel(
+    const DistMetaTensor& x,
+    const DistMetaTensor& weight,
+    int padding_idx,
+    bool sparse) {
   DistMetaTensor w(weight.dims(), weight.dist_attr());
   if (weight.dist_attr().dims_mapping()[0] >= 0) {
     auto w_dims_mapping = weight.dist_attr().dims_mapping();
@@ -239,7 +240,7 @@ SpmdInfo EmbeddingGradInferSpmd(const DistMetaTensor& x,
 
   if (sparse) {
     PADDLE_THROW(common::errors::InvalidArgument(
-        "EmbeddingGradInferSpmd does't support sparse currently."));
+        "EmbeddingGradInferSpmd doesn't support sparse currently."));
   }
 
   // Propagate sharding info using composite operators.

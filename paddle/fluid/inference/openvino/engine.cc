@@ -27,8 +27,8 @@ bool OpenVINOEngine::IsModelStatic() {
   return isStatic;
 }
 
-ov::Shape OpenVINOEngine::GetOuputShape(const std::string& output_name,
-                                        int64_t index) {
+ov::Shape OpenVINOEngine::GetOutputShape(const std::string& output_name,
+                                         int64_t index) {
   auto ov_output_shape =
       HaveOutputTensorName(output_name)
           ? infer_request_.get_tensor(output_name).get_shape()
@@ -36,9 +36,9 @@ ov::Shape OpenVINOEngine::GetOuputShape(const std::string& output_name,
   return ov_output_shape;
 }
 
-phi::DataType OpenVINOEngine::GetOuputType(const std::string& output_name,
-                                           int64_t index,
-                                           ov::element::Type ov_paddle_type) {
+phi::DataType OpenVINOEngine::GetOutputType(const std::string& output_name,
+                                            int64_t index,
+                                            ov::element::Type ov_paddle_type) {
   auto output_ov_type =
       HaveOutputTensorName(output_name)
           ? infer_request_.get_tensor(output_name).get_element_type()
@@ -56,9 +56,9 @@ phi::DataType OpenVINOEngine::GetOuputType(const std::string& output_name,
   return OVType2PhiType(output_ov_type);
 }
 
-void OpenVINOEngine::CopyOuputDataByName(const std::string& output_name,
-                                         int64_t index,
-                                         void* pd_data) {
+void OpenVINOEngine::CopyOutputDataByName(const std::string& output_name,
+                                          int64_t index,
+                                          void* pd_data) {
   auto ov_tensor = HaveOutputTensorName(output_name)
                        ? infer_request_.get_tensor(output_name)
                        : infer_request_.get_output_tensor(index);

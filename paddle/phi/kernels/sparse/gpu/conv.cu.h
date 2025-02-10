@@ -65,7 +65,7 @@ __global__ void GatherKernel(const T* params,
   }
 }
 
-// double sparse, seed GroupIndexs
+// double sparse, seed GroupIndices
 template <typename T, typename IntT, int VecSize>
 __global__ void GatherKernelV2(const T* inputs,
                                const int* index_counts,
@@ -169,12 +169,12 @@ inline void GatherV2(const GPUContext& dev_ctx,
   }
 }
 
-// unique the out indexs in rulebook
+// unique the out indices in rulebook
 template <typename IntT>
-__global__ void UniqueKernel(const IntT* in_indexs,
+__global__ void UniqueKernel(const IntT* in_indices,
                              const int rulebook_len,
                              int* index_flags,
-                             int* out_indexs,
+                             int* out_indices,
                              int* nnz) {
   extern __shared__ int cache[];
   __shared__ int count, start;
@@ -187,7 +187,7 @@ __global__ void UniqueKernel(const IntT* in_indexs,
   int i = threadIdx.x + blockDim.x * blockIdx.x;
   if (i < rulebook_len) {
     // atomicOr only support int
-    int index = static_cast<int>(in_indexs[i]);
+    int index = static_cast<int>(in_indices[i]);
     const bool flag = phi::funcs::sparse::SetBits(index, index_flags);
     if (!flag) {
       int j = atomicAdd(&count, 1);
@@ -201,7 +201,7 @@ __global__ void UniqueKernel(const IntT* in_indexs,
   }
   __syncthreads();
   for (int i = threadIdx.x; i < count; i += blockDim.x) {
-    out_indexs[start + i] = cache[i];
+    out_indices[start + i] = cache[i];
   }
 }
 
@@ -215,9 +215,9 @@ inline __device__ uint32_t BitCount(const uint32_t data) {
   return count;
 }
 
-static __global__ void GetOutIndexsCounter(const int* flags,
-                                           const int n,
-                                           int* out) {
+static __global__ void GetOutIndicesCounter(const int* flags,
+                                            const int n,
+                                            int* out) {
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
   __shared__ int block_count;
   if (threadIdx.x == 0) {
@@ -240,11 +240,11 @@ static __global__ void GetOutIndexsCounter(const int* flags,
 }
 
 template <int BS>
-__global__ void GetOutIndexs(const int* flags,
-                             const int n,
-                             const int* offsets,
-                             const int out_nnz,
-                             int* out) {
+__global__ void GetOutIndices(const int* flags,
+                              const int n,
+                              const int* offsets,
+                              const int out_nnz,
+                              int* out) {
   int tid = threadIdx.x + blockDim.x * blockIdx.x;
   __shared__ int block_counts[BS];
   __shared__ int block_outs[BS * 32];
@@ -288,16 +288,16 @@ __global__ void GetOutIndexs(const int* flags,
 }
 
 template <typename IntT>
-__global__ void GroupIndexs(const int* out_index_table,
-                            const int n,
-                            const int kernel_size,
-                            IntT* out_indexs,
-                            int* out_index_counts,
-                            int* out_index_groups) {
+__global__ void GroupIndices(const int* out_index_table,
+                             const int n,
+                             const int kernel_size,
+                             IntT* out_indices,
+                             int* out_index_counts,
+                             int* out_index_groups) {
   CUDA_KERNEL_LOOP_TYPE(i, n, int64_t) {
-    IntT index = out_indexs[i];
+    IntT index = out_indices[i];
     int real_index = out_index_table[index];
-    out_indexs[i] = real_index;
+    out_indices[i] = real_index;
 
     // kernel_size at most
     int j = atomicAdd(out_index_counts + real_index, 1);
@@ -411,14 +411,14 @@ __global__ void GetOutIndexTable1(const IntT* indices,
 }
 
 template <typename IntT>
-__global__ void GetOutIndexTable(int* indexs,
+__global__ void GetOutIndexTable(int* indices,
                                  const int non_zero_num,
                                  const Dims4D out_dims,
                                  const bool is2D,
                                  int* out_index_table,
                                  IntT* out_indices) {
   CUDA_KERNEL_LOOP_TYPE(i, non_zero_num, int64_t) {
-    IntT index = static_cast<IntT>(indexs[i]);
+    IntT index = static_cast<IntT>(indices[i]);
     out_index_table[index] = i;
     IntT batch, x, y, z;
     phi::funcs::sparse::IndexToPoint<Dims4D>(
@@ -433,7 +433,7 @@ __global__ void GetOutIndexTable(int* indexs,
       out_indices[i + non_zero_num * 2] = y;
       out_indices[i + non_zero_num * 3] = x;
     }
-    indexs[i] = 0;
+    indices[i] = 0;
   }
 }
 
@@ -558,13 +558,13 @@ __global__ void ProductSubmRuleBookKernel(const T* x_indices,
 }
 
 template <typename IntT>
-__global__ void GroupIndexs(const int n,
-                            const int kernel_size,
-                            const IntT* indexs,
-                            int* index_counts,
-                            int* index_groups) {
+__global__ void GroupIndices(const int n,
+                             const int kernel_size,
+                             const IntT* indices,
+                             int* index_counts,
+                             int* index_groups) {
   CUDA_KERNEL_LOOP_TYPE(i, n, int64_t) {
-    IntT index = indexs[i];
+    IntT index = indices[i];
     // kernel_size at most
     int j = atomicAdd(index_counts + index, 1);
     // nnz * kernel_size
@@ -574,15 +574,15 @@ __global__ void GroupIndexs(const int n,
 
 // double space to reduce atomicAdd conflict
 template <typename IntT>
-__global__ void GroupIndexsV2(const int rulebook_len,
-                              const int non_zero_num,
-                              const int kernel_size,
-                              const int half_kernel_offset,
-                              const IntT* indexs,
-                              int* index_counts,
-                              int* index_groups) {
+__global__ void GroupIndicesV2(const int rulebook_len,
+                               const int non_zero_num,
+                               const int kernel_size,
+                               const int half_kernel_offset,
+                               const IntT* indices,
+                               int* index_counts,
+                               int* index_groups) {
   CUDA_KERNEL_LOOP_TYPE(i, rulebook_len, int64_t) {
-    IntT index = indexs[i];
+    IntT index = indices[i];
     int* counts_ptr =
         i < half_kernel_offset ? index_counts : index_counts + non_zero_num;
     int* groups_ptr = i < half_kernel_offset
@@ -635,7 +635,7 @@ inline void CallThrustScan(const GPUContext& dev_ctx,
 //  unique_key:     20, 25, 30, 33
 //  unique_values:  0, 2, 3, 5
 //  the index of unique_values is: 0, 1, 2, 3
-// 5. update the out_index by unique_key, uniqe_value and the index of
+// 5. update the out_index by unique_key, unique_value and the index of
 // unique_value:
 //  the new out_index: 0, 2, 3, 2, 3, 0, 1
 template <typename T, typename Context, typename IntT = int>
@@ -881,7 +881,7 @@ int ProductRuleBook(const Context& dev_ctx,
 
     const int threads = 256;
     const int blocks = (index_flags.numel() + threads - 1) / threads;
-    GetOutIndexsCounter<<<blocks, threads, 0, dev_ctx.stream()>>>(
+    GetOutIndicesCounter<<<blocks, threads, 0, dev_ctx.stream()>>>(
         index_flags_ptr, index_flags.numel(), out_index_table_ptr);
 #ifdef PADDLE_WITH_HIP
     thrust::exclusive_scan(thrust::hip::par.on(dev_ctx.stream()),
@@ -891,7 +891,7 @@ int ProductRuleBook(const Context& dev_ctx,
                            out_index_table_ptr,
                            out_index_table_ptr + blocks,
                            out_index_table_ptr);
-    GetOutIndexs<threads>
+    GetOutIndices<threads>
         <<<blocks, threads, 0, dev_ctx.stream()>>>(index_flags_ptr,
                                                    index_flags.numel(),
                                                    out_index_table_ptr,
@@ -921,15 +921,15 @@ int ProductRuleBook(const Context& dev_ctx,
     unique_value->ResizeAndAllocate({static_cast<int>(out_nnz * kernel_size)});
     int* unique_value_ptr = unique_value->data<int>();
 
-    GroupIndexs<<<config.block_per_grid,
-                  config.thread_per_block,
-                  0,
-                  dev_ctx.stream()>>>(out_index_table_ptr,
-                                      rulebook_len,
-                                      kernel_size,
-                                      rulebook_ptr + rulebook_len,
-                                      out_index_ptr,
-                                      unique_value_ptr);
+    GroupIndices<<<config.block_per_grid,
+                   config.thread_per_block,
+                   0,
+                   dev_ctx.stream()>>>(out_index_table_ptr,
+                                       rulebook_len,
+                                       kernel_size,
+                                       rulebook_ptr + rulebook_len,
+                                       out_index_ptr,
+                                       unique_value_ptr);
 
     return rulebook_len;
   }

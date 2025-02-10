@@ -17,7 +17,7 @@ from typing import Literal, Union
 
 from typing_extensions import TypeAlias
 
-# Note: Do not confrom to predefined naming style in pylint.
+# Note: Do not conform to predefined naming style in pylint.
 DataLayout0D: TypeAlias = Literal["NC"]
 DataLayout1D: TypeAlias = Literal["NCL", "NLC"]
 DataLayout2D: TypeAlias = Literal["NCHW", "NHWC"]

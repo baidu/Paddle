@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import unittest
 
 import numpy as np
@@ -64,14 +63,7 @@ class TestCholeskyOp(OpTest):
         self.check_output(check_pir=True)
 
     def test_check_grad(self):
-        places = []
-        if (
-            os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-            in ['1', 'true', 'on']
-            or not core.is_compiled_with_cuda()
-            or core.is_compiled_with_rocm()
-        ):
-            places.append(base.CPUPlace())
+        places = [base.CPUPlace()]
         if core.is_compiled_with_cuda() and (not core.is_compiled_with_rocm()):
             places.append(base.CUDAPlace(0))
         for p in places:
@@ -161,6 +153,11 @@ class TestCholeskyOp2D(TestCholeskyOp):
         self._input_shape = (32, 32)
 
 
+class TestCholeskyOpZeroSize(TestCholeskyOp):
+    def init_config(self):
+        self._input_shape = (0, 0)
+
+
 class TestDygraph(unittest.TestCase):
     def test_dygraph(self):
         if core.is_compiled_with_rocm():
@@ -176,27 +173,20 @@ class TestDygraph(unittest.TestCase):
 
 class TestCholeskySingularAPI(unittest.TestCase):
     def setUp(self):
-        self.places = []
-        if (
-            os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-            in ['1', 'true', 'on']
-            or not core.is_compiled_with_cuda()
-            or core.is_compiled_with_rocm()
-        ):
-            self.places.append(base.CPUPlace())
+        self.places = [base.CPUPlace()]
         if core.is_compiled_with_cuda() and (not core.is_compiled_with_rocm()):
             self.places.append(base.CUDAPlace(0))
 
-    def check_static_result(self, place, with_out=False):
+    def check_static_result(self, place, input_shape, with_out=False):
         with paddle.static.program_guard(
             paddle.static.Program(), paddle.static.Program()
         ):
             input = paddle.static.data(
-                name="input", shape=[4, 4], dtype="float64"
+                name="input", shape=input_shape, dtype="float64"
             )
             result = paddle.cholesky(input)
 
-            input_np = np.zeros([4, 4]).astype("float64")
+            input_np = np.zeros(input_shape).astype("float64")
 
             exe = base.Executor(place)
             try:
@@ -211,7 +201,9 @@ class TestCholeskySingularAPI(unittest.TestCase):
 
     def test_static(self):
         for place in self.places:
-            self.check_static_result(place=place)
+            self.check_static_result(place=place, input_shape=[4, 4])
+            self.check_static_result(place=place, input_shape=[0, 0])
+            self.check_static_result(place=place, input_shape=[5, 0, 0])
 
     def test_dygraph(self):
         for place in self.places:
@@ -222,9 +214,12 @@ class TestCholeskySingularAPI(unittest.TestCase):
                         [[10, 11, 12], [13, 14, 15], [16, 17, 18]],
                     ]
                 ).astype("float64")
+                input_np_zero = np.zeros((0, 3, 3), dtype="float64")
                 input = paddle.to_tensor(input_np)
+                input_zero = paddle.to_tensor(input_np_zero)
                 try:
                     result = paddle.cholesky(input)
+                    result_zero = paddle.cholesky(input_zero)
                 except RuntimeError as ex:
                     print("The mat is singular")
                 except ValueError as ex:

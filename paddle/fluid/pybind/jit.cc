@@ -82,11 +82,6 @@ void BindGuard(pybind11::module *m) {
   py::class_<LengthMatchGuard, GuardBase, std::shared_ptr<LengthMatchGuard>>(
       *m, "LengthMatchGuard", R"DOC(LengthMatchGuard Class.)DOC")
       .def(py::init<const Py_ssize_t &>(), py::arg("length"));
-  py::class_<FloatCloseGuard, GuardBase, std::shared_ptr<FloatCloseGuard>>(
-      *m, "FloatCloseGuard", R"DOC(FloatCloseGuard Class.)DOC")
-      .def(py::init<const double, const double>(),
-           py::arg("value"),
-           py::arg("epsilon"));
   py::class_<ValueMatchGuard, GuardBase, std::shared_ptr<ValueMatchGuard>>(
       *m, "ValueMatchGuard", R"DOC(ValueMatchGuard Class.)DOC")
       .def(py::init<const py::object &>(), py::arg("py_value"));
@@ -141,6 +136,19 @@ void BindSot(pybind11::module *m) {
         return obj;
       },
       py::arg("callback"));
+
+  m->def("has_custom_getattro", [](py::object obj) {
+    PyObject *py_obj = obj.ptr();
+
+    if (!PyType_Check(py_obj)) {
+      PADDLE_THROW(common::errors::InvalidArgument(
+          "The input object should be a type object, but got %s.",
+          py::str(py_obj).cast<std::string>()));
+    }
+    PyTypeObject *type = reinterpret_cast<PyTypeObject *>(py_obj);
+
+    return type->tp_getattro != PyObject_GenericGetAttr;
+  });
 
   m->def(
       "sot_setup_codes_with_graph",

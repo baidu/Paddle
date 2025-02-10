@@ -61,31 +61,40 @@ void XToRShrinkReshardFunction::Eval(phi::DeviceContext* dev_ctx,
   const auto& in_partial_status = in_dist_attr.partial_status();
   auto all_process_ids = GetUnionProcessIds(in_process_ids, out_process_ids);
   std::unordered_map<int64_t, DenseTensor> rank_to_result;
-  bool dynamic_shape = true;
 
   // Step 1: other ranks need to send value to the root
   if (!in_dist_attr.is_replicated()) {
     if (cur_global_rank != root_rank) {
       // send dense tensor to root
+#if defined(PADDLE_WITH_XPU)
+      PADDLE_THROW(::common::errors::Unimplemented(
+          "Not supported PSendKernel  on xpu yet."));
+#else
       RESHARD_FUNCTOR_WITH_COMM(dev_ctx,
                                 PSendKernel,
                                 dtype,
                                 all_process_ids,
                                 in.value(),
                                 root_rank,
-                                dynamic_shape);
+                                /*dynamic_shape=*/true);
+#endif
     } else {
       for (size_t i = 0; i < all_process_ids.size(); ++i) {
         if (all_process_ids[i] != root_rank) {
           rank_to_result.emplace(all_process_ids[i], DenseTensor());
+#if defined(PADDLE_WITH_XPU)
+          PADDLE_THROW(::common::errors::Unimplemented(
+              "Not supported PRecv on xpu yet."));
+#else
           RESHARD_FUNCTOR_WITH_COMM(dev_ctx,
                                     PRecv,
                                     dtype,
                                     all_process_ids,
                                     all_process_ids[i],
                                     {} /*out_shape*/,
-                                    dynamic_shape,
+                                    /*dynamic_shape=*/true,
                                     &rank_to_result[all_process_ids[i]]);
+#endif
         }
       }
     }

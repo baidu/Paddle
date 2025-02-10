@@ -18,3 +18,4 @@ test_parallel_api_with_llama_1d,LINUX,GPU,400,HYBRID,test_runner.py,,,http_proxy
 test_parallel_api_with_llama_2d,LINUX,GPU,400,HYBRID,test_runner.py,,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_parallel_api_with_llama_3d,LINUX,GPU,400,HYBRID,test_runner.py,,,http_proxy=;https_proxy=;PYTHONPATH=../..,
 test_to_distributed_api_for_llama,LINUX,GPU,180,HYBRID,test_runner.py,,,http_proxy=;https_proxy=;PYTHONPATH=../..,
+test_parallel_api_with_llama_lora,LINUX,GPU,360,HYBRID,test_runner.py,,,http_proxy=;https_proxy=;PYTHONPATH=../..,

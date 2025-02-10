@@ -57,8 +57,8 @@
   inplace : (out_grad -> x_grad)
 
 - backward_op : batch_norm_double_grad
-  forward : batch_norm_grad (Tensor x, Tensor scale, Tensor bias, Tensor out_mean, Tensor out_variance, Tensor saved_mean, Tensor saved_variance, Tensor reserve_space, Tensor grad_out, float momentum, float epsilon, str data_format, bool is_test, bool use_global_stats, bool trainable_statistics) -> Tensor(grad_x), Tensor(grad_scale), Tensor(grad_bias)
-  args : (Tensor x, Tensor scale, Tensor out_mean, Tensor out_variance, Tensor saved_mean, Tensor saved_variance, Tensor grad_out,  Tensor grad_x_grad, Tensor grad_scale_grad, Tensor grad_bias_grad, float momentum, float epsilon, str data_format, bool is_test, bool use_global_stats, bool trainable_statistics)
+  forward : batch_norm_grad (Tensor x, Tensor scale, Tensor bias, Tensor mean_out, Tensor variance_out, Tensor saved_mean, Tensor saved_variance, Tensor reserve_space, Tensor grad_out, float momentum, float epsilon, str data_format, bool is_test, bool use_global_stats, bool trainable_statistics) -> Tensor(grad_x), Tensor(grad_scale), Tensor(grad_bias)
+  args : (Tensor x, Tensor scale, Tensor mean_out, Tensor variance_out, Tensor saved_mean, Tensor saved_variance, Tensor grad_out,  Tensor grad_x_grad, Tensor grad_scale_grad, Tensor grad_bias_grad, float momentum, float epsilon, str data_format, bool is_test, bool use_global_stats, bool trainable_statistics)
   output : Tensor(x_grad), Tensor(scale_grad), Tensor(grad_out_grad)
   infer_meta :
     func : GeneralTernaryGradInferMeta
@@ -66,7 +66,7 @@
   kernel :
     func : batch_norm_double_grad
     data_type : x
-  optional : scale, out_mean, out_variance, grad_x_grad, grad_scale_grad, grad_bias_grad
+  optional : scale, mean_out, variance_out, grad_x_grad, grad_scale_grad, grad_bias_grad
   inplace : (grad_out -> grad_out_grad)
 
 - backward_op : batch_norm_grad

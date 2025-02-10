@@ -97,7 +97,7 @@ class TestConvAffineChannelFusePass(PassAutoScanTest):
                 "Scale": ["affine_channel_scale"],
                 "Bias": ["affine_channel_bias"],
             },
-            outputs={"Out": ["affine_channel_ouput"]},
+            outputs={"Out": ["affine_channel_output"]},
             data_layout=data_format,
         )
         if has_bias:
@@ -121,7 +121,7 @@ class TestConvAffineChannelFusePass(PassAutoScanTest):
                     data_gen=partial(generate_scale_bias)
                 ),
             },
-            outputs=["affine_channel_ouput"],
+            outputs=["affine_channel_output"],
         )
         if has_bias:
             program_config.weights["conv2d_bias"] = TensorConfig(

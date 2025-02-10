@@ -261,13 +261,13 @@ class Laplace(distribution.Distribution):
                         0.54758132)
         """
         loc, scale, value = self._validate_value(value)
-        iterm = (
+        item = (
             0.5
             * (value - loc).sign()
             * paddle.expm1(-(value - loc).abs() / scale)
         )
 
-        return 0.5 - iterm
+        return 0.5 - item
 
     def icdf(self, value: float | Tensor) -> Tensor:
         r"""Inverse Cumulative distribution function.

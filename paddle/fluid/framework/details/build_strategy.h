@@ -132,7 +132,7 @@ struct BuildStrategy {
 
   // By default, memory_optimize would be opened if gc is disabled, and
   // be closed if gc is enabled.
-  // Users can forcely enable/disable memory_optimize by setting True/False.
+  // Users can forcibly enable/disable memory_optimize by setting True/False.
   paddle::optional<bool> memory_optimize_{paddle::none};
 
   // Turn on inplace by default.

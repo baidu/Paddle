@@ -1103,7 +1103,7 @@ void PSGPUWrapper::FilterPull(std::shared_ptr<HeterContext> gpu_task,
                       nullptr,
                       common::errors::InvalidArgument(
                           "The shard values after deduplication should not "
-                          "be nullptr, but got %d at positon %d.",
+                          "be nullptr, but got %d at position %d.",
                           shard_values[dedup_size],
                           dedup_size));
     ++dedup_size;
@@ -1177,7 +1177,7 @@ void PSGPUWrapper::MergePull(std::shared_ptr<HeterContext> gpu_task) {
   std::vector<std::shared_ptr<paddle::distributed::SparseShardValues>>
       dim_pass_values(multi_mf_dim_, nullptr);
   for (int dim_id = 0; dim_id < multi_mf_dim_; ++dim_id) {
-    auto pass_values = fleet_ptr_->worker_ptr_->TakePassSparseReferedValues(
+    auto pass_values = fleet_ptr_->worker_ptr_->TakePassSparseReferredValues(
         table_id_, gpu_task->pass_id_, dim_id);
     if (pass_values == nullptr) {
       continue;
@@ -1399,7 +1399,7 @@ void PSGPUWrapper::MergeKeys(std::shared_ptr<HeterContext> gpu_task) {
   std::vector<std::shared_ptr<paddle::distributed::SparseShardValues>>
       dim_pass_values(multi_mf_dim_, nullptr);
   for (int dim_id = 0; dim_id < multi_mf_dim_; ++dim_id) {
-    auto pass_values = fleet_ptr_->worker_ptr_->TakePassSparseReferedValues(
+    auto pass_values = fleet_ptr_->worker_ptr_->TakePassSparseReferredValues(
         table_id_, gpu_task->pass_id_, dim_id);
     if (pass_values == nullptr) {
       continue;

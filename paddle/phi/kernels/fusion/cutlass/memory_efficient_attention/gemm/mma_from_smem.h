@@ -179,7 +179,7 @@ class MmaBaseFromSharedMemory {
                               Shape::kK / WarpGemm::kK>;
   using WarpCount1 = WarpCount;
 
-  /// Number of warp-level GEMM oeprations
+  /// Number of warp-level GEMM operations
   static int const kWarpGemmIterations =
       (WarpGemm::kK / Operator::Policy::MmaShape::kK);
   static int const kWarpGemmIterations1 = kWarpGemmIterations;
@@ -426,7 +426,8 @@ class MmaPipelinedFromSharedMemory
   /// Complex transform on B operand
   static ComplexTransform const kTransformB = Operator::kTransformB;
 
-  // staticaly assert kStages for MmaPipelined is two (Double-buffered pipeline)
+  // statically assert kStages for MmaPipelined is two (Double-buffered
+  // pipeline)
   static_assert((Base::kStages == 2),
                 "MmaPipelined requires kStages set to value 2");
 
@@ -531,7 +532,7 @@ class MmaPipelinedFromSharedMemory
 
   // For API compatibility with MmaMultistageFromSharedMemory
   // but not supported as it worsens perf: older gpus < sm80 don't
-  // support async tranfers and have to waste registers
+  // support async transfers and have to waste registers
   CUTLASS_DEVICE
   void set_prologue_done(bool value) {}
   CUTLASS_DEVICE
@@ -1749,13 +1750,13 @@ struct B2bGemm<cutlass::gemm::warp::MmaVoltaTensorOpAccumulatorTileIterator<
   // Those are MmaVoltaTensorOpAccumulatorTileIterator private fields
   // Let's copy their values
   static int const kElementsPerPartial = 4;
-  using EleShapePerPatial = typename cutlass::platform::conditional<
+  using EleShapePerPartial = typename cutlass::platform::conditional<
       cutlass::platform::is_same<Element, float>::value,
       cutlass::MatrixShape<2, 2>,
       cutlass::MatrixShape<1, 4>>::type;
   static int const kElementsPerMma = 8;
-  static int const kAccumulatorPatials = 2;
-  using QuadShapePerPatialMma = cutlass::MatrixShape<4, 4>;
+  static int const kAccumulatorPartials = 2;
+  using QuadShapePerPartialMma = cutlass::MatrixShape<4, 4>;
 
   static void CUTLASS_DEVICE
   accumToSmem(AccumulatorSharedStorage& shared_storage,  // NOLINT
@@ -1773,12 +1774,13 @@ struct B2bGemm<cutlass::gemm::warp::MmaVoltaTensorOpAccumulatorTileIterator<
       accum_m = (((quad & 0x4) >> 1) + (quad & 0x1)) * 8 + (lane_in_quad & 1);
       // (quad[1])+lane_in_quad[1]
       accum_n =
-          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPatials +
+          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPartials +
           (lane_in_quad & 2);
     } else {
       accum_m = (((quad & 0x4) >> 1) + (quad & 0x1)) * 8 +
                 lane_in_quad;  // (quad[2],quad[0])
-      accum_n = ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPatials;
+      accum_n =
+          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPartials;
     }
     cutlass::MatrixCoord lane_offset(accum_m, accum_n);
 
@@ -1787,7 +1789,7 @@ struct B2bGemm<cutlass::gemm::warp::MmaVoltaTensorOpAccumulatorTileIterator<
                           cutlass::MatrixCoord({IteratorC::Shape::kRow,
                                                 IteratorC::Shape::kColumn}));
 
-    using AccessType = cutlass::Array<scalar_t, EleShapePerPatial::kColumn>;
+    using AccessType = cutlass::Array<scalar_t, EleShapePerPartial::kColumn>;
 
     // store - from MmaVoltaTensorOpAccumulatorTileIterator
     CUTLASS_PRAGMA_UNROLL
@@ -1807,20 +1809,20 @@ struct B2bGemm<cutlass::gemm::warp::MmaVoltaTensorOpAccumulatorTileIterator<
                 kElementsPerMma;
 
             CUTLASS_PRAGMA_UNROLL
-            for (int p = 0; p < kAccumulatorPatials; ++p) {
+            for (int p = 0; p < kAccumulatorPartials; ++p) {
               CUTLASS_PRAGMA_UNROLL
-              for (int m = 0; m < EleShapePerPatial::kRow; ++m) {
+              for (int m = 0; m < EleShapePerPartial::kRow; ++m) {
                 int accum_m = tile_m * Policy::InterleavedTile::kRow +
-                              mma_m * QuadShapePerPatialMma::kRow + m * 2;
+                              mma_m * QuadShapePerPartialMma::kRow + m * 2;
                 int accum_n = tile_n * Policy::InterleavedTile::kColumn +
-                              mma_n * QuadShapePerPatialMma::kColumn +
+                              mma_n * QuadShapePerPartialMma::kColumn +
                               p * Policy::InterleavedTile::kColumn / 2;
                 int r = (accum_m + lane_offset.row());
                 AccessType to_store;
                 CUTLASS_PRAGMA_UNROLL
-                for (int n = 0; n < EleShapePerPatial::kColumn; ++n) {
+                for (int n = 0; n < EleShapePerPartial::kColumn; ++n) {
                   int idx = mma_accum_start + p * kElementsPerPartial +
-                            m * EleShapePerPatial::kColumn + n;
+                            m * EleShapePerPartial::kColumn + n;
                   int c = (accum_n + n + lane_offset.column());
                   to_store[n] = scalar_t(accum[idx]);
                 }

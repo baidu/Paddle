@@ -317,12 +317,13 @@ void ConstraintsManager::SubstituteInConstraint(const DimExpr& origin,
     const DimExpr& substituted_dim_expr =
         SubstituteDimExpr(it->first, substitution_pattern);
     if (substituted_dim_expr != it->first) {
-      PADDLE_ENFORCE_EQ(substituted_dim_expr.isa<std::string>() ||
-                            substituted_dim_expr.isa<std::int64_t>(),
-                        true,
-                        common::errors::InvalidArgument(
-                            "Bounded input DimExpr can only be subsituted with "
-                            "a string or an integer."));
+      PADDLE_ENFORCE_EQ(
+          substituted_dim_expr.isa<std::string>() ||
+              substituted_dim_expr.isa<std::int64_t>(),
+          true,
+          common::errors::InvalidArgument(
+              "Bounded input DimExpr can only be substituted with "
+              "a string or an integer."));
       if (substituted_dim_expr.isa<std::int64_t>()) {
         std::int64_t substituted_value =
             substituted_dim_expr.Get<std::int64_t>();

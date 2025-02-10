@@ -25,7 +25,7 @@ class PromptTuningEmbEltwiseLayerNormOpConverter : public OpConverter {
                   bool test_mode) override {
     VLOG(4) << "convert fused_prompt_tuning_embedding_eltwise_layernorm op to "
                "tensorrt layer";
-    // get the presistable var's data
+    // get the persistable var's data
     auto GetWeight = [&](const std::string& var_name,
                          phi::DDim* dim) -> TensorRTEngine::Weight {
       auto* temp_var = scope.FindVar(var_name);

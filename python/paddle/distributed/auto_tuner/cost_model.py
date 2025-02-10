@@ -33,7 +33,7 @@ def to_gb(p):
 
 
 def get_mem(total_cards, parallel_cfg, l, h, a, V, s, gbs):
-    """Estimate the memory of model unser parallel strategy."""
+    """Estimate the memory of model unset parallel strategy."""
     sharding = parallel_cfg["sharding_degree"]
     mp = parallel_cfg["mp_degree"]
     b = parallel_cfg["micro_batch_size"]

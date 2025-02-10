@@ -1047,7 +1047,9 @@ def _complete_grad_op_chunk_id(block, state):
 
     # TODO(Ruibiao): Reorganize these unclear codes about chunk_id
     def get_op_chunk_id(op):
-        if op.dist_attr is None:
+        if op.has_attr("chunk_id"):
+            op_chunk_id = op.chunk_id
+        elif op.dist_attr is None:
             op_chunk_id = -1
             if op.name() in dist_skip_op_list:
                 op_chunk_id = infer_dist_skip_op_chunk_id(op)
@@ -1077,7 +1079,10 @@ def _complete_grad_op_chunk_id(block, state):
         fwd_op_chunk_id = get_op_chunk_id(op)
 
         for bwd_op in state.op_to_opgrad[op]:
-            if bwd_op.dist_attr is None:
+            if op.has_attr("chunk_id"):
+                bwd_op.set_int_attr("chunk_id", op.chunk_id)
+                continue
+            elif bwd_op.dist_attr is None:
                 continue
 
             if bwd_op.name() in ["pd_op.add_", "pd_op.add_n_"]:

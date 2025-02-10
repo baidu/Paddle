@@ -46,7 +46,7 @@ class Partitioner:
     Given a serial program which has been auto completed with shard annotation, the Partitioner
     convert the serial program into a "distributed" program. The Partitioner will  modify the serial
     program in following two ways, which is also the major difference between serial and distributed program:
-        1. partition op: replace a serial op into its corresponding dist op infered from the shard annotation
+        1. partition op: replace a serial op into its corresponding dist op inferred from the shard annotation
         2. partition var: if a var is sharded, modify the shape of var according to its shard annotation
 
     Partitioner is supposed to be call by the auto parallel framework, and not supposed to be directly called by user.

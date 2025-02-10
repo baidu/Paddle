@@ -609,7 +609,7 @@ int GenericPlugin::enqueue(const nvinfer1::PluginTensorDesc* input_desc,
     PADDLE_ENFORCE_EQ(
         _map.count(nv_dtype),
         true,
-        common::errors::InvalidArgument("Sorry, dtyp [ %d ] is not supported.",
+        common::errors::InvalidArgument("Sorry, dtype [ %d ] is not supported.",
                                         static_cast<int>(nv_dtype)));
     return _map.at(nv_dtype);
   };

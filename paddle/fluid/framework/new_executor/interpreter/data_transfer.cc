@@ -476,7 +476,7 @@ void ApplyDataTransform(const OpKernelType& expected_kernel_key,
     }
   }
 
-  bool transfered = false;
+  bool transferred = false;
   DataTransferHelper data_transfer_helper(place, var_scope, local_scope);
   phi::Kernel* phi_kernel = op_func_node->phi_kernel_;
   auto has_infer_varkernel_fn =
@@ -622,7 +622,7 @@ void ApplyDataTransform(const OpKernelType& expected_kernel_key,
           }
 
           if (is_transferred) {
-            transfered = true;
+            transferred = true;
             // update RuntimeContext.inputs and original op_func_node inputs
             op_func_node->input_index[parameter_name][i] =
                 var_scope->VarId(new_var_name);
@@ -733,7 +733,7 @@ void ApplyDataTransform(const OpKernelType& expected_kernel_key,
     }
   }
 
-  if (transfered) {
+  if (transferred) {
     // NOTE(zhiqiu): UPDATE the corresponding OperatorBase to make it consistent
     // with instruction.
     op_base->Inputs() = new_ins;

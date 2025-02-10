@@ -1368,7 +1368,7 @@ void CudaScheduleInjectiveWithVectorize(poly::Stage *stage,
   // the first bind position from tail
   int bind_idx = stage->n_out_dims() - 1;
   // it will add a new dim by split before vectorize, but the new dim will
-  // be eliminated when vectorizing, so the bind_idx does't need to increase
+  // be eliminated when vectorizing, so the bind_idx doesn't need to increase
   if (vector_width > 1) {
     stage->Split(bind_idx, vector_width);
   }

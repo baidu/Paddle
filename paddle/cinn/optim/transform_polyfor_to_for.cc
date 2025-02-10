@@ -126,7 +126,7 @@ struct PolyForWithSimpleConditionToForMutator : public ir::IRMutator<Expr*> {
         auto sub = lt->a().As<ir::Sub>();
         node->condition = ir::LT::Make(sub->a(), sub->b());
       } else {
-        PADDLE_THROW(::common::errors::InvalidArgument("Unkown Type!"));
+        PADDLE_THROW(::common::errors::InvalidArgument("Unknown Type!"));
       }
 
       lt_n = node->condition.As<ir::LT>();
@@ -136,7 +136,7 @@ struct PolyForWithSimpleConditionToForMutator : public ir::IRMutator<Expr*> {
 
     Expr lhs = lt_n ? lt_n->a() : le_n->a();
     Expr rhs = lt_n ? lt_n->b() : PlusOneWithMinMax(le_n->b());
-    rhs = cinn::optim::ArithSimplify(rhs);
+    rhs = cinn::common::AutoSimplify(rhs);
 
     if (op->is_vectorized())
       PADDLE_ENFORCE_EQ(

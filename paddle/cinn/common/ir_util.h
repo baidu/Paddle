@@ -240,7 +240,7 @@ bool ComparePriority(const ir::IndexExpr &lhs, const ir::IndexExpr &rhs);
 /*!
  * \brief Determines whether there are sub-parts in the `expr` that can be
  * simplified by `Add` operation with the input `symbol`. If true is returned,
- * the operation will be attempted on each subpart in outter
+ * the operation will be attempted on each subpart in outer
  * `SimplifySymbolicAdd` function.
  *
  * For example:
@@ -271,45 +271,45 @@ bool IsSumPartialBySymbol(const ir::IndexExpr &expr,
  * \param lhs The expression to be simplified.
  * \param sym  The symbol to be checked.
  *    it may be `i, j ..` or  `S0, S1 ..` or other symbolic expr.
- * \param outter_mul_factor The scale of symbolic expr.
- *    e.g. `S0 * 4` ===> sym == S0, outter_mul_factor == 4
+ * \param outer_mul_factor The scale of symbolic expr.
+ *    e.g. `S0 * 4` ===> sym == S0, outer_mul_factor == 4
  * \return The expr after simplification.
  */
 ir::IndexExpr SimplifySymbolicAdd(
     const ir::IndexExpr &lhs,
     const ir::IndexExpr &sym,
-    const ir::IndexExpr &outter_mul_factor = ir::IndexExpr(1));
+    const ir::IndexExpr &outer_mul_factor = ir::IndexExpr(1));
 
 /*!
  * \brief Determines whether there are sub-parts in the `expr` that can be
  * simplified by `Div` operation with the input `symbol`. If true is returned,
- * the operation will be attempted on each subpart in outter
+ * the operation will be attempted on each subpart in outer
  * `SimplifySymbolicDivide` function.
  *
  * For example:
- * 1. `IsDivisiblieBySymbol(5, S0, div)` return false;
- * 2. `IsDivisiblieBySymbol(S0, S0, div)` return true;
- * 3. `IsDivisiblieBySymbol(S0 + S1, S1, div)` return false;
- * 4. `IsDivisiblieBySymbol(S0 * 5 + S1 * S2, S0, div)` return true;
- * 5. `IsDivisiblieBySymbol(S0 / 3, S0, div)` return true;
- * 6. `IsDivisiblieBySymbol(S0 * 4 / 3, S0, div)` return true;
- * 7. `IsDivisiblieBySymbol(S0 % 3, S0, div)` return false;
- * 8. `IsDivisiblieBySymbol(S0 / 3, S0, mod)` return false;
+ * 1. `IsDivisibleBySymbol(5, S0, div)` return false;
+ * 2. `IsDivisibleBySymbol(S0, S0, div)` return true;
+ * 3. `IsDivisibleBySymbol(S0 + S1, S1, div)` return false;
+ * 4. `IsDivisibleBySymbol(S0 * 5 + S1 * S2, S0, div)` return true;
+ * 5. `IsDivisibleBySymbol(S0 / 3, S0, div)` return true;
+ * 6. `IsDivisibleBySymbol(S0 * 4 / 3, S0, div)` return true;
+ * 7. `IsDivisibleBySymbol(S0 % 3, S0, div)` return false;
+ * 8. `IsDivisibleBySymbol(S0 / 3, S0, mod)` return false;
  *
  * \param expr The expression to be checked.
  * \param symbol  The symbol to be checked.
  * \param ty ty is `Mod` or `Div`.
  * \return True means there are sub-parts in the `expr` that can be simplified.
  * \note this func dont deal the corner case, please use `ProveDivisible` for
- * exact result. e.g. `IsDivisiblieBySymbol(f % S0 - f, S0, div)` is false
+ * exact result. e.g. `IsDivisibleBySymbol(f % S0 - f, S0, div)` is false
  */
-bool IsDivisiblieBySymbol(const ir::IndexExpr &expr,
-                          const ir::IndexExpr &symbol,
-                          const ir::IrNodeTy &ty);
+bool IsDivisibleBySymbol(const ir::IndexExpr &expr,
+                         const ir::IndexExpr &symbol,
+                         const ir::IrNodeTy &ty);
 
 /*!
  * \brief Simplify the `lhs` by symbol `sym`. Usually run after
- * `IsDivisiblieBySymbol`
+ * `IsDivisibleBySymbol`
  *
  * \param lhs The expression to be simplified.
  * \param sym  The symbol to be checked.
@@ -381,5 +381,38 @@ enum IndexType {
  * information in some scenarios.
  */
 IndexType VerifyIndex(const ir::Expr &expr);
+
+/*!
+ * \brief The multiplication in rhs is broken down and each sub-part is
+ * independently determined to be divisible.
+ * \param lhs The dividend.
+ * \param rhs The divisor.
+ * \param ty  ty is `Mod` or `Div`.
+ * \return A optional index expression indicating whether the `lhs`
+ * is divisible, nullopt indicating not divisible.
+ *
+ * For example:
+ * 1. i * S0 * S1 * S2 / (S0 * S1) ==> i / S2
+ * 2. i * S0 * S1 / S0 ==> i * S1
+ * 3. i * S0 / (S0 + 1) ==> nullopt
+ */
+std::optional<ir::IndexExpr> DivByPartMul(const ir::IndexExpr &lhs,
+                                          const ir::IndexExpr &rhs,
+                                          ir::IrNodeTy ty);
+
+/*!
+ * \brief Simplify complex modulo expressions.
+ * \param lhs The dividend.
+ * \param rhs The divisor.
+ * \return A optional index expression indicating whether simplified
+ *
+ * For example:
+ * 1. (i / S0 * S0 + i % (S0 * S1)) % S0 ==> i % S0
+ * 2. (i / S0 * S0 * S1 + i % (S0 * S1 * S2)) % (S0 * S1) ==> i % (S0 * S1)
+ * 3. i % (S0 * S1) % S0 ==> i % S0
+ * 4. i * S0 * S1 % (S0 * S1) ==> 0
+ */
+std::optional<ir::IndexExpr> SimplifyComplexMod(const ir::IndexExpr &lhs,
+                                                const ir::IndexExpr &rhs);
 }  // namespace common
 }  // namespace cinn

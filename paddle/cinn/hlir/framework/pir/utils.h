@@ -144,7 +144,7 @@ enum class ScheduleAlignType : int {
 };
 
 struct ScheduleInfoNode {
-  // TOOD(phlrain): update align type by new loop alignment
+  // TODO(phlrain): update align type by new loop alignment
   ScheduleAlignType type{ScheduleAlignType::kNone};
 
   // reduction or broadcast axis locations

@@ -246,9 +246,9 @@ class Collective:
 
             ring_id = (ring_id + 1) % self.nrings
             block.append_op(
-                type='c_broadcast',
-                inputs={'X': param},
-                outputs={'Out': param},
+                type='broadcast',
+                inputs={'x': param},
+                outputs={'out': param},
                 attrs={
                     'ring_id': ring_id,
                     'root': 0,
@@ -352,17 +352,16 @@ class GradAllReduce(Collective):
                         )
                         offset += 1
 
-                    # As we search ops reversely, we should insert all_reduce sum
+                    # As we search ops reversely, we should insert c_allreduce_sum
                     # op in the same way to keep the ring_id alternate
                     ring_id = (ring_id + 1) % self.nrings
                     block._insert_op(
                         offset,
-                        type='all_reduce',
-                        inputs={'x': grad},
-                        outputs={'out': grad},
+                        type='c_allreduce_sum',
+                        inputs={'X': grad},
+                        outputs={'Out': grad},
                         attrs={
                             'ring_id': ring_id,
-                            'reduce_type': paddle.distributed.ReduceOp.SUM,
                             self.op_role_key: OpRole.Backward,
                         },
                     )
@@ -455,12 +454,11 @@ class LocalSGD(Collective):
                 ring_id = (ring_id + 1) % self.nrings
                 block._insert_op(
                     idx + 3,
-                    type='all_reduce',
-                    inputs={'x': [param]},
-                    outputs={'out': [param]},
+                    type='c_allreduce_sum',
+                    inputs={'X': [param]},
+                    outputs={'Out': [param]},
                     attrs={
                         'ring_id': ring_id,
-                        'reduce_type': paddle.distributed.ReduceOp.SUM,
                         self.op_role_key: OpRole.Optimize,
                     },
                 )
@@ -703,14 +701,10 @@ class SingleProcessMultiThread(GradAllReduce):
             ring_id = (ring_id + 1) % self.nrings
             block._insert_op(
                 global_offset,
-                type='all_reduce',
-                inputs={'x': fused_output},
-                outputs={'out': fused_output},
-                attrs={
-                    'ring_id': ring_id,
-                    'reduce_type': paddle.distributed.ReduceOp.SUM,
-                    self.op_role_key: OpRole.Backward,
-                },
+                type='c_allreduce_sum',
+                inputs={'X': fused_output},
+                outputs={'Out': fused_output},
+                attrs={'ring_id': ring_id, self.op_role_key: OpRole.Backward},
             )
             global_offset += 1
 
@@ -1019,18 +1013,18 @@ class MultiThread(GradAllReduce):
                     )
                 break
 
-        # insert the all_reduce sum op
+        # insert the allreduce_sum op
         for idx, op in enumerate(block.ops):
             if self._is_optimizer_op(op):
                 for fused_var in fused_vars:
                     block._insert_op(
                         idx,
-                        type='all_reduce',
-                        inputs={'x': fused_var},
-                        outputs={'out': fused_var},
+                        type='c_allreduce_sum',
+                        inputs={'X': fused_var},
+                        outputs={'Out': fused_var},
                         attrs={
                             'ring_id': ring_id,
-                            'reduce_type': paddle.distributed.ReduceOp.SUM,
+                            'use_calc_stream': False,
                             self.op_role_key: OpRole.Backward,
                         },
                     )

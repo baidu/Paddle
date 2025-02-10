@@ -108,9 +108,9 @@ int LayerNormShiftPartitionFusePass::ApplyPattern(ir::Graph* graph,
           "nullptr."));
   FusePassBase::Init(scope_name_, graph);
   GraphPatternDetector gpd;
-  patterns::LayernormShiftPartitionPattern shift_patition_pattern(
+  patterns::LayernormShiftPartitionPattern shift_partition_pattern(
       gpd.mutable_pattern(), scope_name_, with_roll);
-  shift_patition_pattern();
+  shift_partition_pattern();
   int found_count = 0;
   auto handler = [&](const GraphPatternDetector::subgraph_t& subgraph,
                      Graph* g) {
@@ -126,40 +126,45 @@ int LayerNormShiftPartitionFusePass::ApplyPattern(ir::Graph* graph,
                  "roll op";
     }
     GET_IR_NODE_FROM_SUBGRAPH(
-        layer_norm_in, layer_norm_in, shift_patition_pattern);
+        layer_norm_in, layer_norm_in, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        layer_norm_op, layer_norm_op, shift_patition_pattern);
+        layer_norm_op, layer_norm_op, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        layer_norm_bias, layer_norm_bias, shift_patition_pattern);
+        layer_norm_bias, layer_norm_bias, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        layer_norm_scale, layer_norm_scale, shift_patition_pattern);
+        layer_norm_scale, layer_norm_scale, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        layer_norm_out, layer_norm_out, shift_patition_pattern);
-    GET_IR_NODE_FROM_SUBGRAPH(reshape1_op, reshape1_op, shift_patition_pattern);
+        layer_norm_out, layer_norm_out, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        reshape1_out, reshape1_out, shift_patition_pattern);
+        reshape1_op, reshape1_op, shift_partition_pattern);
+    GET_IR_NODE_FROM_SUBGRAPH(
+        reshape1_out, reshape1_out, shift_partition_pattern);
     Node* roll1_op = nullptr;
     Node* roll1_out = nullptr;
     if (with_roll) {
-      GET_IR_NODE_FROM_SUBGRAPH(tmp_roll1_op, roll1_op, shift_patition_pattern);
       GET_IR_NODE_FROM_SUBGRAPH(
-          tmp_roll1_out, roll1_out, shift_patition_pattern);
+          tmp_roll1_op, roll1_op, shift_partition_pattern);
+      GET_IR_NODE_FROM_SUBGRAPH(
+          tmp_roll1_out, roll1_out, shift_partition_pattern);
       roll1_op = tmp_roll1_op;
       roll1_out = tmp_roll1_out;
     }
-    GET_IR_NODE_FROM_SUBGRAPH(reshape2_op, reshape2_op, shift_patition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        reshape2_out, reshape2_out, shift_patition_pattern);
+        reshape2_op, reshape2_op, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        transpose_op, transpose_op, shift_patition_pattern);
+        reshape2_out, reshape2_out, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        transpose_out, transpose_out, shift_patition_pattern);
-    GET_IR_NODE_FROM_SUBGRAPH(reshape3_op, reshape3_op, shift_patition_pattern);
+        transpose_op, transpose_op, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        reshape3_out, reshape3_out, shift_patition_pattern);
-    GET_IR_NODE_FROM_SUBGRAPH(reshape4_op, reshape4_op, shift_patition_pattern);
+        transpose_out, transpose_out, shift_partition_pattern);
     GET_IR_NODE_FROM_SUBGRAPH(
-        reshape4_out, reshape4_out, shift_patition_pattern);
+        reshape3_op, reshape3_op, shift_partition_pattern);
+    GET_IR_NODE_FROM_SUBGRAPH(
+        reshape3_out, reshape3_out, shift_partition_pattern);
+    GET_IR_NODE_FROM_SUBGRAPH(
+        reshape4_op, reshape4_op, shift_partition_pattern);
+    GET_IR_NODE_FROM_SUBGRAPH(
+        reshape4_out, reshape4_out, shift_partition_pattern);
     std::unordered_set<const Node*> del_node_set = {layer_norm_op,
                                                     layer_norm_out,
                                                     reshape1_op,

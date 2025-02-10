@@ -361,7 +361,7 @@ class NameScope:
                 warnings.warn(
                     f"Find variable `{var}` defined in global scope"
                     f" and call `{var}.append() or {var}.pop()`"
-                    f", which will be ignored and never be transfered into"
+                    f", which will be ignored and never be transferred into"
                     f" tensor array."
                 )
             else:

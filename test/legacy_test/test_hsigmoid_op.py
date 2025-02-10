@@ -282,7 +282,7 @@ class TestHSigmoidOpSparse(OpTest):
 
 
 @skip_check_grad_ci(
-    reason="[skip shape check] The huffman tree is structed separately. It will be complicated if use large shape."
+    reason="[skip shape check] The huffman tree is structured separately. It will be complicated if use large shape."
 )
 class TestHSigmoidOpWithCustomTree(OpTest):
     def setUp(self):
@@ -343,7 +343,7 @@ class TestHSigmoidOpWithCustomTree(OpTest):
 
 
 @skip_check_grad_ci(
-    reason="[skip shape check] The huffman tree is structed separately. It will be complicated if use large shape."
+    reason="[skip shape check] The huffman tree is structured separately. It will be complicated if use large shape."
 )
 class TestHSigmoidOpWithCustomTreeWithoutBias(OpTest):
     def setUp(self):

@@ -85,6 +85,7 @@ find_package_and_include(rocprim)
 find_package_and_include(hipsparse)
 find_package_and_include(rocsparse)
 find_package_and_include(rocfft)
+find_package_and_include(rocsolver)
 
 if(CCACHE_PATH)
   set(HIP_HIPCC_EXECUTABLE ${CCACHE_PATH} ${HIP_HIPCC_EXECUTABLE})

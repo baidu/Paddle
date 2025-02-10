@@ -328,7 +328,7 @@ void cublaslt_fp8_fp8_fp16_gemm(
     PADDLE_ENFORCE_EQ(bias->dims()[0] == n,
                       true,
                       common::errors::InvalidArgument(
-                          "FP8 gemm bias_vecotr_dim needs to equal "
+                          "FP8 gemm bias_vector_dim needs to equal "
                           "to n, n = %d, but bias_vector_dim = %d",
                           n,
                           bias->dims()[0]));
@@ -385,7 +385,7 @@ void cublaslt_fp8_fp8_bf16_gemm(
     PADDLE_ENFORCE_EQ(bias->dims()[0] == n,
                       true,
                       common::errors::InvalidArgument(
-                          "FP8 gemm bias_vecotr_dim needs to equal "
+                          "FP8 gemm bias_vector_dim needs to equal "
                           "to n, n = %d, but bias_vector_dim = %d",
                           n,
                           bias->dims()[0]));

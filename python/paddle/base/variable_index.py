@@ -910,7 +910,7 @@ def _getitem_static(x, indices):
 
 def parse_bool_and_broadcast_indices(indices):
     # deal with multiple Tensors and translating bool tensor to int tensor.
-    # In static mode, bool-tensor cannot be broadcasted since its corresponding int tensor's shape cannot be infered.
+    # In static mode, bool-tensor cannot be broadcasted since its corresponding int tensor's shape cannot be inferred.
     for i, indice in enumerate(indices):
         if (
             indice.dtype == paddle.bool

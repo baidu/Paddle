@@ -1888,9 +1888,9 @@ class ConvNormActivation(Sequential):
             in which case it will calculated as ``padding = (kernel_size - 1) // 2 * dilation``
         groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1
         norm_layer (Callable[..., paddle.nn.Layer], optional): Norm layer that will be stacked on top of the convolution layer.
-            If ``None`` this layer wont be used. Default: ``paddle.nn.BatchNorm2D``
+            If ``None`` this layer won't be used. Default: ``paddle.nn.BatchNorm2D``
         activation_layer (Callable[..., paddle.nn.Layer], optional): Activation function which will be stacked on top of the normalization
-            layer (if not ``None``), otherwise on top of the conv layer. If ``None`` this layer wont be used. Default: ``paddle.nn.ReLU``
+            layer (if not ``None``), otherwise on top of the conv layer. If ``None`` this layer won't be used. Default: ``paddle.nn.ReLU``
         dilation (int): Spacing between kernel elements. Default: 1
         bias (bool|None, optional): Whether to use bias in the convolution layer. By default, biases are included if ``norm_layer is None``.
     """

@@ -129,7 +129,7 @@ class TestMnist(unittest.TestCase):
             x = paddle.to_tensor(x)
             y = paddle.to_tensor(y)
 
-            # using amp.auto_cast because paddle.nn.Conv2D doesn't suppport setting dtype
+            # using amp.auto_cast because paddle.nn.Conv2D doesn't support setting dtype
             with paddle.amp.auto_cast(dtype='float16'):
                 loss = model(x, y)
             print(loss.numpy())

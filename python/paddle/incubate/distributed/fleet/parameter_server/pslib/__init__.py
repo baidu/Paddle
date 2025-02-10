@@ -423,7 +423,7 @@ class PSLib(Fleet):
 
     def save_persistables(self, executor, dirname, main_program=None, **kwargs):
         """
-        Save presistable parameters,
+        Save persistable parameters,
         when using fleet, it will save sparse and dense feature.
 
         Args:

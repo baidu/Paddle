@@ -898,7 +898,7 @@ PHI_DEFINE_EXPORTED_bool(enable_neighbor_list_use_uva,
  */
 PHI_DEFINE_EXPORTED_double(graph_neighbor_size_percent,
                            1.0,
-                           "It controls whether precent of neighbor_size.");
+                           "It controls whether percent of neighbor_size.");
 
 /**
  * Distributed related FLAG
@@ -1059,46 +1059,6 @@ PHI_DEFINE_EXPORTED_int64(
     cinn_compile_thread_num,
     -1,
     "It controls how many thread numbers applying compilation cache.");
-/*
- * CINN related FLAG
- * Name: FLAGS_enable_interpretercore_launch_cinn
- * Since Version: 2.4
- * Value Range: bool, default=true
- * Example: FLAGS_enable_interpretercore_launch_cinn=true would execute the CINN
- * compiled instructions of a paddle graph with InterpreterCore, otherwise with
- * the CINN compiled runtime program in sequential order.
- */
-PHI_DEFINE_EXPORTED_bool(enable_interpretercore_launch_cinn,
-                         true,
-                         "It controls whether to execute cinn compiled "
-                         "program with InterpreterCore");
-
-/*
- * CINN related FLAG
- * Name: FLAGS_enable_cinn_auto_tune
- * Since Version: 2.3
- * Value Range: bool, default=false
- * Example: FLAGS_enable_cinn_auto_tune=true would use CINN with its
- * auto-tune feature enabled
- */
-PHI_DEFINE_EXPORTED_bool(enable_cinn_auto_tune,
-                         false,
-                         "It controls whether to use cinn with "
-                         "its auto-tune feature enabled");
-
-/*
- * CINN related FLAG
- * Name: FLAGS_cinn_subgraph_graphviz_dir
- * Since Version: 2.3
- * Value Range: string, default=""
- * Example: FLAGS_cinn_subgraph_graphviz_dir="./cinn_graph/" will save the
- * CINN sub-graph into "./cinn_graph/", and each sub-graph will save into
- * "fusion_groups_*"" directory
- */
-PHI_DEFINE_EXPORTED_string(cinn_subgraph_graphviz_dir,
-                           "",
-                           "Specify the directory path of dot file of "
-                           "graph, which is used for debug.");
 
 /*
  * CINN related FLAG
@@ -1574,6 +1534,18 @@ PHI_DEFINE_EXPORTED_bool(enable_pir_in_executor,
                          "Enable PIR in executor");
 
 /**
+ * Using PIR API in Python
+ * Name: enable_custom_engine
+ * Since Version: 3.0.0
+ * Value Range: bool, default=false
+ * Example:
+ * Note: If True, CustomDevice can use subgraph engine optimize
+ */
+PHI_DEFINE_EXPORTED_string(enable_custom_engine,
+                           "",
+                           "Set CustomDevice subgraph engine translate pass");
+
+/**
  * Using PIR by translating legacy program to pir program
  * for dy2st mode  FLAG
  * Name: enable_pir_in_executor
@@ -1897,7 +1869,7 @@ PHI_DEFINE_EXPORTED_string(cublaslt_device_best_config,
                            "offline in cublaslt gemm.");
 
 /**
- * Wether to use xqa optim in block_multihead_attention kernel (GQA)
+ * Whether to use xqa optim in block_multihead_attention kernel (GQA)
  * Name: use_xqa_optim
  * Since Version: 3.0.0
  * Value Range: bool, default=false
@@ -1917,7 +1889,7 @@ PHI_DEFINE_EXPORTED_string(
     mkl_dir,  // NOLINT
     "",
     "Specify path for loading libmkl_rt.so. "
-    "For insrance, /opt/intel/oneapi/mkl/latest/lib/intel64/."
+    "For instance, /opt/intel/oneapi/mkl/latest/lib/intel64/."
     "If default, "
     "dlopen will search mkl from LD_LIBRARY_PATH");
 
@@ -2000,7 +1972,7 @@ PHI_DEFINE_EXPORTED_int32(
  * Name: enable_auto_parallel_align_mode
  * Since Version: 3.0.0
  * Value Range: bool, default=false
- * Note: Just used for testing. Do not use in model trainning.
+ * Note: Just used for testing. Do not use in model training.
  */
 PHI_DEFINE_EXPORTED_bool(enable_auto_parallel_align_mode,
                          false,

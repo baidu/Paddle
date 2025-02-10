@@ -15,6 +15,8 @@
 import logging
 import os
 
+import numpy as np
+
 import paddle
 
 try:
@@ -23,6 +25,7 @@ except Exception as e:
     pass
 from paddle import pir
 from paddle.base.log_helper import get_logger
+from paddle.pir.core import _PADDLE_PIR_DTYPE_2_NUMPY_DTYPE
 
 _logger = get_logger(
     __name__, logging.INFO, fmt='%(asctime)s-%(levelname)s: %(message)s'
@@ -49,32 +52,61 @@ def map_dtype(pd_dtype):
         raise TypeError(f"Unsupported dtype: {pd_dtype}")
 
 
-def run_pir_pass(program, partition_mode=False, disable_passes=[], scope=None):
+def all_ops_into_trt(program):
+    for op in program.global_block().ops:
+        if (
+            op.name() == "pd_op.fetch"
+            or op.name() == "pd_op.data"
+            or op.name().split('.')[0] == "builtin"
+        ):
+            continue
+        if op.has_attr("__l_trt__") is False:
+            return False
+        if op.attrs()["__l_trt__"] is False:
+            return False
+    _logger.info("All ops convert to trt.")
+    return True
+
+
+def run_pir_pass(program, disable_passes=[], scope=None):
+    def _add_pass_(pm, passes, disable_passes):
+        for pass_item in passes:
+            for pass_name, pass_attr in pass_item.items():
+                if pass_name in disable_passes:
+                    continue
+                pm.add_pass(pass_name, pass_attr)
+
     pm = pir.PassManager(opt_level=4)
     pm.enable_print_statistics()
     paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
     if scope is None:
         scope = paddle.static.global_scope()
     place = paddle.CUDAPlace(0)
+
+    # run marker pass
     passes = [
         {'trt_op_marker_pass': {}},
-        {
-            'constant_folding_pass': {
-                "__place__": place,
-                "__param_scope__": scope,
-            }
-        },
-        {'conv2d_add_fuse_pass': {}},
-        {'trt_op_marker_pass': {}},  # for fusion op
     ]
-    if partition_mode:
-        passes = [{'trt_sub_graph_extract_pass': {}}]
+    _add_pass_(pm, passes, disable_passes)
+    pm.run(program)
 
-    for pass_item in passes:
-        for pass_name, pass_attr in pass_item.items():
-            if pass_name in disable_passes:
-                continue
-            pm.add_pass(pass_name, pass_attr)
+    # run other passes
+    pm.clear()
+    passes = []
+    if all_ops_into_trt(program):
+        # only run constant_folding_pass when all ops into trt
+        passes.append(
+            {
+                'constant_folding_pass': {
+                    "__place__": place,
+                    "__param_scope__": scope,
+                }
+            }
+        )
+
+        passes.append({'conv2d_add_fuse_pass': {}})
+    passes.append({'trt_op_marker_pass': {}})  # for op that created by pass
+    _add_pass_(pm, passes, disable_passes)
     pm.run(program)
 
     # delete unused op
@@ -83,6 +115,15 @@ def run_pir_pass(program, partition_mode=False, disable_passes=[], scope=None):
             if op.results()[0].use_empty():
                 program.global_block().remove_op(op)
 
+    return program
+
+
+def run_trt_partition(program):
+    pm = pir.PassManager(opt_level=4)
+    pm.enable_print_statistics()
+    paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
+    pm.add_pass("trt_sub_graph_extract_pass", {})
+    pm.run(program)
     return program
 
 
@@ -198,6 +239,28 @@ class TensorRTConfigManager:
         return []
 
 
+class TensorRTConstantManager:
+    _instance = None
+
+    def __new__(cls, trt_config=None):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+            cls._instance.constant_dict = {}
+        return cls._instance
+
+    def set_constant_value(self, name, tensor_data, value):
+        out_dtype = np.dtype(_PADDLE_PIR_DTYPE_2_NUMPY_DTYPE[value.dtype])
+        if out_dtype == np.dtype("float64"):
+            out_dtype = np.dtype("float32")
+        if out_dtype == np.dtype("int64"):
+            out_dtype = np.dtype("int32")
+        constant_array = np.array(tensor_data, dtype=out_dtype)
+        self.constant_dict.update({name: constant_array})
+
+    def get_constant_value(self, name):
+        return self.constant_dict[name]
+
+
 # In TensorRT FP16 inference, this function sets the precision of specific
 # operators to FP32, ensuring numerical accuracy for these operations.
 def support_fp32_mix_precision(op_type, layer, trt_config=None):
@@ -220,10 +283,10 @@ def weight_to_tensor(network, paddle_value, trt_tensor, use_op_name):
         "pd_op.depthwise_conv2d_transpose",
         "pd_op.fused_conv2d_add_act",
         "pd_op.affine_channel",
+        "pd_op.fused_bias_dropout_residual_layer_norm",
+        "pd_op.deformable_conv",
     ]
     if use_op_name in forbid_cast_op:
-        return trt_tensor
-    if paddle_value.get_defining_op().name() == "builtin.constant":
         return trt_tensor
     input_shape = paddle_value.shape
     if type(trt_tensor) == trt.Weights:

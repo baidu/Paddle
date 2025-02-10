@@ -181,7 +181,7 @@ paddle::Tensor CallScalarFunction(const paddle::Tensor& self_tensor,
                                   std::string op_type) {
   paddle::Tensor ret;
   SetPythonStack();
-  // scale_ad_func need sclar and bias with float type.
+  // scale_ad_func need scalar and bias with float type.
   if (op_type == "add" || op_type == "radd") {
     ret = scale_ad_func(self_tensor, phi::Scalar(1.0), other, true);
   } else if (op_type == "sub") {

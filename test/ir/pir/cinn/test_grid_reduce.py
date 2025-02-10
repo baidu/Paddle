@@ -18,15 +18,18 @@ import numpy
 import utils
 
 import paddle
+from paddle.static import InputSpec
 
 
 class TestGridReduce(unittest.TestCase):
-    def eval(self, dy_compute, init_inputs):
+    def eval(self, dy_compute, init_inputs, input_spec=None):
         paddle.seed(2024)
         inputs = init_inputs()
         dy_out = dy_compute(*inputs)
 
-        static_compute = utils.apply_to_static(dy_compute, use_cinn=True)
+        static_compute = utils.apply_to_static(
+            dy_compute, use_cinn=True, input_spec=input_spec
+        )
         st_out = static_compute(*inputs)
 
         for a, b in zip(
@@ -49,7 +52,7 @@ class TestGridReduce(unittest.TestCase):
             return paddle.sum(x, axis=(0, 2, 3))
 
         def init():
-            x = paddle.randn([64, 128, 56, 56])
+            x = paddle.randn([64, 8, 56, 56])
             return (x,)
 
         self.eval(func, init)
@@ -75,7 +78,7 @@ class TestGridReduce(unittest.TestCase):
             return mean_x2 - mean_x_2
 
         def init():
-            x = paddle.randn([512, 256, 14, 14])
+            x = paddle.randn([512, 8, 14, 14])
             return (x,)
 
         self.eval(func, init)
@@ -91,6 +94,30 @@ class TestGridReduce(unittest.TestCase):
             return a, b
 
         self.eval(func, init)
+
+    def test_continuous_reduce_dynamic_rd(self):
+        def func(x):
+            return paddle.sum(x, axis=(0, 2, 3))
+
+        def init():
+            x = paddle.randn([500, 3, 20, 20])
+            return (x,)
+
+        input_spec = [InputSpec([-1, 3, -1, -1])]
+
+        self.eval(func, init, input_spec)
+
+    def test_discrete_reduce_dynamic_rd(self):
+        def func(x):
+            return paddle.sum(x, axis=(0, 1, 2))
+
+        def init():
+            x = paddle.randn([96, 15, 20, 100])
+            return (x,)
+
+        input_spec = [InputSpec([96, -1, -1, 100])]
+
+        self.eval(func, init, input_spec)
 
 
 if __name__ == "__main__":

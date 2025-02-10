@@ -37,12 +37,12 @@ SpmdInfo AddNInferSpmd(
         input_ndim,
         ndim,
         common::errors::InvalidArgument("AddNInferSpmd, The all input's rank "
-                                        "shoule be the same as first input."));
+                                        "should be the same as first input."));
     PADDLE_ENFORCE_EQ(ndim,
                       input_dims_mapping.size(),
                       common::errors::InvalidArgument(
                           "AddNInferSpmd, The all input's dimmapping size "
-                          "shoule be the same as first input."));
+                          "should be the same as first input."));
     tensor_axes_to_dim_pairs.push_back(
         std::make_pair(axes, input_dims_mapping));
   }

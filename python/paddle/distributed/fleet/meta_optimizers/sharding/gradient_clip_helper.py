@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import paddle
 from paddle.distributed.fleet.meta_optimizers.common import OP_ROLE_KEY, OpRole
 
 __all__ = []
@@ -119,13 +120,13 @@ class GradientClipHelper:
                     # this allreduce should not overlap with calc and should be scheduled in calc stream
                     block._insert_op_without_sync(
                         idx + idx_offset,
-                        type='c_allreduce_sum',
-                        inputs={'X': sum_res},
-                        outputs={'Out': sum_res},
+                        type='all_reduce',
+                        inputs={'x': sum_res},
+                        outputs={'out': sum_res},
                         attrs={
                             'ring_id': ring_id,
                             'op_namescope': "/gradient_clip_model_parallelism",
-                            'use_calc_stream': True,
+                            'reduce_type': paddle.distributed.ReduceOp.Sum,
                             OP_ROLE_KEY: OpRole.Optimize,
                         },
                     )

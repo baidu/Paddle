@@ -36,7 +36,7 @@ RUN if [ "$package" ]; then \
         echo ">>> decode package:"; \
         echo "$pkgs"; \
         for nm in $pkgs; do \
-            echo ">>> intall package: $nm"; \
+            echo ">>> install package: $nm"; \
             apk add --no-cache --force-overwrite "$nm"; \
         done; \
     fi

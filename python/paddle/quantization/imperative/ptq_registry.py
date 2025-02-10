@@ -105,7 +105,7 @@ class PTQRegistry:
         Args:
             layer(Layer): The input layer can be a python class or an instance.
         Returns:
-            flag(bool): Wether the layer is register layer_info.
+            flag(bool): Whether the layer is register layer_info.
         """
         cls._init()
         return layer in cls.registered_layers_map or isinstance(

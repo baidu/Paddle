@@ -178,8 +178,8 @@ def parse_candidates(s: str) -> dict[str, Any]:
 
 def parse_plain_list(s: str, sep=",") -> list[str]:
     if sep == ",":
-        patten = re.compile(r',(?![^{]*\})')  # support "int[] a={1,2}"
-        items = re.split(patten, s.strip())
+        pattern = re.compile(r',(?![^{]*\})')  # support "int[] a={1,2}"
+        items = re.split(pattern, s.strip())
         items = [x.strip() for x in items]
         return items
     else:

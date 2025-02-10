@@ -16,9 +16,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from paddle.jit.sot.opcode_translator.executor.variables.base import (
+    VariableBase,
+)
+
 from ....utils import BreakGraphError, FallbackError
 from ..tracker import ConstTracker, DummyTracker
-from .base import VariableBase, VariableFactory
+from .base import VariableFactory
 from .basic import ConstantVariable
 from .container import ContainerVariable, TupleVariable
 
@@ -49,6 +53,16 @@ class IterVariable(VariableBase):
 
     def get_iter(self):
         return self
+
+    def flatten_inner_vars(self) -> list[VariableBase]:
+        holds = self.hold
+        if not isinstance(holds, list):
+            holds = [holds]
+        return [
+            inner_var
+            for hold in holds
+            for inner_var in hold.flatten_inner_vars()
+        ]
 
 
 class SequenceIterVariable(IterVariable):

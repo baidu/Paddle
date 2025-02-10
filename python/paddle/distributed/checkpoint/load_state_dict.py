@@ -82,7 +82,12 @@ def get_checkpoint_files(path, use_cache=True, unique_id=None):
 
 
 def get_rank_to_files(
-    metadata_list, local_data_files, state_dict, process_group, use_dist
+    metadata_list,
+    local_data_files,
+    state_dict,
+    process_group,
+    use_dist,
+    mw_name_compatibility=True,
 ):
     """
     Get the mapping of rank to its accessible files.
@@ -91,6 +96,7 @@ def get_rank_to_files(
     # The necessary files to be read
     tensor_key_list = []
     necessary_files = []
+    mw_name_compatibility_mapping = {}
 
     for metadata in metadata_list:
         for local_tensor_index, file_name in metadata.storage_metadata.items():
@@ -119,7 +125,7 @@ def get_rank_to_files(
             "No necessary data files found in the checkpoint directory. Please check the metadata."
         )
         missing_keys = set(state_dict.keys())
-        return {}, missing_keys
+        return {}, missing_keys, mw_name_compatibility_mapping
 
     # allgather all accessible files
     global_data_files = []
@@ -143,9 +149,18 @@ def get_rank_to_files(
     ), f"The checkpoint files are not complete. Please check the checkpoint directory. global_data_files_set:{global_data_files_set}, necessary_data_files_set:{global_necessary_files_set}"
     missing_keys = set(state_dict.keys()) - set(tensor_key_list)
     if len(missing_keys) > 0:
-        logger.warning(
-            f"Missing keys:{missing_keys}, check whether the checkpoint is complete."
-        )
+        if mw_name_compatibility:
+            mw_name_compatibility_mapping = _modify_mw_name_for_compatibility(
+                state_dict, missing_keys, tensor_key_list
+            )
+            if len(missing_keys) > 0:
+                logger.warning(
+                    f"Missing keys:{missing_keys}, check whether the checkpoint is complete."
+                )
+        else:
+            logger.warning(
+                f"Missing keys:{missing_keys}, check whether the checkpoint is complete."
+            )
 
     rank_to_files = {}
     for rank, need_files in enumerate(all_necessary_files):
@@ -155,7 +170,42 @@ def get_rank_to_files(
         ]
         rank_to_files[rank] = unique_need_files
     logger.debug(f"mapping rank_to_files:{rank_to_files}")
-    return rank_to_files, missing_keys
+    return rank_to_files, missing_keys, mw_name_compatibility_mapping
+
+
+def _modify_mw_name_for_compatibility(
+    state_dict, missing_keys, tensor_key_list
+):
+    """
+    Adjust the master weight name within the optimizer's state_dict to ensure compatibility between semi-automatic parallel execution in both dynamic and static graph modes.
+    Args:
+        state_dict(Dict[str, paddle.Tensor]): The state_dict to load. It will be modified inplace after loading.
+        missing_keys(Set[str]): A set of keys that are expected to be loaded but are missing.
+        tensor_key_list(List[str]): A list of tensor keys from the source checkpoint (ckpt).
+    """
+    compatibility_set = set()
+    mw_name_compatibility_mapping = {}
+    compatibility_key = None
+    for missing_key in missing_keys:
+        parts = missing_key.split(".")
+        # Determine compatibility key based on naming style
+        if "master_weights" in parts:
+            parts.remove("master_weights")
+            compatibility_key = ".".join(parts) + "_fp32_master_0"
+        elif parts[-1].endswith("_fp32_master_0"):
+            parts[-1] = parts[-1].replace("_fp32_master_0", "")
+            parts.insert(1, "master_weights")
+            compatibility_key = ".".join(parts)
+        if compatibility_key in tensor_key_list:
+            logger.info(
+                f"Modify master weights {missing_key} -> {compatibility_key}"
+            )
+            compatibility_set.add(missing_key)
+            mw_name_compatibility_mapping[missing_key] = compatibility_key
+            state_dict[compatibility_key] = state_dict.pop(missing_key)
+    # update missing_keys
+    missing_keys -= compatibility_set
+    return mw_name_compatibility_mapping
 
 
 def get_rank_to_read_files(rank_to_files, rank_to_local_data_files):
@@ -480,6 +530,7 @@ def load_state_dict(
     coordinator_rank: int = 0,
     unique_id: int | None = None,
     offload: bool = False,
+    mw_name_compatibility: bool = True,
 ) -> None:
     """
     Load the state_dict inplace from a checkpoint path.
@@ -491,6 +542,7 @@ def load_state_dict(
         coordinator_rank(int): The rank used to coordinate the checkpoint. Rank0 is used by default.
         unique_id(int): The unique id of ckeckpoint, used to distinguish between different checkpoint versions. Default is None, in which case the id the max id of given path, and the newest version checkpoint is loaded.
         offload(bool): Whether to offload the checkpoint data from GPU to CPU.
+        mw_name_compatibility(bool): Enable name compatibility between dynamic and static graph semi-automatic parallel. Default is True.
     Example:
         .. code-block:: python
 
@@ -552,12 +604,15 @@ def load_state_dict(
         for file in metadata_files:
             metadata_list.append(paddle.load(os.path.join(path, file)))
 
-        rank_to_files, missing_keys = get_rank_to_files(
-            metadata_list,
-            local_data_files,
-            flat_state_dict,
-            process_group,
-            use_dist,
+        rank_to_files, missing_keys, mw_name_compatibility_mapping = (
+            get_rank_to_files(
+                metadata_list,
+                local_data_files,
+                flat_state_dict,
+                process_group,
+                use_dist,
+                mw_name_compatibility,
+            )
         )
 
         if len(missing_keys) > 0:
@@ -609,6 +664,11 @@ def load_state_dict(
         )
 
         for flat_key, keys in mapping.items():
+            if (
+                mw_name_compatibility
+                and flat_key in mw_name_compatibility_mapping
+            ):
+                flat_key = mw_name_compatibility_mapping[flat_key]
             tmp = state_dict
             for key in keys[:-1]:
                 tmp = tmp[key]
@@ -755,13 +815,13 @@ def _load_state_dict(
             paddle.distributed.barrier(process_group)
 
 
-def compute_global_shape(local_tensor_indexs):
-    rank = len(local_tensor_indexs[0].local_shape)
+def compute_global_shape(local_tensor_indices):
+    rank = len(local_tensor_indices[0].local_shape)
     global_shape = []
     for dim in range(rank):
         max_size = max(
             m.global_offset[dim] + m.local_shape[dim]
-            for m in local_tensor_indexs
+            for m in local_tensor_indices
         )
         global_shape.append(max_size)
     return global_shape

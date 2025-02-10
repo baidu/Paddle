@@ -208,11 +208,11 @@ def test_list_pop_in_while_loop(x, iter_num):
 
 class TestListWithoutControlFlowConfig(Dy2StTestBase):
     def setUp(self):
-        self.place = (
-            base.CUDAPlace(0)
-            if base.is_compiled_with_cuda()
-            else base.CPUPlace()
-        )
+        self.place = base.CPUPlace()
+        if base.is_compiled_with_cuda():
+            self.place = base.CUDAPlace(0)
+        if base.is_compiled_with_xpu():
+            self.place = base.XPUPlace(0)
 
         self.init_data()
         self.init_dygraph_func()

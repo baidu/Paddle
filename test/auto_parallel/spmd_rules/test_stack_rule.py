@@ -50,21 +50,23 @@ class TestStackSPMDRule(unittest.TestCase):
     def test_infer_forward(self):
         inputs = self.build_inputs()
         rule = core.get_phi_spmd_rule("stack")
-        infered_dist_attrs = rule.infer_forward(inputs, -1)
+        inferred_dist_attrs = rule.infer_forward(inputs, -1)
 
-        infered_output_dist_attrs = infered_dist_attrs[1]
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1, -1])
+        inferred_output_dist_attrs = inferred_dist_attrs[1]
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1]
+        )
 
     def test_infer_backward(self):
         inputs = self.build_inputs()
         output = self.build_outputs()
         rule = core.get_phi_spmd_rule("stack")
-        infered_dist_attrs = rule.infer_backward(inputs, output, -1)
+        inferred_dist_attrs = rule.infer_backward(inputs, output, -1)
 
-        infered_input_dist_attrs = infered_dist_attrs[0]
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        for input_dist_attr in infered_input_dist_attrs[0]:
+        inferred_input_dist_attrs = inferred_dist_attrs[0]
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        for input_dist_attr in inferred_input_dist_attrs[0]:
             self.assertEqual(input_dist_attr.dims_mapping, [0, -1])
 
 

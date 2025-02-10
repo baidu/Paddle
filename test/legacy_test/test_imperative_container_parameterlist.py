@@ -39,7 +39,7 @@ class MyLayer(paddle.nn.Layer):
 
 
 class TestImperativeContainerParameterList(unittest.TestCase):
-    def paramter_list(self, use_base_api):
+    def parameter_list(self, use_base_api):
         data_np = np.random.uniform(-1, 1, [5, 2]).astype('float32')
         with base.dygraph.guard():
             x = paddle.to_tensor(data_np)
@@ -65,9 +65,9 @@ class TestImperativeContainerParameterList(unittest.TestCase):
             loss = paddle.mean(res)
             loss.backward()
 
-    def test_paramter_list(self):
-        self.paramter_list(False)
-        self.paramter_list(True)
+    def test_parameter_list(self):
+        self.parameter_list(False)
+        self.parameter_list(True)
 
 
 if __name__ == '__main__':

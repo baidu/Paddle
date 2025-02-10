@@ -31,7 +31,7 @@ SpmdInfo NonZeroInferSpmd(const DistMetaTensor& x) {
   std::string x_axes(x_ndim, '1');
   std::string output_axes(2, '1');
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge input shardings
   std::unordered_map<std::string, int64_t> axis_to_dim_map =
       ShardingMergeForTensors({{x_axes, x_dims_mapping_src}});
@@ -65,7 +65,7 @@ SpmdInfo NonZeroInferSpmdReverse(const DistMetaTensor& x,
   std::string x_axes(x_ndim, '1');
   std::string output_axes(2, '1');
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge input shardings
   std::unordered_map<std::string, int64_t> axis_to_dim_map =
       ShardingMergeForTensors({{output_axes, output_dims_mapping_src}});

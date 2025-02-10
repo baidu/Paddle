@@ -63,7 +63,7 @@ class NativePaddlePredictor : public PaddlePredictor {
   bool GetFetch(std::vector<PaddleTensor> *output_data,
                 framework::Scope *scope);
   template <typename T>
-  void GetFetchOne(const phi::DenseTensor &fetchs, PaddleTensor *output_data);
+  void GetFetchOne(const phi::DenseTensor &fetches, PaddleTensor *output_data);
   void PrepareFeedFetch();
 
   NativeConfig config_;
@@ -74,7 +74,7 @@ class NativePaddlePredictor : public PaddlePredictor {
   std::unique_ptr<framework::ProgramDesc> inference_program_;
   std::vector<framework::OpDesc *> feeds_;
   std::map<std::string, size_t> feed_names_;
-  std::vector<framework::OpDesc *> fetchs_;
+  std::vector<framework::OpDesc *> fetches_;
   // Memory buffer for feed inputs. The temporary DenseTensor will cause serious
   // concurrency problems, wrong results and memory leak, so cache them.
   std::vector<phi::DenseTensor> feed_tensors_;

@@ -93,7 +93,7 @@ SpmdInfo AdamInferSpmdDynamic(
           ? CopyTensorDistAttrForOutput(master_param.dist_attr())
           : TensorDistAttr();
   // If skip_update is on global_mesh, it should be reshard into
-  // local mesh. (currently occurs in static mode pipeline parellel)
+  // local mesh. (currently occurs in static mode pipeline parallel)
   auto skip_update_dist_attr = TensorDistAttr();
   if (skip_update.initialized()) {
     skip_update_dist_attr = skip_update.dist_attr();

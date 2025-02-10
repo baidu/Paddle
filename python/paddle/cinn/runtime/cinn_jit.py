@@ -36,7 +36,7 @@ class CinnLowerLevelIrJit(Generic[T]):
         self.src = self.src[self.src.find("def") :]
         self.scope = inspect_function_scope(fn)
 
-        # docs of warpped function
+        # docs of wrapped function
         self.__doc__ = fn.__doc__
         self.__name__ = fn.__name__
         self.__globals__ = fn.__globals__

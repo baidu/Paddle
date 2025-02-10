@@ -696,5 +696,7 @@ Expr ExprNode<T>::Copy() const {
 
 void TryElevateInt32ToInt64(const std::vector<Expr>& expr_vec);
 
+void TryElevateInt64ToInt32(const std::vector<Expr>& expr_vec);
+
 }  // namespace ir
 }  // namespace cinn

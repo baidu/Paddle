@@ -919,6 +919,10 @@ class TrtLayerAutoScanTest(AutoScanTest):
                                     break
                             if ignore_flag:
                                 continue
+                            attrs = [
+                                prog_config.ops[i].attrs
+                                for i in range(len(prog_config.ops))
+                            ]
                             dynamic_shape = self.generate_dynamic_shape()
 
                             main_program_desc, util_program = create_fake_model(
@@ -939,37 +943,33 @@ class TrtLayerAutoScanTest(AutoScanTest):
                             input_data_type = prog_config.get_feed_data()[
                                 first_key
                             ]['data'].dtype
-
-                            input_config = Input(
-                                min_input_shape=tuple(
-                                    next(
-                                        iter(
-                                            self.dynamic_shape.min_input_shape.values()
-                                        )
-                                    )
-                                ),
-                                optim_input_shape=tuple(
-                                    next(
-                                        iter(
-                                            self.dynamic_shape.opt_input_shape.values()
-                                        )
-                                    )
-                                ),
-                                max_input_shape=tuple(
-                                    next(
-                                        iter(
-                                            self.dynamic_shape.max_input_shape.values()
-                                        )
-                                    )
-                                ),
-                                input_data_type=str(input_data_type),
-                            )
-                            inputs.append(input_config)
+                            if not self.dynamic_shape.min_input_shape:
+                                continue
+                            for key in dynamic_shape.min_input_shape.keys():
+                                input_config = Input(
+                                    min_input_shape=tuple(
+                                        self.dynamic_shape.min_input_shape[key]
+                                    ),
+                                    optim_input_shape=tuple(
+                                        self.dynamic_shape.opt_input_shape[key]
+                                    ),
+                                    max_input_shape=tuple(
+                                        self.dynamic_shape.max_input_shape[key]
+                                    ),
+                                    input_data_type=str(input_data_type),
+                                )
+                                inputs.append(input_config)
                             trt_config = TensorRTConfig(inputs=inputs)
                             trt_config.input_data_type = input_data_type
                             trt_program = self.transform_to_trt_program(
                                 pir_main_program, trt_config
                             )
+
+                            assert any(
+                                op.name() == "pd_op.tensorrt_engine"
+                                for op in trt_program.global_block().ops
+                            ), "trt_program does not contain any tensorrt_engine ops."
+
                             feed_data = prog_config.get_feed_data()
                             for key, value in feed_data.items():
                                 feed_dict[key] = value['data']

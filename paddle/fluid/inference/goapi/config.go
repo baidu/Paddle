@@ -47,7 +47,7 @@ func NewConfig() *Config {
 }
 
 ///
-/// \brief Set the combined model with two specific pathes for program and
+/// \brief Set the combined model with two specific paths for program and
 /// parameters.
 ///
 /// \param model model file path of the combined model.

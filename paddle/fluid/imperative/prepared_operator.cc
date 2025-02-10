@@ -219,9 +219,10 @@ PreparedOp PrepareImpl(
 #endif
 
 #if defined(PADDLE_WITH_XPU)
-  bool is_xpu_unsupport = expected_kernel_key.backend() == phi::Backend::XPU &&
-                          !paddle::platform::is_xpu_support_op(
-                              op.Type(), expected_kernel_key.dtype());
+  bool is_xpu_unsupported =
+      expected_kernel_key.backend() == phi::Backend::XPU &&
+      !paddle::platform::is_xpu_support_op(op.Type(),
+                                           expected_kernel_key.dtype());
 #endif
 
   bool has_phi_kernel = false;
@@ -292,7 +293,7 @@ PreparedOp PrepareImpl(
 
     if (phi_kernel.IsValid()
 #if defined(PADDLE_WITH_XPU) && !defined(PADDLE_WITH_XPU_KP)
-        && !is_xpu_unsupport
+        && !is_xpu_unsupported
 #endif
     ) {
       VLOG(6) << "Dynamic mode PrepareImpl - kernel name: " << phi_kernel_name
@@ -428,10 +429,10 @@ PreparedOp PrepareImpl(
        kernels_iter->second.find(fluid_kernel_type) ==
            kernels_iter->second.end())
 #if defined(PADDLE_WITH_XPU) && !defined(PADDLE_WITH_XPU_KP)
-      || is_xpu_unsupport
+      || is_xpu_unsupported
 #endif
 #if defined(PADDLE_WITH_XPU_KP)
-      || (is_xpu_unsupport && !is_xpu_kp_support)
+      || (is_xpu_unsupported && !is_xpu_kp_support)
 #endif
   ) {
     if (has_phi_kernel) {
@@ -467,7 +468,7 @@ PreparedOp PrepareImpl(
 
 #if defined(PADDLE_WITH_XPU) && !defined(PADDLE_WITH_XPU_KP)
   if (phi::is_xpu_place(fluid_kernel_type.place_) &&
-      (kernel_iter == kernels.end() || is_xpu_unsupport)) {
+      (kernel_iter == kernels.end() || is_xpu_unsupported)) {
     VLOG(3) << "fluid missing XPU kernel: " << op.Type()
             << ", expected_kernel_key:" << fluid_kernel_type
             << ", fallbacking to CPU one!";
@@ -491,7 +492,7 @@ PreparedOp PrepareImpl(
               << ", using_kernel_key:" << fluid_kernel_type;
     }
     if (!is_xpu_kp_support &&
-        (kernel_iter == kernels.end() || is_xpu_unsupport)) {
+        (kernel_iter == kernels.end() || is_xpu_unsupported)) {
       VLOG(3) << "fluid missing XPU kernel: " << op.Type()
               << ", expected_kernel_key:" << fluid_kernel_type
               << ", fallbacking to CPU one!";

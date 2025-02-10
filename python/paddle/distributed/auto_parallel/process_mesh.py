@@ -174,7 +174,7 @@ class ProcessMesh(core.ProcessMesh):
         pg0 = get_process_group(0)
         pg0.add_ranks(self.process_ids)
 
-        # Uniqe Mesh Id
+        # Unique Mesh Id
         self._unique_id = get_unique_id_for_process_mesh(
             self._shape, self._process_ids
         )

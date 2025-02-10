@@ -89,7 +89,7 @@ DECLARE_TYPE_FOR_GPU(gpuStreamCaptureMode,
                      hipStreamCaptureMode);
 
 // TODO(Ming Huang): Since there is no blasLt handler,
-// use rocblas_handle for workround.
+// use rocblas_handle for workaround.
 DECLARE_TYPE_FOR_GPU(blasLtHandle_t, cublasLtHandle_t, rocblas_handle);
 
 #undef DECLARE_TYPE_FOR_GPU

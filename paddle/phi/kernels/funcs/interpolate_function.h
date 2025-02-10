@@ -190,10 +190,10 @@ struct FastDivModForInterpolate {
 
   explicit HOSTDEVICE FastDivModForInterpolate(const int channels,
                                                const int output_w,
-                                               const int outout_wc)
+                                               const int output_wc)
       : channels_div(FastDivMod(channels)),
         output_w_div(FastDivMod(output_w)),
-        output_wc_div(FastDivMod(outout_wc)) {}
+        output_wc_div(FastDivMod(output_wc)) {}
 };
 
 #endif

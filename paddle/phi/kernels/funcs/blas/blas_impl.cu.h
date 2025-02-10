@@ -1139,7 +1139,7 @@ inline void Blas<phi::GPUContext>::GEMM(CBLAS_TRANSPOSE transA,
 
 #if CUDA_VERSION >= 8000
   // cublasHgemm does true FP16 computation which is slow for non-Volta
-  // GPUs. So use cublasGemmEx instead which does pesudo FP16 computation:
+  // GPUs. So use cublasGemmEx instead which does pseudo FP16 computation:
   // input/output in fp16, computation in fp32, which can also be accelerated
   // using tensor cores in volta GPUs.
   auto &cuda_ctx = const_cast<phi::GPUContext &>(context_);
@@ -1288,7 +1288,7 @@ inline void Blas<phi::GPUContext>::GEMM(CBLAS_TRANSPOSE transA,
 
 #if CUDA_VERSION >= 8000
   // cublasHgemm does true FP16 computation which is slow for non-Volta
-  // GPUs. So use cublasGemmEx instead which does pesudo FP16 computation:
+  // GPUs. So use cublasGemmEx instead which does pseudo FP16 computation:
   // input/output in fp16, computation in fp32, which can also be accelerated
   // using tensor cores in volta GPUs.
   auto &cuda_ctx = const_cast<phi::GPUContext &>(context_);
@@ -1369,7 +1369,7 @@ inline void Blas<phi::GPUContext>::GEMM(CBLAS_TRANSPOSE transA,
 
 #if CUDA_VERSION >= 8000
   // cublasHgemm does true FP16 computation which is slow for non-Volta
-  // GPUs. So use cublasGemmEx instead which does pesudo FP16 computation:
+  // GPUs. So use cublasGemmEx instead which does pseudo FP16 computation:
   // input/output in fp16, computation in fp32, which can also be accelerated
   // using tensor cores in volta GPUs.
   auto &cuda_ctx = const_cast<phi::GPUContext &>(context_);

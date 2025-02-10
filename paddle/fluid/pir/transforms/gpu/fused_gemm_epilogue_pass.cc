@@ -24,92 +24,140 @@
 
 namespace {
 
-class FusedLinearPattern : public paddle::drr::DrrPatternBase {
+//  %2 = pd_op.matmul( %0, %1 )
+//  %4 = pd_op.add( %2, %3 )
+//  fused to
+//  %4, %5 = pd_op.fused_gemm_epilogue( %0, %1, %3 )
+class FusedLinearPattern
+    : public pir::OpRewritePattern<paddle::dialect::MatmulOp> {
  public:
-  std::string name() const override { return "FusedLinearPattern"; }
+  using pir::OpRewritePattern<paddle::dialect::MatmulOp>::OpRewritePattern;
 
-  void operator()(paddle::drr::DrrPatternContext *ctx) const override {
-    paddle::drr::SourcePattern pat = ctx->SourcePattern();
-    const auto &matmul = pat.Op(paddle::dialect::MatmulOp::name(),
-                                {{"transpose_x", pat.Attr("trans_x")},
-                                 {"transpose_y", pat.Attr("trans_y")}});
-    const auto &add = pat.Op(paddle::dialect::AddOp::name());
+  bool MatchAndRewrite(paddle::dialect::MatmulOp matmul,
+                       pir::PatternRewriter &rewriter) const override {
+    auto matmul_out = matmul->result(0);
+    // The result of matmul can only be uniquely used by an add OP.
+    if (matmul_out.use_count() != 1) {
+      return false;
+    }
+    if (!matmul_out.use_begin()->owner()->dyn_cast<paddle::dialect::AddOp>()) {
+      return false;
+    }
+    auto add =
+        matmul_out.use_begin()->owner()->dyn_cast<paddle::dialect::AddOp>();
 
-    pat.Tensor("tmp") = matmul(pat.Tensor("x"), pat.Tensor("w"));
-    pat.Tensor("out") = add(pat.Tensor("tmp"), pat.Tensor("bias"));
+    // The data rank of matmul should be >= 2.
+    // The weight rank of matmul should be = 2.
+    // The bias rank of add should be = 1.
+    if (pir::GetShapeFromValue(matmul->operand_source(0)).size() < 2 ||
+        pir::GetShapeFromValue(matmul->operand_source(1)).size() != 2 ||
+        pir::GetShapeFromValue(add->operand_source(1)).size() != 1) {
+      return false;
+    }
 
-    pat.AddConstraint([&](const paddle::drr::MatchContext &match_ctx) {
-      auto w_dims = pir::GetShapeFromValue(match_ctx.Tensor("w"));
-      auto x_dims = pir::GetShapeFromValue(match_ctx.Tensor("x"));
-      auto bias_dims = pir::GetShapeFromValue(match_ctx.Tensor("bias"));
-      return (w_dims.size() == 2 && x_dims.size() >= 2 &&
-              bias_dims.size() == 1);
-    });
+    pir::AttributeMap attr_map;
+    attr_map.emplace("trans_x", matmul->attribute("transpose_x"));
+    attr_map.emplace("trans_y", matmul->attribute("transpose_y"));
+    attr_map.emplace(
+        "activation",
+        pir::StrAttribute::get(pir::IrContext::Instance(), "none"));
 
-    paddle::drr::ResultPattern res = pat.ResultPattern();
-    const auto &fused_gemm_epilogue =
-        res.Op(paddle::dialect::FusedGemmEpilogueOp::name(),
-               {{{"trans_x", pat.Attr("trans_x")},
-                 {"trans_y", pat.Attr("trans_y")},
-                 {"activation", res.StrAttr("none")}}});
-    fused_gemm_epilogue(
-        {&res.Tensor("x"), &res.Tensor("w"), &res.Tensor("bias")},
-        {&res.Tensor("out")});
+    rewriter.SetInsertionPointAfter(add);
+
+    auto fuse_gemm = rewriter.Build<paddle::dialect::FusedGemmEpilogueOp>(
+        matmul->operand_source(0),
+        matmul->operand_source(1),
+        add->operand_source(1),
+        attr_map);
+
+    if (matmul->HasAttribute("op_role")) {
+      fuse_gemm->set_attribute("op_role", matmul->attribute("op_role"));
+    }
+    if (matmul->HasAttribute("chunk_id")) {
+      fuse_gemm->set_attribute("chunk_id", matmul->attribute("chunk_id"));
+    }
+
+    rewriter.ReplaceAllUsesWith(add->result(0), fuse_gemm.result(0));
+    rewriter.ReplaceAllUsesWith(matmul_out, fuse_gemm.result(0));
+
+    rewriter.EraseOp(add);
+    rewriter.EraseOp(matmul);
+    return true;
   }
 };
 
-class FusedLinearGradPattern : public paddle::drr::DrrPatternBase {
+//  %3, %4 = pd_op.add_grad( %0, %1，%2 )
+//  %7, %8 = pd_op.matmul_grad( %5, %6, %3)
+//  fused to
+//  %7, %8, %4 = pd_op.fused_gemm_epilogue_grad( %5, %6, none, %2)
+class FusedLinearGradPattern
+    : public pir::OpRewritePattern<paddle::dialect::MatmulGradOp> {
  public:
-  std::string name() const override { return "FusedLinearGradPattern"; }
+  using pir::OpRewritePattern<paddle::dialect::MatmulGradOp>::OpRewritePattern;
 
-  void operator()(paddle::drr::DrrPatternContext *ctx) const override {
-    paddle::drr::SourcePattern pat = ctx->SourcePattern();
-    const auto &matmul = pat.Op(paddle::dialect::MatmulOp::name(),
-                                {{"transpose_x", pat.Attr("trans_x")},
-                                 {"transpose_y", pat.Attr("trans_y")}});
-    const auto &matmul_grad = pat.Op(paddle::dialect::MatmulGradOp::name(),
-                                     {{"transpose_x", pat.Attr("trans_x")},
-                                      {"transpose_y", pat.Attr("trans_y")}});
-    const auto &add = pat.Op(paddle::dialect::AddOp::name());
-    const auto &add_grad = pat.Op(paddle::dialect::AddGradOp::name());
+  bool MatchAndRewrite(paddle::dialect::MatmulGradOp matmul_grad,
+                       pir::PatternRewriter &rewriter) const override {
+    auto matmul_grad_out = matmul_grad->operand_source(2);
 
-    pat.Tensor("tmp") = matmul(pat.Tensor("x"), pat.Tensor("w"));
-    pat.Tensor("out") = add(pat.Tensor("tmp"), pat.Tensor("bias"));
-    add_grad({&pat.Tensor("tmp"), &pat.Tensor("bias"), &pat.Tensor("out_grad")},
-             {&pat.Tensor("tmp_grad"), &pat.Tensor("bias_grad")});
-    matmul_grad({&pat.Tensor("x"), &pat.Tensor("w"), &pat.Tensor("tmp_grad")},
-                {&pat.Tensor("x_grad"), &pat.Tensor("w_grad")});
+    paddle::dialect::AddGradOp add_grad;
+    if (add_grad = matmul_grad_out.defining_op()
+                       ->dyn_cast<paddle::dialect::AddGradOp>()) {
+      if (matmul_grad_out != add_grad->result(0)) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+    // The data gradient of add_grad can only be uniquely used by a matmul_grad
+    // OP.
+    if (add_grad.result(0).use_count() != 1) {
+      return false;
+    }
 
-    pat.AddConstraint([&](const paddle::drr::MatchContext &match_ctx) {
-      auto w_dims = pir::GetShapeFromValue(match_ctx.Tensor("w"));
-      auto x_dims = pir::GetShapeFromValue(match_ctx.Tensor("x"));
-      auto bias_dims = pir::GetShapeFromValue(match_ctx.Tensor("bias"));
-      return (w_dims.size() == 2 && x_dims.size() >= 2 &&
-              bias_dims.size() == 1);
-    });
+    // The data rank of matmul_grad should be >= 2.
+    // The weight rank of matmul_grad should be = 2.
+    // The bias rank of add_grad should be = 1.
+    if (pir::GetShapeFromValue(matmul_grad->operand_source(0)).size() < 2 ||
+        pir::GetShapeFromValue(matmul_grad->operand_source(1)).size() != 2 ||
+        pir::GetShapeFromValue(add_grad->operand_source(1)).size() != 1) {
+      return false;
+    }
 
-    paddle::drr::ResultPattern res = pat.ResultPattern();
+    pir::AttributeMap attr_map;
+    attr_map.emplace("trans_x", matmul_grad.attribute("transpose_x"));
+    attr_map.emplace("trans_y", matmul_grad.attribute("transpose_y"));
+    attr_map.emplace(
+        "activation_grad",
+        pir::StrAttribute::get(pir::IrContext::Instance(), "none"));
 
-    const auto &fused_gemm_epilogue =
-        res.Op(paddle::dialect::FusedGemmEpilogueOp::name(),
-               {{{"trans_x", pat.Attr("trans_x")},
-                 {"trans_y", pat.Attr("trans_y")},
-                 {"activation", res.StrAttr("none")}}});
-    const auto &fused_gemm_epilogue_grad =
-        res.Op(paddle::dialect::FusedGemmEpilogueGradOp::name(),
-               {{{"trans_x", pat.Attr("trans_x")},
-                 {"trans_y", pat.Attr("trans_y")},
-                 {"activation_grad", res.StrAttr("none")}}});
-    fused_gemm_epilogue(
-        {&res.Tensor("x"), &res.Tensor("w"), &res.Tensor("bias")},
-        {&res.Tensor("out")});
-    fused_gemm_epilogue_grad({&res.Tensor("x"),
-                              &res.Tensor("w"),
-                              &res.InputNoneTensor(),
-                              &res.Tensor("out_grad")},
-                             {&res.Tensor("x_grad"),
-                              &res.Tensor("w_grad"),
-                              &res.Tensor("bias_grad")});
+    rewriter.SetInsertionPointAfter(add_grad);
+    auto fuse_gemm_grad =
+        rewriter.Build<paddle::dialect::FusedGemmEpilogueGradOp>(
+            matmul_grad->operand_source(0),
+            matmul_grad->operand_source(1),
+            pir::Value(),
+            add_grad->operand_source(2),
+            attr_map);
+
+    if (matmul_grad->HasAttribute("op_role")) {
+      fuse_gemm_grad->set_attribute("op_role",
+                                    matmul_grad->attribute("op_role"));
+    }
+    if (matmul_grad->HasAttribute("chunk_id")) {
+      fuse_gemm_grad->set_attribute("chunk_id",
+                                    matmul_grad->attribute("chunk_id"));
+    }
+
+    rewriter.ReplaceAllUsesWith(matmul_grad.result(0),
+                                fuse_gemm_grad.result(0));
+    rewriter.ReplaceAllUsesWith(matmul_grad.result(1),
+                                fuse_gemm_grad.result(1));
+    rewriter.ReplaceAllUsesWith(add_grad.result(1), fuse_gemm_grad.result(2));
+
+    rewriter.EraseOp(matmul_grad);
+    rewriter.EraseOp(add_grad);
+
+    return true;
   }
 };
 
@@ -420,8 +468,8 @@ class FusedGemmEpiloguePass : public pir::PatternRewritePass {
 
   pir::RewritePatternSet InitializePatterns(pir::IrContext *context) override {
     pir::RewritePatternSet ps(context);
-    ps.Add(paddle::drr::Create<FusedLinearPattern>(context));
-    ps.Add(paddle::drr::Create<FusedLinearGradPattern>(context));
+    ps.Add<FusedLinearPattern>(context);
+    ps.Add<FusedLinearGradPattern>(context);
     ps.Add(paddle::drr::Create<FusedLinearGeluPattern>(context));
     ps.Add(paddle::drr::Create<FusedLinearReluPattern>(context));
     ps.Add(paddle::drr::Create<FusedLinearGeluGradPattern>(context));

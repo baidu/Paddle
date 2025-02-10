@@ -299,7 +299,7 @@ class TestUniformInitializerPir(unittest.TestCase):
 
                 block = startup.global_block()
 
-                checked_paramter_names = []
+                checked_parameter_names = []
                 for op in block.ops:
                     if self.set_parameter_op_name != op.name():
                         continue
@@ -307,7 +307,7 @@ class TestUniformInitializerPir(unittest.TestCase):
                     parameter_name = op.attrs()["parameter_name"]
                     if parameter_name == "param1":
                         # get "param1"
-                        checked_paramter_names.append(parameter_name)
+                        checked_parameter_names.append(parameter_name)
                         seed = (
                             op.operand(0)
                             .source()
@@ -317,7 +317,7 @@ class TestUniformInitializerPir(unittest.TestCase):
                         self.assertEqual(seed, 123)
                     elif parameter_name == "param2":
                         # get "param2"
-                        checked_paramter_names.append(parameter_name)
+                        checked_parameter_names.append(parameter_name)
                         seed = (
                             op.operand(0)
                             .source()
@@ -326,8 +326,8 @@ class TestUniformInitializerPir(unittest.TestCase):
                         )
                         self.assertEqual(seed, 456)
 
-                self.assertIn("param1", checked_paramter_names)
-                self.assertIn("param2", checked_paramter_names)
+                self.assertIn("param1", checked_parameter_names)
+                self.assertIn("param2", checked_parameter_names)
 
     def test_uniform_initializer(self, dtype="float32"):
         with paddle.pir_utils.IrGuard():

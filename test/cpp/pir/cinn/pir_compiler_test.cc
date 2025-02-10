@@ -153,7 +153,7 @@ ProgramInfo BuildSoftmax() {
   return {program, groups};
 }
 
-// TEST(PirCompier, CompileSoftmax) {
+// TEST(PirCompiler, CompileSoftmax) {
 //   // Step 1: Construct pir::Program
 //   ::pir::IrContext* ctx = ::pir::IrContext::Instance();
 //   ctx->GetOrRegisterDialect<paddle::dialect::OperatorDialect>();
@@ -229,7 +229,7 @@ ProgramInfo BuildSoftmax() {
 //   EXPECT_EQ(res0, true);
 // }
 
-// TEST(PirCompier, CompileGroupOps) {
+// TEST(PirCompiler, CompileGroupOps) {
 //   // Step 1: Construct pir::Program
 //   auto prog_info = BuildProgram();
 //   std::shared_ptr<::pir::Program> program = std::get<0>(prog_info);

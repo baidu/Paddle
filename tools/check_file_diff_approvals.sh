@@ -131,6 +131,13 @@ if [[ ${IF_USE_EVAL} ]]; then
     check_approval 1 wanghuancoder SigureMo
 fi
 
+CPP_FILE_ADDED_LINES=$(git diff -U0 upstream/$BRANCH -- 'paddle/' |grep "^+")
+IF_USE_FESETROUND=`echo $CPP_FILE_ADDED_LINES | grep -B5 --no-group-separator "fesetround" || true`
+if [[ ${IF_USE_FESETROUND} ]]; then
+    echo_line="You must have one RD (zyfncg(Recommend), SigureMo, phlrain) approval for using fesetround, which may affect all floating-point precision calculations in the same process.\n"
+    check_approval 1 zyfncg SigureMo phlrain
+fi
+
 HAS_DEFINE_FLAG=`git diff -U0 upstream/$BRANCH |grep -o -m 1 "DEFINE_int32" |grep -o -m 1 "DEFINE_bool" | grep -o -m 1 "DEFINE_string" || true`
 if [ ${HAS_DEFINE_FLAG} ] && [ "${GIT_PR_ID}" != "" ]; then
     echo_line="You must have one RD zyfncg or zhangbo9674 or phlrain approval for the usage (either add or delete) of DEFINE_int32/DEFINE_bool/DEFINE_string flag.\n"
@@ -162,7 +169,7 @@ if [ "${HAS_USED_CCTESTOLD}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
     check_approval 1 phlrain risemeup1 zhangbo9674
 fi
 
-HAS_USED_CCTEST=`git diff -U0 upstream/$BRANCH |grep "cc_test" || true`
+HAS_USED_CCTEST=`git diff -U0 upstream/$BRANCH |grep -w "cc_test" || true`
 if [ "${HAS_USED_CCTEST}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
     echo_line="Paddle utest will gradually discard cc_test\n  instead, the paddle_test is recommended,\n if you must use cc_test, you must be approved by risemeup1 or zhangbo9674 for using cc_test. Thanks!\n"
     check_approval 1 risemeup1 zhangbo9674
@@ -301,8 +308,8 @@ fi
 TEST_FILE_ADDED_LINES=$(git diff -U0 upstream/$BRANCH -- test |grep "^+")
 ENABLE_TO_STATIC_CHECK=`echo "$TEST_FILE_ADDED_LINES" | grep "enable_to_static(" || true`
 if [ "${ENABLE_TO_STATIC_CHECK}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
-    echo_line="You must have one RD (SigureMo, zrr1999 or gouzil) approval for using 'paddle.jit.enable_to_static', we recommend using 'enable_to_static_guard' in the related test files.\n"
-    check_approval 1 SigureMo zrr1999 gouzil
+    echo_line="You must have one RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for using 'paddle.jit.enable_to_static', we recommend using 'enable_to_static_guard' in the related test files.\n"
+    check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
 fi
 
 HAS_MODIFIED_DY2ST_TEST_FILES=$(git diff --name-only --diff-filter=ACMR upstream/$BRANCH | grep "test/dygraph_to_static/test_" || true)
@@ -314,15 +321,15 @@ if [ "${HAS_MODIFIED_DY2ST_TEST_FILES}" != "" ] && [ "${GIT_PR_ID}" != "" ]; the
         echo_line=${echo_line}${error_lines}"\n"
         echo_line=${echo_line}"You can run following command to fix the errors:\n"
         echo_line=${echo_line}"    python test/dygraph_to_static/check_approval.py "$(echo ${HAS_MODIFIED_DY2ST_TEST_FILES} | tr "\n" " ")"\n"
-        echo_line=${echo_line}"If you believe this is a false positive, please request one of the RD (SigureMo, zrr1999 or gouzil) approval for the changes.\n"
-        check_approval 1 SigureMo zrr1999 gouzil
+        echo_line=${echo_line}"If you believe this is a false positive, please request one of the RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for the changes.\n"
+        check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
     fi
 fi
 
 HAS_MODIFIED_DY2ST_TEST_TENSOR_ATTR_CONSISTENCY=$(git diff --name-only upstream/$BRANCH | grep "test/dygraph_to_static/test_tensor_attr_consistency.py" || true)
 if [ "${HAS_MODIFIED_DY2ST_TEST_TENSOR_ATTR_CONSISTENCY}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
-    echo_line="You must have one RD (SigureMo, zrr1999 or gouzil) approval for file changes in test/dygraph_to_static/test_tensor_attr_consistency.py.\n"
-    check_approval 1 SigureMo zrr1999 gouzil
+    echo_line="You must have one RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for file changes in test/dygraph_to_static/test_tensor_attr_consistency.py.\n"
+    check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
 fi
 
 HAS_USED_AUTO_PARALLEL_ALIGN_MODE=`git diff -U0 upstream/$BRANCH |grep -o -m 1 "auto_parallel_align_mode" || true`

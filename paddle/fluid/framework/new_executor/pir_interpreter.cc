@@ -593,6 +593,7 @@ void PirInterpreter::UpdateNcclOpNum() {
       "pd_op.barrier_grad",
       "pd_op.alltoall_grad",
       "pd_op.global_gather_grad",
+      "pd_op.c_concat_grad",
       "pd_op.distributed_fused_lamb_grad",
       "pd_op.margin_cross_entropy_grad",
       "pd_op.sync_batch_norm_grad",
@@ -963,7 +964,9 @@ void PirInterpreter::BuildInstruction() {
               op_idx++, place_, &op, *(value_exe_info_.get())));
     } else if (paddle::dialect::IsCustomEngineOp(&op)) {
 #ifdef PADDLE_WITH_CUSTOM_DEVICE
-      CREATE_INSTR(CustomEngineInstruction);
+      vec_instruction_base_.emplace_back(
+          std::make_unique<CustomEngineInstruction>(
+              op_idx++, place_, &op, value_exe_info_.get(), execution_config_));
 #else
       PADDLE_THROW(common::errors::PreconditionNotMet(
           "Program has CustomEngineOp and must compile Paddle use "

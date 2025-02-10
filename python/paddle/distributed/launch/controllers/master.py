@@ -23,7 +23,7 @@ import time
 from paddle.distributed.launch.utils.kv_client import KVClient
 from paddle.distributed.launch.utils.kv_server import KVServer
 
-ETCD_PROTOCAL = 'etcd://'
+ETCD_PROTOCOL = 'etcd://'
 
 
 def _cmp_by_ip(x):
@@ -39,7 +39,7 @@ class Master:
 
     MAIN = "main"
     STANDBY = "standby"
-    PATICIPANT = "participant"
+    PARTICIPANT = "participant"
 
     def __init__(self, ctx):
         self.ctx = ctx
@@ -64,7 +64,7 @@ class Master:
 
     @classmethod
     def factory(cls, ctx):
-        if ctx.args.master and ctx.args.master.startswith(ETCD_PROTOCAL):
+        if ctx.args.master and ctx.args.master.startswith(ETCD_PROTOCOL):
             return ETCDMaster(ctx)
         else:
             return HTTPMaster(ctx)
@@ -75,7 +75,7 @@ class HTTPMaster(Master):
         if self.initialized:
             return
 
-        self.role = Master.PATICIPANT
+        self.role = Master.PARTICIPANT
 
         if self.ctx.args.master:
             self.endpoint = self.ctx.args.master

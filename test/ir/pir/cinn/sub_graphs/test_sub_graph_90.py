@@ -46,7 +46,7 @@ class LayerCase(paddle.nn.Layer):
     def forward(self, x):
         outs = []
         for fn in [self.concat_case_1, self.concat_case_2, self.concat_case_3]:
-            # to tigger duplicate subgraph and cache them.
+            # to trigger duplicate subgraph and cache them.
             for i in range(3):
                 outs.append(self.relu(fn()))
         outs.append(self.relu(x))

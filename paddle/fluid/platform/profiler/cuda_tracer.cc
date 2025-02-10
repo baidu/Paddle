@@ -49,7 +49,7 @@ CudaTracer::CudaTracer() = default;
 
 void CudaTracer::PrepareTracing() {
   PADDLE_ENFORCE_EQ(
-      state_ == TracerState::UNINITED || state_ == TracerState::STOPED,
+      state_ == TracerState::UNINITED || state_ == TracerState::STOPPED,
       true,
       common::errors::PreconditionNotMet("Tracer must be UNINITED"));
   EnableCuptiActivity();
@@ -72,14 +72,14 @@ void CudaTracer::StopTracing() {
       TracerState::STARTED,
       common::errors::PreconditionNotMet("Tracer must be STARTED"));
   DisableCuptiActivity();
-  state_ = TracerState::STOPED;
+  state_ = TracerState::STOPPED;
 }
 
 void CudaTracer::CollectTraceData(TraceEventCollector* collector) {
   PADDLE_ENFORCE_EQ(
       state_,
-      TracerState::STOPED,
-      common::errors::PreconditionNotMet("Tracer must be STOPED"));
+      TracerState::STOPPED,
+      common::errors::PreconditionNotMet("Tracer must be STOPPED"));
   ProcessCuptiActivity(collector);
 }
 

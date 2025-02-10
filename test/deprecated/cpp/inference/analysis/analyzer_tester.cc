@@ -80,7 +80,7 @@ void TestWord2vecPrediction(const std::string& model_path) {
   PADDLE_ENFORCE_EQ(
       predictor->Run(slots, &outputs),
       true,
-      common::errors::Fatal("Paddle predictor failed runing, please check"));
+      common::errors::Fatal("Paddle predictor failed running, please check"));
 
   PADDLE_ENFORCE_EQ(outputs.size(),
                     1UL,

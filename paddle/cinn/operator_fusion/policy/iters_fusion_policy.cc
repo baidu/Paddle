@@ -154,37 +154,14 @@ std::optional<ItersTransform> ItersFusionPolicy::GetReuseItersTransform(
   }
 }
 
-std::optional<ItersTransform> ItersFusionPolicy::GetAppendItersTransform(
-    FusionIters* source_iters, const FusionIters& target_iters) {
-  const auto target_unique_iters =
-      GatherFirstNotInSecond(target_iters, *source_iters);
-  if (!target_unique_iters.empty()) {
-    if (!transform_strategy_[ItersTransformType::AppendIters] ||
-        !FLAGS_enable_append_iters_in_fusion) {
-      VLOG(4) << "Can not append iters in fusion, because of AppendIters "
-                 "tranform is disabled.";
-      return std::nullopt;
-    }
-    std::vector<int32_t> append_axis;
-    std::vector<symbol::DimExpr> append_symbols;
-    for (const auto& iter : target_unique_iters) {
-      const size_t pos =
-          std::find(target_iters.begin(), target_iters.end(), iter) -
-          target_iters.begin();
-      append_axis.push_back(pos);
-      append_symbols.push_back(iters_manager_->GetIterSymbol(iter));
-      source_iters->insert(source_iters->begin() + pos, iter);
-    }
-    return AppendItersTransform(append_axis, append_symbols);
-  }
-  return IdentityItersTransform();
-}
-
 std::optional<ItersTransformRoute>
 ItersFusionPolicy::SearchTransformRouteFromReduce2Reduce(
     const FusionItersSignature& source, const FusionItersSignature& target) {
   VLOG(4) << "Start search transform Route from reduce to reduce.";
-  if (source.reduce_iter_nums == target.reduce_iter_nums) {
+  if (source.loop_iters.size() == target.loop_iters.size() &&
+      source.reduce_iter_nums == target.reduce_iter_nums) {
+    // Currently only support fusion with same iter_nums and same reduce axis
+    // TODO(huangjiyi): Analysis fusion with different non reduce axis
     auto [source_flatten_iters, source_reduce_iters] = SplitReduceIters(source);
     auto [target_flatten_iters, target_reduce_iters] = SplitReduceIters(target);
 
@@ -209,15 +186,6 @@ ItersFusionPolicy::SearchTransformRouteFromReduce2Reduce(
     route.push_back(flatten_reuse_iters_transform.value());
     route.push_back(reduce_reuse_iters_transform.value());
 
-    // 2. Apply AppendItersTransform for flatten iters
-    const auto flatten_append_iters_transform =
-        GetAppendItersTransform(&source_flatten_iters, target_flatten_iters);
-    if (flatten_append_iters_transform == std::nullopt) {
-      return std::nullopt;
-    } else {
-      route.push_back(flatten_append_iters_transform.value());
-    }
-
     // 2. Apply TransposeItersTransform
     if (source_flatten_iters == target_flatten_iters &&
         source_reduce_iters == target_reduce_iters) {
@@ -237,7 +205,7 @@ ItersFusionPolicy::SearchTransformRouteFromReduce2Reduce(
       route.push_back(TransposeItersTransform(perm));
       return route;
     } else {
-      // TODO(huangjiyi): Support tranpose reduce axis
+      // TODO(huangjiyi): Support transpose reduce axis
       VLOG(4) << "Can't not transpose reduce axis currently.";
       return std::nullopt;
     }
@@ -349,12 +317,28 @@ std::optional<ItersTransformRoute> ItersFusionPolicy::SearchItersTransformRoute(
   // 3. Apply AppendItersTransform
   // if exist iters in target can not find in source
   FusionIters appended_source_iters = reused_source_iters;
-  const auto append_iters_transform =
-      GetAppendItersTransform(&appended_source_iters, target_iters);
-  if (append_iters_transform == std::nullopt) {
-    return std::nullopt;
-  } else {
-    iters_transforms.push_back(append_iters_transform.value());
+  if (!reused_target_unique_iters.empty()) {
+    if (!transform_strategy_[ItersTransformType::AppendIters] ||
+        !FLAGS_enable_append_iters_in_fusion) {
+      VLOG(4) << "Can not append iters in fusion, because of AppendIters "
+                 "transform is disabled.";
+      return std::nullopt;
+    }
+    std::vector<int32_t> append_axis;
+    std::vector<symbol::DimExpr> append_symbols;
+    for (const auto& iter : reused_target_unique_iters) {
+      const size_t pos =
+          std::find(target_iters.begin(), target_iters.end(), iter) -
+          target_iters.begin();
+      append_axis.push_back(pos);
+      append_symbols.push_back(iters_manager_->GetIterSymbol(iter));
+      appended_source_iters.insert(appended_source_iters.begin() + pos, iter);
+    }
+    iters_transforms.push_back(
+        AppendItersTransform(append_axis, append_symbols));
+    if (appended_source_iters == target_iters) {
+      return iters_transforms;
+    }
   }
   VLOG(4) << "source iters after reuse and append: "
           << PrintFusionIters(appended_source_iters);
@@ -371,7 +355,7 @@ std::optional<ItersTransformRoute> ItersFusionPolicy::SearchItersTransformRoute(
     if (!transform_strategy_[ItersTransformType::TransposeIters] ||
         !FLAGS_enable_transpose_iters_in_fusion) {
       VLOG(4) << "Can not transpose iters in fusion, because of "
-                 "TransposeIters tranform is disabled";
+                 "TransposeIters transform is disabled";
       return std::nullopt;
     }
     const auto perm =

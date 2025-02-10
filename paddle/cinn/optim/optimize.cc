@@ -32,6 +32,7 @@
 #include "paddle/cinn/optim/lower_intrin.h"
 #include "paddle/cinn/optim/map_extern_call.h"
 #include "paddle/cinn/optim/rearrange_load_instruction_pass.h"
+#include "paddle/cinn/optim/reindex_transpose_buffer_pass.h"
 #include "paddle/cinn/optim/remove_schedule_block_pass.h"
 #include "paddle/cinn/optim/replace_const_param_to_integer.h"
 #include "paddle/cinn/optim/replace_cross_block_reduction.h"
@@ -43,6 +44,8 @@
 #include "paddle/cinn/optim/vectorize_for_trans.h"
 #include "paddle/cinn/optim/vectorize_loops.h"
 #include "paddle/cinn/pass/pass_manager.h"
+
+PD_DECLARE_bool(cinn_enable_vectorize);
 
 namespace cinn {
 namespace optim {
@@ -69,6 +72,13 @@ ir::LoweredFunc Optimize(ir::LoweredFunc fn,
   VLOG(4) << "After Optimize ReplaceCrossThreadReduction:" << copied;
   ReplaceCrossBlockReduction(copied);
   VLOG(4) << "After Optimize ReplaceCrossBlockReduction:" << copied;
+
+  {
+    FuncPassManager func_pass_manager;
+    func_pass_manager.AddPass(CreateReindexTransposeBufferPass());
+    func_pass_manager.Run(copied);
+    VLOG(4) << "After Optimize ReindexTransposeBuffer:" << copied;
+  }
 
   target.arch.Match(
       [&](common::NVGPUArch) {

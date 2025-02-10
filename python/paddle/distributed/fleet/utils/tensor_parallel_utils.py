@@ -125,13 +125,12 @@ def insert_sync_op(
     if sync_mode == "broadcast":
         block._insert_op_without_sync(
             idx,
-            type='c_broadcast',
-            inputs={'X': varname},
-            outputs={'Out': varname},
+            type='broadcast',
+            inputs={'x': varname},
+            outputs={'out': varname},
             attrs={
                 'ring_id': sync_ring_id,
                 'root': src_rank,
-                'use_calc_stream': True,
                 OP_ROLE_KEY: op_role,
             },
         )

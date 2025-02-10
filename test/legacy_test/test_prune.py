@@ -126,6 +126,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 
@@ -133,6 +134,7 @@ class TestPrune(TestPruneBase):
             "pd_op.data",
             "pd_op.data",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
         (x, y, label, loss), program = self.run_net(self.net)
@@ -154,6 +156,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 
@@ -166,6 +169,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 
@@ -182,6 +186,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 
@@ -194,6 +199,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 
@@ -213,6 +219,7 @@ class TestPrune(TestPruneBase):
             "pd_op.add",
             "pd_op.softmax",
             "pd_op.cross_entropy_with_softmax",
+            "pd_op.full_int_array",
             "pd_op.mean",
         ]
 

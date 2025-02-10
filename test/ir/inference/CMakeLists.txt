@@ -31,6 +31,7 @@ list(REMOVE_ITEM TEST_INFERENCE_IR_PASSES
 list(REMOVE_ITEM TEST_INFERENCE_IR_PASSES "test_save_optimized_model_pass")
 list(REMOVE_ITEM TEST_INFERENCE_IR_PASSES
      "test_trt_remove_amp_strategy_op_pass")
+list(REMOVE_ITEM TEST_INFERENCE_IR_PASSES "test_dist_llama_inference")
 
 if(NOT WITH_DISTRIBUTE)
   list(REMOVE_ITEM TEST_INFERENCE_IR_PASSES "test_delete_c_identity_op_pass")
@@ -400,4 +401,13 @@ if(WITH_GPU AND TENSORRT_FOUND)
                                                                         300)
     endif()
   endif()
+endif()
+
+if(WITH_DISTRIBUTE
+   AND WITH_GPU
+   AND LINUX)
+  py_test_modules(
+    test_dist_llama_inference MODULES test_dist_llama_inference ENVS
+    "http_proxy=;https_proxy=;PYTHONPATH=../..:${PADDLE_BINARY_DIR}/python")
+  set_tests_properties(test_dist_llama_inference PROPERTIES TIMEOUT "300")
 endif()

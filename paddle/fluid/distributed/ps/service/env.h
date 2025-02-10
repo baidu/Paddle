@@ -138,26 +138,26 @@ class PSEnvironment {
 
   virtual uint64_t GetLocalHostSign() { return 0; }
   virtual std::vector<PSHost> GetPsServers() const { return _ps_server_list; }
-  virtual int32_t RegistePsServer(const std::string &ip,
-                                  uint32_t port,
-                                  int32_t rank) {
-    return RegistePsHost(ip, port, rank, _ps_server_list, _ps_server_sign_set);
+  virtual int32_t RegisterPsServer(const std::string &ip,
+                                   uint32_t port,
+                                   int32_t rank) {
+    return RegisterPsHost(ip, port, rank, _ps_server_list, _ps_server_sign_set);
   }
 
   virtual std::vector<PSHost> GetPsClients() const { return _ps_client_list; }
-  virtual int32_t RegistePsClient(const std::string &ip,
-                                  uint32_t port,
-                                  int32_t rank) {
-    return RegistePsHost(ip, port, rank, _ps_client_list, _ps_client_sign_set);
+  virtual int32_t RegisterPsClient(const std::string &ip,
+                                   uint32_t port,
+                                   int32_t rank) {
+    return RegisterPsHost(ip, port, rank, _ps_client_list, _ps_client_sign_set);
   }
 
   virtual std::vector<PSHost> GetCoordinators() const {
     return _coordinator_list;
   }
-  virtual int32_t RegisteCoordinatorClient(const std::string &ip,
-                                           uint32_t port,
-                                           int32_t rank) {
-    return RegistePsHost(
+  virtual int32_t RegisterCoordinatorClient(const std::string &ip,
+                                            uint32_t port,
+                                            int32_t rank) {
+    return RegisterPsHost(
         ip, port, rank, _coordinator_list, _coordinator_sign_set);
   }
 
@@ -186,7 +186,7 @@ class PSEnvironment {
 
  protected:
   //注册一个host //  NOLINT
-  virtual int32_t RegistePsHost(
+  virtual int32_t RegisterPsHost(
       const std::string &ip,
       uint32_t port,
       int32_t rank,

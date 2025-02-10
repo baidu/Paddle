@@ -49,7 +49,7 @@ struct MergeTrivialPatternOperation {
             graph->iters_fusion_policy()->SingleDownstreamItersFusion(
                 upstream, downstream));
         graph->RemoveNode(downstream);
-        VLOG(4) << "Spliting trivial pattern: \nupstream "
+        VLOG(4) << "Splitting trivial pattern: \nupstream "
                 << upstream->DebugStr() << "\ndownstream "
                 << downstream->DebugStr() << "\nmerged "
                 << merged_node->DebugStr();

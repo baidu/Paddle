@@ -278,7 +278,7 @@ void CumprodGradKernel(const Context &dev_ctx,
   // while the gradient value of the other positions are calculated out
   // completely. This functor also:
   //  (1) find the first zero index, i.e., first_zero_idx_data.
-  //  (2) fill x_filled_one, which satifies
+  //  (2) fill x_filled_one, which satisfies
   //      x_filled_one[i] = x[i], i > pos
   //      x_filled_one[i] = 1, i <= pos
   auto first_zero_idx = const_cast<Allocator &>(dev_ctx.GetAllocator())

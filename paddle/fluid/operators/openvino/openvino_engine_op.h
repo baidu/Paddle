@@ -214,8 +214,8 @@ class OpenVINOEngineOp : public framework::OperatorBase {
           common::errors::NotFound(
               "Output variable %s is not found in Openvino subgraph.", y));
       auto *fluid_t = fluid_v->GetMutable<phi::DenseTensor>();
-      auto ov_output_shape = engine->GetOuputShape(output_names_[i], i);
-      auto phi_type = engine->GetOuputType(
+      auto ov_output_shape = engine->GetOutputShape(output_names_[i], i);
+      auto phi_type = engine->GetOutputType(
           output_names_[i],
           i,
           inference::openvino::VarType2OVType(ori_var_type));
@@ -224,7 +224,7 @@ class OpenVINOEngineOp : public framework::OperatorBase {
         ddim.push_back(ov_output_shape[j]);
       }
       fluid_t->Resize(common::make_ddim(ddim));
-      engine->CopyOuputDataByName(
+      engine->CopyOutputDataByName(
           output_names_[i], i, fluid_t->mutable_data(dev_place, phi_type));
     }
   }

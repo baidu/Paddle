@@ -772,7 +772,7 @@ class InMemoryDataset(DatasetBase):
 
     def _set_parse_ins_id(self, parse_ins_id):
         """
-        Set if Dataset need to parse insid
+        Set if Dataset need to parse ins id
 
         Args:
             parse_ins_id(bool): if parse ins_id or not

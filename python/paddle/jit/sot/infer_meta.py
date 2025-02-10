@@ -23,6 +23,16 @@ from paddle.base.unique_name import (
     UniqueNameGenerator,
     guard as UniqueNameGuard,
 )
+from paddle.distributed.auto_parallel.placement_type import (
+    get_shard_spec,
+    to_placements,
+)
+from paddle.distributed.auto_parallel.static.dist_input_spec import (
+    DistributedInputSpec,
+)
+from paddle.distributed.auto_parallel.static.utils import (
+    convert_to_dims_mapping,
+)
 from paddle.framework import use_pir_api
 from paddle.utils import flatten, is_sequence
 
@@ -55,6 +65,41 @@ class SymbolicFloat(SymbolicValue):
         return float
 
 
+class DistInfo:
+    def __init__(self, mesh=None, dims_mapping=None, local_shape=None):
+        self.mesh = mesh
+        self.dims_mapping = dims_mapping
+        self.local_shape = local_shape
+
+    @staticmethod
+    def from_tensor(tensor: paddle.Tensor) -> DistInfo:
+        assert (
+            isinstance(tensor, paddle.Tensor) and tensor.is_dist()
+        ), f"Expect a Tensor, but got a {type(tensor)}."
+
+        mesh = tensor.process_mesh
+        sharding_specs = get_shard_spec(
+            mesh, tensor.placements, len(tensor.shape)
+        )
+        dims_mapping = convert_to_dims_mapping(sharding_specs, mesh)
+        local_shape = tensor._local_value().shape
+        return DistInfo(mesh, dims_mapping, local_shape)
+
+    @staticmethod
+    def from_value(value: paddle.pir.Value) -> DistInfo:
+        assert (
+            isinstance(value, paddle.pir.Value) and value.is_dist()
+        ), f"Expect a Value, but got a {type(value)}."
+        return DistInfo(
+            value.dist_attr().process_mesh,
+            value.dist_attr().dims_mapping,
+            value._local_shape,
+        )
+
+    def __repr__(self) -> str:
+        return f"DistInfo(mesh={self.mesh}, dims_mapping={self.dims_mapping}, local_shape={self.local_shape})"
+
+
 class MetaInfo:
     shape: list[int | SymbolicInt]
 
@@ -67,6 +112,7 @@ class MetaInfo:
         persistable,
         type,
         place,
+        dist_info=None,
     ):
         assert (
             -1 not in shape
@@ -78,6 +124,7 @@ class MetaInfo:
         self.shape = shape
         self.dtype = dtype
         self.stop_gradient = stop_gradient
+        self.dist_info = dist_info
 
     def shape_with_special_symbol(
         self, dynamic_symbol: DynamicSymbolT = -1
@@ -100,6 +147,7 @@ class MetaInfo:
             self.persistable,
             self.type,
             self.place,
+            dist_info=self.dist_info,
         )
 
     @property
@@ -144,6 +192,10 @@ class MetaInfo:
             SymbolicInt() if i in dynamic_axes else dim
             for i, dim in enumerate(tensor.shape)
         ]
+        if tensor.is_dist():
+            dist_info = DistInfo.from_tensor(tensor)
+        else:
+            dist_info = None
         return MetaInfo(
             shape,
             dtype,
@@ -152,6 +204,7 @@ class MetaInfo:
             tensor.persistable,
             tensor.type,
             tensor.place,
+            dist_info=dist_info,
         )
 
     @staticmethod
@@ -159,6 +212,10 @@ class MetaInfo:
         name = SOT_INFER_META_INNER_VAR
         dtype = MetaInfo._handle_legacy_ir_amp_dtype(value.dtype)
         shape = [SymbolicInt() if dim == -1 else dim for dim in value.shape]
+        if isinstance(value, paddle.pir.Value) and value.is_dist():
+            dist_info = DistInfo.from_value(value)
+        else:
+            dist_info = None
         return MetaInfo(
             shape,
             dtype,
@@ -167,6 +224,7 @@ class MetaInfo:
             value.persistable,
             value.type,
             value.place,
+            dist_info=dist_info,
         )
 
     def is_inner_var(self):
@@ -181,9 +239,22 @@ class MetaInfo:
 
     def to_input_spec(self):
         shape = self.shape_with_special_symbol(None)
-        return paddle.static.InputSpec(
-            shape, dtype=self.dtype, stop_gradient=self.stop_gradient
-        )
+        if self.dist_info is not None:
+            placements = to_placements(
+                self.dist_info.dims_mapping, self.dist_info.mesh
+            )
+            return DistributedInputSpec(
+                shape,
+                dtype=self.dtype,
+                stop_gradient=self.stop_gradient,
+                mesh=self.dist_info.mesh,
+                placements=placements,
+                local_shape=self.dist_info.local_shape,
+            )
+        else:
+            return paddle.static.InputSpec(
+                shape, dtype=self.dtype, stop_gradient=self.stop_gradient
+            )
 
     def guard_str(self):
         shape = self.shape_with_special_symbol(SymbolicInt())
@@ -274,6 +345,14 @@ class VariableCreator(metaclass=Singleton):
                     dtype=convert_dtype(meta.dtype),
                 )
                 var.stop_gradient = meta.stop_gradient
+
+                if meta.dist_info is not None:
+                    mesh = meta.dist_info.mesh
+                    placements = to_placements(
+                        meta.dist_info.dims_mapping, mesh
+                    )
+                    var = paddle._pir_ops.shard_tensor(var, mesh, placements)
+                    var.stop_gradient = meta.stop_gradient
         else:
             var = self.main_program.global_block().create_var(
                 shape=shape,
@@ -285,8 +364,10 @@ class VariableCreator(metaclass=Singleton):
         ), "Expect a Variable, but got a Tensor."
         return var
 
-    def get_variable(self, meta):
+    def get_variable(self, meta, without_cache=False):
         var_feature_name = self.gen_name(meta)
+        if without_cache:
+            return self.create_var(meta)
         if var_feature_name not in self.var_cache:
             self.var_cache[var_feature_name] = self.create_var(meta)
         return self.var_cache[var_feature_name]
@@ -295,10 +376,16 @@ class VariableCreator(metaclass=Singleton):
         with paddle.base.framework._dygraph_guard(None), UniqueNameGuard(
             self.var_name_generator
         ):
-            args, kwargs = (
-                convert_meta_to_variable(args),
-                convert_meta_to_variable(kwargs),
-            )
+            if func is paddle.distributed.shard_tensor:
+                args, kwargs = (
+                    convert_meta_to_variable(args, without_cache=True),
+                    convert_meta_to_variable(kwargs, without_cache=True),
+                )
+            else:
+                args, kwargs = (
+                    convert_meta_to_variable(args),
+                    convert_meta_to_variable(kwargs),
+                )
 
             with paddle.static.program_guard(
                 self.main_program, self.startup_program
@@ -312,11 +399,13 @@ class VariableCreator(metaclass=Singleton):
         return convert_variable_to_meta_info(out)
 
 
-def convert_meta_to_variable(args):
+def convert_meta_to_variable(args, without_cache=False):
     return map_if_extend(
         args,
         pred=lambda x: isinstance(x, MetaInfo),
-        true_fn=lambda x: VariableCreator().get_variable(x),
+        true_fn=lambda x: VariableCreator().get_variable(
+            x, without_cache=without_cache
+        ),
         false_fn=lambda x: x,
     )
 

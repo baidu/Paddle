@@ -117,13 +117,13 @@ struct AccumLambdaIteratorSm70 {
   using Element = accum_t;
 
   static int const kElementsPerPartial = 4;
-  using EleShapePerPatial = typename cutlass::platform::conditional<
+  using EleShapePerPartial = typename cutlass::platform::conditional<
       cutlass::platform::is_same<Element, float>::value,
       cutlass::MatrixShape<2, 2>,
       cutlass::MatrixShape<1, 4>>::type;
   static int const kElementsPerMma = 8;
-  static int const kAccumulatorPatials = 2;
-  using QuadShapePerPatialMma = cutlass::MatrixShape<4, 4>;
+  static int const kAccumulatorPartials = 2;
+  using QuadShapePerPartialMma = cutlass::MatrixShape<4, 4>;
 
   static cutlass::MatrixCoord CUTLASS_DEVICE
   get_lane_offset(int8_t lane_id,
@@ -138,12 +138,13 @@ struct AccumLambdaIteratorSm70 {
       accum_m = (((quad & 0x4) >> 1) + (quad & 0x1)) * 8 + (lane_in_quad & 1);
       // (quad[1])+lane_in_quad[1]
       accum_n =
-          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPatials +
+          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPartials +
           (lane_in_quad & 2);
     } else {
       accum_m = (((quad & 0x4) >> 1) + (quad & 0x1)) * 8 +
                 lane_in_quad;  // (quad[2],quad[0])
-      accum_n = ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPatials;
+      accum_n =
+          ((quad >> 1) & 0x1) * kElementsPerPartial * kAccumulatorPartials;
     }
     return cutlass::MatrixCoord(
         accum_m + tile_offset.row() * Shape::kRow,
@@ -177,9 +178,9 @@ struct AccumLambdaIteratorSm70 {
       CUTLASS_PRAGMA_UNROLL
       for (int mma_m = 0; mma_m < Policy::MmaIterations::kRow; ++mma_m) {
         CUTLASS_PRAGMA_UNROLL
-        for (int m = 0; m < EleShapePerPatial::kRow; ++m) {
+        for (int m = 0; m < EleShapePerPartial::kRow; ++m) {
           int accum_m = tile_m * Policy::InterleavedTile::kRow +
-                        mma_m * QuadShapePerPatialMma::kRow + m * 2 +
+                        mma_m * QuadShapePerPartialMma::kRow + m * 2 +
                         lane_offset.row();
           beginRow(accum_m);
 
@@ -190,9 +191,9 @@ struct AccumLambdaIteratorSm70 {
             for (int mma_n = 0; mma_n < Policy::MmaIterations::kColumn;
                  ++mma_n) {
               CUTLASS_PRAGMA_UNROLL
-              for (int p = 0; p < kAccumulatorPatials; ++p) {
+              for (int p = 0; p < kAccumulatorPartials; ++p) {
                 CUTLASS_PRAGMA_UNROLL
-                for (int n = 0; n < EleShapePerPatial::kColumn; ++n) {
+                for (int n = 0; n < EleShapePerPartial::kColumn; ++n) {
                   int mma_accum_start =
                       (((tile_n * Policy::TileIterations::kRow + tile_m) *
                             Policy::MmaIterations::kColumn +
@@ -201,11 +202,11 @@ struct AccumLambdaIteratorSm70 {
                        mma_m) *
                       kElementsPerMma;
                   int accum_n = tile_n * Policy::InterleavedTile::kColumn +
-                                mma_n * QuadShapePerPatialMma::kColumn +
+                                mma_n * QuadShapePerPartialMma::kColumn +
                                 p * Policy::InterleavedTile::kColumn / 2 + n +
                                 lane_offset.column();
                   int idx = mma_accum_start + p * kElementsPerPartial +
-                            m * EleShapePerPatial::kColumn + n;
+                            m * EleShapePerPartial::kColumn + n;
                   op(accum_m, accum_n, idx);
                 }
               }

@@ -1101,7 +1101,7 @@ def topk(
         largest (bool, optional) : largest is a flag, if set to true,
             algorithm will sort by descending order, otherwise sort by
             ascending order. Default is True.
-        sorted (bool, optional): controls whether to return the elements in sorted order, default value is True. In gpu device, it always return the sorted value.
+        sorted (bool, optional): controls whether to return the elements in sorted order, default value is True.
         name (str|None, optional): Name for the operation (optional, default is None). For more information, please refer to :ref:`api_guide_Name`.
 
     Returns:

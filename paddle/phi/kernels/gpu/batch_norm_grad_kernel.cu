@@ -175,7 +175,7 @@ static __global__ LAUNCH_BOUNDS(BlockDim) void BNBackward(
   __shared__ typename BlockReduce::TempStorage ds_storage;
   __shared__ typename BlockReduce::TempStorage db_storage;
   __shared__ typename BlockReduce::TempStorage mean_storage;
-  __shared__ typename BlockReduce::TempStorage variance_storeage;
+  __shared__ typename BlockReduce::TempStorage variance_storage;
   __shared__ BatchNormParamType<T> inv_var_val;
   __shared__ BatchNormParamType<T> mean_val;
   __shared__ BatchNormParamType<T> dscale_val;
@@ -207,7 +207,7 @@ static __global__ LAUNCH_BOUNDS(BlockDim) void BNBackward(
 
       x_sum = BlockReduce(mean_storage).Reduce(x_sum, cub::Sum());
       x_square_sum =
-          BlockReduce(variance_storeage).Reduce(x_square_sum, cub::Sum());
+          BlockReduce(variance_storage).Reduce(x_square_sum, cub::Sum());
       if (threadIdx.x == 0) {
         mean_val = x_sum / inner_size;
         inv_var_val =
@@ -286,12 +286,12 @@ static __global__ void BNBackward2DChannelLastStage1(
     }
 
     // vertical block sum
-    funcs::BlockReduceByVetical<T, BatchNormParamType<T>>(x_sum,
-                                                          x_square_sum,
-                                                          &smem_sum[0],
-                                                          &smem_square_sum[0],
-                                                          &x_sum,
-                                                          &x_square_sum);
+    funcs::BlockReduceByVertical<T, BatchNormParamType<T>>(x_sum,
+                                                           x_square_sum,
+                                                           &smem_sum[0],
+                                                           &smem_square_sum[0],
+                                                           &x_sum,
+                                                           &x_square_sum);
 
     if (gridDim.y > 1) {
       __shared__ bool is_last_block_done;
@@ -366,7 +366,7 @@ static __global__ void BNBackward2DChannelLastStage2(
     }
 
     // vertical block sum
-    funcs::BlockReduceByVetical<T, BatchNormParamType<T>>(
+    funcs::BlockReduceByVertical<T, BatchNormParamType<T>>(
         ds_sum, db_sum, &smem_ds_sum[0], &smem_db_sum[0], &ds_sum, &db_sum);
 
     if (gridDim.y > 1) {

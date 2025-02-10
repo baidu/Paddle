@@ -455,11 +455,11 @@ def set_param_dtype(program, dtype, amp_lists, use_fp16_guard, level):
         all_parameters.extend(block.all_parameters())
         ops = block.ops
         for op in ops:
-            # Currently, lookup_table is in black_list and unsupport_list, it's weight will be
+            # Currently, lookup_table is in black_list and unsupported_list, it's weight will be
             # set to fp32 in step 1 of cast_model_tp_fp16. But the weight may be used as matmul's
             # input in transformer, so the weight is also in to_fp16_var_names.
             # TODO(zhangting2020): consider fix auto_parallel_fp16 and remove lookup_table
-            # from black_list and unsupport_list.
+            # from black_list and unsupported_list.
             if op.type in amp_lists.black_list:
                 continue
             if _need_keep_fp32(op, amp_lists.unsupported_list, use_fp16_guard):

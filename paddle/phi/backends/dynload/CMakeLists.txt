@@ -29,7 +29,8 @@ if(WITH_ROCM)
     miopen.cc
     hiprand.cc
     hipfft.cc
-    rocsparse.cc)
+    rocsparse.cc
+    rocsolver.cc)
 endif()
 
 # There is no macOS version of NCCL.

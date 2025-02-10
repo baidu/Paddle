@@ -51,7 +51,7 @@ function make_cpu_dockerfile(){
 }
 
 
-function make_ce_framework_dockcerfile(){
+function make_ce_framework_dockerfile(){
   dockerfile_name="Dockerfile.cuda11.2_cudnn8_gcc82_trt8"
   sed "s#<baseimg>#nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04#g" ./Dockerfile.ubuntu20 >${dockerfile_name}
   dockerfile_line=$(wc -l ${dockerfile_name}|awk '{print $1}')
@@ -160,7 +160,7 @@ function make_ubuntu20_cu112_dockerfile(){
 
 function main() {
   make_cpu_dockerfile
-  make_ce_framework_dockcerfile
+  make_ce_framework_dockerfile
   make_ubuntu20_cu12_dockerfile
   make_ubuntu20_cu112_dockerfile
   make_ubuntu20_cu123_dockerfile

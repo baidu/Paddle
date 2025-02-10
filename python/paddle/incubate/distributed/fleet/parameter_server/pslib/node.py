@@ -716,7 +716,7 @@ class DownpourWorker(Worker):
             learning_rate(float): the learning rate used to update parameters. \
                 Can be a float value
             param_vars(list): all dense param. it is a list.
-            grad_vars(list): all dense grad parm it is a list.
+            grad_vars(list): all dense grad param it is a list.
             dense_start_table_id(int): dense table start index
             sparse_table_names(list): sparse table names
         Returns:

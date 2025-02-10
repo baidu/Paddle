@@ -169,7 +169,7 @@ class ComputeCodeGenerator(ast.NodeVisitor):
 
         assert (
             len(node.targets) == 1
-        ), "Unsupport targets is a \
+        ), "Unsupported targets is a \
                list of nodes, like 'a = b = c'"
         lhs = node.targets[0]
 

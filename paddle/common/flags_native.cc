@@ -479,7 +479,7 @@ TEST_API void ParseCommandLineFlags(int* pargc, char*** pargv) {
         if (value.back() == '"') {
           value.pop_back();
         } else {
-          std::string error_msg = "unexperted end of flag \"";
+          std::string error_msg = "unexpected end of flag \"";
           error_msg += name;
           error_msg += "\" value while looking for matching `\"'";
           LOG_FLAG_FATAL_ERROR(error_msg);

@@ -1009,7 +1009,7 @@ class TestMaximumHighGradCheck2(unittest.TestCase):
         y = paddle.randn(self.shape2).astype("float32")
         y.stop_gradient = y_stop
 
-        # wraping with tanh to enable high order gradient
+        # wrapping with tanh to enable high order gradient
         z = paddle.maximum(paddle.tanh(x), paddle.tanh(y))
 
         if not x.stop_gradient:
@@ -1023,7 +1023,7 @@ class TestMaximumHighGradCheck2(unittest.TestCase):
         y = paddle.randn(self.shape2).astype("float32")
         y.stop_gradient = y_stop
 
-        # wraping with tanh to enable high order gradient
+        # wrapping with tanh to enable high order gradient
         z = paddle.maximum(paddle.tanh(x), paddle.tanh(y))
 
         if not x.stop_gradient:
@@ -1071,7 +1071,7 @@ class TestBmmHighGradCheck2(unittest.TestCase):
         y = paddle.randn(self.shape2).astype("float32").to(device=place)
         y.stop_gradient = y_stop
 
-        # wraping with tanh to enable high order gradient
+        # wrapping with tanh to enable high order gradient
         z = paddle.bmm(paddle.tanh(x), paddle.tanh(y))
 
         if not x.stop_gradient:
@@ -1185,7 +1185,7 @@ class TestIndexPutHighGradCheck(unittest.TestCase):
         )
         value.stop_gradient = y_stop
 
-        # wraping with tanh to enable high order gradient
+        # wrapping with tanh to enable high order gradient
         z = paddle.index_put(paddle.tanh(x), indices, paddle.tanh(value))
         z = paddle.tanh(z)
 
@@ -1277,7 +1277,7 @@ class TestGatherNdHighGradCheck(unittest.TestCase):
         ]
         index = paddle.stack(index, axis=-1)  # [N, D]
 
-        # wraping with tanh to enable high order gradient
+        # wrapping with tanh to enable high order gradient
         z = paddle.gather_nd(x, index)
         z = paddle.tanh(z)
 

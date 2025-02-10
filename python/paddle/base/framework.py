@@ -8314,7 +8314,7 @@ def dtype_to_str(in_dtype):
     elif in_dtype == core.VarDesc.VarType.COMPLEX128:
         return "complex128"
     else:
-        raise TypeError(f"got unsupport data type for promotion: {in_dtype}.")
+        raise TypeError(f"got unsupported data type for promotion: {in_dtype}.")
 
 
 def add_cast_for_type_promotion(op, block, idx, var_name, out_dtype):

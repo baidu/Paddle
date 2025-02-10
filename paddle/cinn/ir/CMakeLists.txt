@@ -21,11 +21,11 @@ gather_srcs(
   schedule_block_graph.cc
   stmt.cc
   stmt_visitors.cc
+  expr_visitors.cc
   dim.cc)
 
 add_subdirectory(ir_analyzer)
 add_subdirectory(op)
-add_subdirectory(test)
 add_subdirectory(utils)
 add_subdirectory(schedule)
 add_subdirectory(group_schedule)

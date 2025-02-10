@@ -1924,7 +1924,7 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
 // If not, use the kernel registered in fluid. And if the fluid do not
 // contains the related heterogeneous kernel, use phi CPU kernel.
 #if defined(PADDLE_WITH_XPU)
-    bool is_xpu_unsupport =
+    bool is_xpu_unsupported =
         phi::is_xpu_place(kernel_type_->place_) &&
         !paddle::platform::is_xpu_support_op(
             type_, phi::TransToPhiDataType(kernel_type_->data_type_));
@@ -1947,10 +1947,10 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
 #endif
     if (phi_kernel_->IsValid() && !in_custom_back_list
 #if defined(PADDLE_WITH_XPU) && !defined(PADDLE_WITH_XPU_KP)
-        && !is_xpu_unsupport
+        && !is_xpu_unsupported
 #endif
 #if defined(PADDLE_WITH_XPU_KP)
-        && (!is_xpu_unsupport || use_phi_xpu_kp)
+        && (!is_xpu_unsupported || use_phi_xpu_kp)
 #endif
     ) {
       run_phi_kernel_ = true;
@@ -1970,10 +1970,10 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
           kernels_iter->second.find(*kernel_type_.get()) ==
               kernels_iter->second.end()
 #if defined(PADDLE_WITH_XPU) && !defined(PADDLE_WITH_XPU_KP)
-          || is_xpu_unsupport
+          || is_xpu_unsupported
 #endif
 #if defined(PADDLE_WITH_XPU_KP)
-          || (is_xpu_unsupport && !is_xpu_kp_support)
+          || (is_xpu_unsupported && !is_xpu_kp_support)
 #endif
 #if defined(PADDLE_WITH_CUSTOM_DEVICE)
           || in_custom_back_list
@@ -2006,7 +2006,7 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
   }
 
   // do data transformScope &transfer_scope;
-  std::vector<std::string> transfered_inplace_vars;
+  std::vector<std::string> transferred_inplace_vars;
   Scope* transfer_scope = nullptr;
   {
     phi::RecordEvent record_event("prepare_data",
@@ -2017,14 +2017,14 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
       if (fallback_to_cpu) {  // NOLINT
         transfer_scope = PrepareData(scope,
                                      phi_cpu_kernel_key,
-                                     &transfered_inplace_vars,
+                                     &transferred_inplace_vars,
                                      runtime_ctx,
                                      dev_ctx->GetPlace());
       } else {
         transfer_scope = PrepareData(
             scope,
             framework::TransOpKernelTypeToPhiKernelKey(*kernel_type_),
-            &transfered_inplace_vars,
+            &transferred_inplace_vars,
             runtime_ctx,
             dev_ctx->GetPlace());
       }
@@ -2110,9 +2110,9 @@ void OperatorWithKernel::RunImpl(const Scope& scope,
     }
   }
 
-  if (!transfered_inplace_vars.empty()) {
+  if (!transferred_inplace_vars.empty()) {
     // there is inplace variable has been transferred.
-    TransferInplaceVarsBack(scope, transfered_inplace_vars, *transfer_scope);
+    TransferInplaceVarsBack(scope, transferred_inplace_vars, *transfer_scope);
   }
 
   // See [ Why need handle complex gradient to real gradient? ]
@@ -2403,10 +2403,10 @@ void OperatorWithKernel::ChooseKernel(const ExecutionContext& ctx) const {
                 << ", using_kernel_key:" << expected_kernel_key;
       }
     }
-    bool is_xpu_unsupport = (!paddle::platform::is_xpu_support_op(
+    bool is_xpu_unsupported = (!paddle::platform::is_xpu_support_op(
         type_, phi::TransToPhiDataType(expected_kernel_key.data_type_)));
     if (!is_xpu_kp_support &&
-        (kernel_iter == kernels.end() || is_xpu_unsupport)) {
+        (kernel_iter == kernels.end() || is_xpu_unsupported)) {
       VLOG(3) << "fluid missing XPU kernel: " << type_
               << ", expected_kernel_key:" << expected_kernel_key
               << ", fallbacking to CPU one!";
@@ -2543,7 +2543,7 @@ void OperatorWithKernel::HandleComplexGradToRealGrad(
 Scope* OperatorWithKernel::PrepareData(
     const Scope& scope,
     const phi::KernelKey& expected_kernel_key,
-    std::vector<std::string>* transfered_inplace_vars,
+    std::vector<std::string>* transferred_inplace_vars,
     RuntimeContext* ctx,
     const phi::Place& place) const {
   Scope* new_scope = nullptr;
@@ -2578,7 +2578,7 @@ Scope* OperatorWithKernel::PrepareData(
       const auto& var_name = name_vec[i];
       auto* var = in_vars->at(i);
 
-      // Only tensor can be tranfer to another device.
+      // Only tensor can be transfer to another device.
       if (var == nullptr || !VarIsTensor(*var)) {
         continue;
       }
@@ -2753,7 +2753,7 @@ Scope* OperatorWithKernel::PrepareData(
 
       // Find if inplace exists between input and output
       // If inplace exists, set the new created var to inplaced output, and
-      // record its name in transfered_inplace_vars.
+      // record its name in transferred_inplace_vars.
       for (auto& pair : Outputs()) {
         for (size_t j = 0; j < pair.second.size(); ++j) {
           if (pair.second[j] == var_name) {
@@ -2761,7 +2761,7 @@ Scope* OperatorWithKernel::PrepareData(
                     << ") and output(" << pair.first
                     << "), the variable name is " << var_name;
             ctx->outputs[pair.first][j] = trans_var;
-            transfered_inplace_vars->emplace_back(var_name);
+            transferred_inplace_vars->emplace_back(var_name);
           }
         }
       }

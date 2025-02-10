@@ -30,6 +30,7 @@
 #include "paddle/cinn/ir/ir_mutator.h"
 #include "paddle/cinn/ir/lowered_func.h"
 #include "paddle/cinn/ir/utils/ir_copy.h"
+#include "paddle/cinn/ir/utils/stmt_converter.h"
 #include "paddle/cinn/runtime/flags.h"
 #include "paddle/common/enforce.h"
 namespace cinn {
@@ -117,7 +118,7 @@ struct CollectHostFunctionVisitor : public ir::IRMutator<> {
     ir::Var kernel_stream(KERNEL_STREAM, type_of<void*>());
 
     // shared_mem_bytes Can be calculated after codegen_cuda_dev buffer creation
-    // however, this make CodeGenCudaDev before spliting the host and device
+    // however, this make CodeGenCudaDev before splitting the host and device
     // module Maybe we could reorder the process.
     std::optional<Expr> shared_mem_bytes;
     cinn::common::DefaultDeviceTarget().arch.Match(
@@ -269,16 +270,23 @@ struct CollectBucketStrategyHostFunctionVisitor
         ir::Argument(kernel_args_, ir::Argument::IO::kOutput),
         ir::Argument(kernel_args_num_, ir::Argument::IO::kInput),
         ir::Argument(kernel_stream_, ir::Argument::IO::kOutput)};
-    std::vector<ir::Expr> body_stmts(arg_defs_);
+    std::vector<ir::stmt::StmtRef> body_stmts(arg_defs_);
     body_stmts.insert(body_stmts.end(), buckets_.begin(), buckets_.end());
+    // Remove convert when ir update done.
     ir::LoweredFunc host_func = ir::_LoweredFunc_::Make(
-        op->functions[0]->name, arguments, ir::Block::Make(body_stmts), {});
+        op->functions[0]->name,
+        arguments,
+        ir::ConvertStmtBlockToExprBlock(ir::stmt::BlockRef(body_stmts)),
+        {});
+    host_func->body_block = ir::stmt::BlockRef(body_stmts);
     host_module_builder.AddFunctionWithoutOptim(host_func);
 
     // Parse LoweredFunc to infer output tensor's shape
-    std::vector<ir::Expr> infer_shape_func_body_stmts(arg_defs_);
-    infer_shape_func_body_stmts.insert(infer_shape_func_body_stmts.end(),
-                                       op->infer_shape_func->body);
+    std::vector<ir::stmt::StmtRef> infer_shape_func_body_stmts(arg_defs_);
+    infer_shape_func_body_stmts.insert(
+        infer_shape_func_body_stmts.end(),
+        op->infer_shape_func->body_block->stmts().begin(),
+        op->infer_shape_func->body_block->stmts().end());
     if (temp_space_infer_shape_body_.defined()) {
       infer_shape_func_body_stmts.push_back(temp_space_infer_shape_body_);
     }
@@ -288,11 +296,14 @@ struct CollectBucketStrategyHostFunctionVisitor
         ir::Argument(kernel_args_num_, ir::Argument::IO::kInput),
         ir::Argument(tensor_shape_args_, ir::Argument::IO::kOutput)};
 
-    ir::LoweredFunc host_infer_shape_func =
-        ir::_LoweredFunc_::Make(op->infer_shape_func->name,
-                                infer_shape_arguments,
-                                ir::Block::Make(infer_shape_func_body_stmts),
-                                {});
+    ir::LoweredFunc host_infer_shape_func = ir::_LoweredFunc_::Make(
+        op->infer_shape_func->name,
+        infer_shape_arguments,
+        ir::ConvertStmtBlockToExprBlock(
+            ir::stmt::BlockRef(infer_shape_func_body_stmts)),
+        {});
+    host_infer_shape_func->body_block =
+        ir::stmt::BlockRef(infer_shape_func_body_stmts);
     host_module_builder.AddFunctionWithoutOptim(host_infer_shape_func);
   }
 
@@ -307,9 +318,9 @@ struct CollectBucketStrategyHostFunctionVisitor
                                          ir::Expr predicate);
 
  private:
-  std::vector<ir::Expr> buckets_;
-  std::vector<ir::Expr> arg_defs_;
-  ir::Expr temp_space_infer_shape_body_;
+  std::vector<ir::stmt::StmtRef> buckets_;
+  std::vector<ir::stmt::StmtRef> arg_defs_;
+  ir::stmt::IfThenElse temp_space_infer_shape_body_;
 
   ir::Var kernel_args_;
   ir::Var kernel_args_num_;

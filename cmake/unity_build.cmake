@@ -71,7 +71,7 @@ endfunction()
 
 # Combine the original source files used by `TARGET`, then use
 # `unity_target_${TYPE}_sources` to get the combined source files.
-# If the source file does not hit any registed groups, use itself.
+# If the source file does not hit any registered groups, use itself.
 # This function put the actual combination relationship in variables instead of
 # writing the unity source file. The reason is that writing unity source file
 # will change the timestamp and affect the effect of retaining the build
@@ -99,7 +99,7 @@ function(compose_unity_target_sources TARGET TYPE)
     # TODO(Avin0323): Whether use target property `UNITY_BUILD` of CMAKE to
     # combine source files.
     if(NOT "${unity_group_index_max}" STREQUAL "")
-      # Search in each registed group.
+      # Search in each registered group.
       foreach(unity_group_index RANGE ${unity_group_index_max})
         if(${unity_group_index} GREATER_EQUAL ${unity_group_index_max})
           break()

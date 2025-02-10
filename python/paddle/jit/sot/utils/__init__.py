@@ -21,6 +21,7 @@ from .envs import (  # noqa: F401
     ENV_SOT_ENABLE_FASTER_GUARD,
     ENV_SOT_ENABLE_GUARD_TREE,
     ENV_SOT_EXPORT,
+    ENV_SOT_FORCE_FALLBACK_SIR_IDS,
     ENV_SOT_LOG_LEVEL,
     ENV_SOT_WITH_CONTROL_FLOW,
     ENV_STRICT_MODE,
@@ -42,6 +43,7 @@ from .exceptions import (  # noqa: F401
     inner_error_default_handler,
 )
 from .info_collector import (  # noqa: F401
+    CompileCountInfo,
     InfoCollector,
     NewSymbolHitRateInfo,
     SubGraphRelationInfo,

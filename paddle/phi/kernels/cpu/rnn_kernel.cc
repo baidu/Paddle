@@ -425,7 +425,7 @@ struct Layer {
           }
           has_allocate_mem_c = true;
         }
-        SwapPoniter(&init_c_holder, &last_c_holder);
+        SwapPointer(&init_c_holder, &last_c_holder);
         init_c_temp_holder = init_c_holder;
       }
       cell_(&dev_ctx,
@@ -459,7 +459,7 @@ struct Layer {
         } else {
           init_h_holder = &(output_tensors[i + 1]);
         }
-        SwapPoniter(&init_h_holder, &last_h_holder);
+        SwapPointer(&init_h_holder, &last_h_holder);
       }
     }
     if (has_sequence_length) {
@@ -658,7 +658,7 @@ struct Layer {
         } else {
           init_h_holder = &(output_tensors[i + 1]);
         }
-        SwapPoniter(&init_h_holder, &last_h_holder);
+        SwapPointer(&init_h_holder, &last_h_holder);
       }
     }
     if (has_sequence_length) {

@@ -33,21 +33,22 @@ using ir::stmt::Store;
 
 void CastVarWithBound(cinn::ir::Var& var) {  // NOLINT
   if (!var.defined()) return;
+  if (var->is_symbolic_constant) return;
   var->convert_int64_to_int32();
   auto lb = var->lower_bound;
   auto ub = var->upper_bound;
-  if (lb.defined()) lb->convert_int64_to_int32();
-  if (ub.defined()) ub->convert_int64_to_int32();
+  if (lb.defined()) ir::TryElevateInt64ToInt32({lb});
+  if (ub.defined()) ir::TryElevateInt64ToInt32({ub});
 }
 void CastBufferMeta(cinn::ir::Buffer& bf) {  // NOLINT
   if (!bf.defined()) return;
   std::for_each(bf->shape.begin(), bf->shape.end(), [&](cinn::ir::Expr& e) {
-    e->convert_int64_to_int32();
+    ir::TryElevateInt64ToInt32({e});
   });
   std::for_each(bf->strides.begin(), bf->strides.end(), [&](cinn::ir::Expr& e) {
-    e->convert_int64_to_int32();
+    ir::TryElevateInt64ToInt32({e});
   });
-  bf->elem_offset->convert_int64_to_int32();
+  ir::TryElevateInt64ToInt32({bf->elem_offset});
 }
 
 class CheckOverflow : public ir::stmt::StmtVisitor<> {
@@ -110,14 +111,14 @@ class CastLonglong2IntMutator : public ir::IRMutator<> {
     auto node = expr->As<ir::_Tensor_>();
     std::for_each(node->shape.begin(),
                   node->shape.end(),
-                  [&](cinn::ir::Expr& e) { e->convert_int64_to_int32(); });
+                  [&](cinn::ir::Expr& e) { ir::TryElevateInt64ToInt32({e}); });
     CastBufferMeta(node->buffer);
   }
   void Visit(const ir::Load* op, Expr* expr) override {
     auto node = expr->As<ir::Load>();
     std::for_each(node->indices.begin(),
                   node->indices.end(),
-                  [&](cinn::ir::Expr& e) { e->convert_int64_to_int32(); });
+                  [&](cinn::ir::Expr& e) { ir::TryElevateInt64ToInt32({e}); });
     ir::IRMutator<>::Visit(&node->tensor, &node->tensor);
   }
 
@@ -125,10 +126,7 @@ class CastLonglong2IntMutator : public ir::IRMutator<> {
     auto node = expr->As<ir::Select>();
     auto cond = node->condition;
     if (cond.is_cmp()) {
-      if (cond->operand(0).is_index())
-        cond->operand(0)->convert_int64_to_int32();
-      if (cond->operand(1).is_index())
-        cond->operand(1)->convert_int64_to_int32();
+      ir::TryElevateInt64ToInt32({cond->operand(0), cond->operand(1)});
     }
     ir::IRMutator<>::Visit(&node->true_value, &node->true_value);
     ir::IRMutator<>::Visit(&node->false_value, &node->false_value);
@@ -144,7 +142,7 @@ class LongLong2IntStmtPass : public StmtPass {
 class LongLong2IntExprPass : public ExprPass {
  public:
   LongLong2IntExprPass() : ExprPass("longlong2int_expr") {}
-  LogicalResult Run(ir::Expr expr) override;
+  LogicalResult Run(ir::Expr* expr) override;
 };
 }  // namespace
 
@@ -152,7 +150,7 @@ LogicalResult LongLong2IntStmtPass::Run(ir::stmt::StmtRef stmt) {
   auto CastStore = [](StmtRef stmt) {
     Store store_stmt = stmt.as<Store>();
     for (Expr index : store_stmt->indices()) {
-      index->convert_int64_to_int32();
+      ir::TryElevateInt64ToInt32({index});
     }
   };
 
@@ -160,10 +158,7 @@ LogicalResult LongLong2IntStmtPass::Run(ir::stmt::StmtRef stmt) {
     IfThenElse if_stmt = stmt.as<IfThenElse>();
     Expr cond = if_stmt->condition();
     if (cond.is_cmp()) {
-      if (cond->operand(0).is_index())
-        cond->operand(0)->convert_int64_to_int32();
-      if (cond->operand(1).is_index())
-        cond->operand(1)->convert_int64_to_int32();
+      ir::TryElevateInt64ToInt32({cond->operand(0), cond->operand(1)});
     }
   };
 
@@ -171,8 +166,8 @@ LogicalResult LongLong2IntStmtPass::Run(ir::stmt::StmtRef stmt) {
     For for_stmt = stmt.as<For>();
     ir::Var loop_var = for_stmt->loop_var();
     CastVarWithBound(loop_var);
-    for_stmt->min()->convert_int64_to_int32();
-    for_stmt->extent()->convert_int64_to_int32();
+    ir::TryElevateInt64ToInt32({for_stmt->min()});
+    ir::TryElevateInt64ToInt32({for_stmt->extent()});
   };
 
   auto CastSchedule = [](StmtRef stmt) {
@@ -185,7 +180,7 @@ LogicalResult LongLong2IntStmtPass::Run(ir::stmt::StmtRef stmt) {
     std::vector<Expr> iter_values = schedule_stmt->iter_values();
     std::for_each(iter_values.begin(),
                   iter_values.end(),
-                  [&](cinn::ir::Expr& e) { e->convert_int64_to_int32(); });
+                  [&](cinn::ir::Expr& e) { ir::TryElevateInt64ToInt32({e}); });
 
     for (auto& buffer_range : schedule_stmt->read_buffers()) {
       if (auto range = buffer_range.As<ir::_BufferRange_>()) {
@@ -233,9 +228,9 @@ LogicalResult LongLong2IntStmtPass::Run(ir::stmt::StmtRef stmt) {
   return LogicalResult::success();
 }
 
-LogicalResult LongLong2IntExprPass::Run(ir::Expr expr) {
+LogicalResult LongLong2IntExprPass::Run(ir::Expr* expr) {
   CastLonglong2IntMutator narrow;
-  narrow(&expr);
+  narrow(expr);
   return LogicalResult::success();
 }
 std::unique_ptr<StmtPass> CreateLongLong2IntStmtPass() {

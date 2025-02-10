@@ -203,31 +203,31 @@ class EncoderLayer(Layer):
     ):
         super().__init__()
 
-        self.preprocesser1 = PrePostProcessLayer(
+        self.preprocessor1 = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
         self.self_attn = MultiHeadAttention(
             d_key, d_value, d_model, n_head, attention_dropout
         )
-        self.postprocesser1 = PrePostProcessLayer(
+        self.postprocessor1 = PrePostProcessLayer(
             postprocess_cmd, d_model, prepostprocess_dropout
         )
 
-        self.preprocesser2 = PrePostProcessLayer(
+        self.preprocessor2 = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
         self.ffn = FFN(d_inner_hid, d_model, relu_dropout)
-        self.postprocesser2 = PrePostProcessLayer(
+        self.postprocessor2 = PrePostProcessLayer(
             postprocess_cmd, d_model, prepostprocess_dropout
         )
 
     def forward(self, enc_input, attn_bias):
         attn_output = self.self_attn(
-            self.preprocesser1(enc_input), None, None, attn_bias
+            self.preprocessor1(enc_input), None, None, attn_bias
         )
-        attn_output = self.postprocesser1(attn_output, enc_input)
-        ffn_output = self.ffn(self.preprocesser2(attn_output))
-        ffn_output = self.postprocesser2(ffn_output, attn_output)
+        attn_output = self.postprocessor1(attn_output, enc_input)
+        ffn_output = self.ffn(self.preprocessor2(attn_output))
+        ffn_output = self.postprocessor2(ffn_output, attn_output)
         return ffn_output
 
 
@@ -267,7 +267,7 @@ class Encoder(Layer):
                     ),
                 )
             )
-        self.processer = PrePostProcessLayer(
+        self.processor = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
 
@@ -276,7 +276,7 @@ class Encoder(Layer):
             enc_output = encoder_layer(enc_input, attn_bias)
             enc_input = enc_output
 
-        return self.processer(enc_output)
+        return self.processor(enc_output)
 
 
 class Embedder(Layer):
@@ -378,29 +378,29 @@ class DecoderLayer(Layer):
     ):
         super().__init__()
 
-        self.preprocesser1 = PrePostProcessLayer(
+        self.preprocessor1 = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
         self.self_attn = MultiHeadAttention(
             d_key, d_value, d_model, n_head, attention_dropout
         )
-        self.postprocesser1 = PrePostProcessLayer(
+        self.postprocessor1 = PrePostProcessLayer(
             postprocess_cmd, d_model, prepostprocess_dropout
         )
-        self.preprocesser2 = PrePostProcessLayer(
+        self.preprocessor2 = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
         self.cross_attn = MultiHeadAttention(
             d_key, d_value, d_model, n_head, attention_dropout
         )
-        self.postprocesser2 = PrePostProcessLayer(
+        self.postprocessor2 = PrePostProcessLayer(
             postprocess_cmd, d_model, prepostprocess_dropout
         )
-        self.preprocesser3 = PrePostProcessLayer(
+        self.preprocessor3 = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
         self.ffn = FFN(d_inner_hid, d_model, relu_dropout)
-        self.postprocesser3 = PrePostProcessLayer(
+        self.postprocessor3 = PrePostProcessLayer(
             postprocess_cmd, d_model, prepostprocess_dropout
         )
 
@@ -408,20 +408,20 @@ class DecoderLayer(Layer):
         self, dec_input, enc_output, self_attn_bias, cross_attn_bias, cache=None
     ):
         self_attn_output = self.self_attn(
-            self.preprocesser1(dec_input), None, None, self_attn_bias, cache
+            self.preprocessor1(dec_input), None, None, self_attn_bias, cache
         )
-        self_attn_output = self.postprocesser1(self_attn_output, dec_input)
+        self_attn_output = self.postprocessor1(self_attn_output, dec_input)
         cross_attn_output = self.cross_attn(
-            self.preprocesser2(self_attn_output),
+            self.preprocessor2(self_attn_output),
             enc_output,
             enc_output,
             cross_attn_bias,
         )
-        cross_attn_output = self.postprocesser2(
+        cross_attn_output = self.postprocessor2(
             cross_attn_output, self_attn_output
         )
-        ffn_output = self.ffn(self.preprocesser3(cross_attn_output))
-        ffn_output = self.postprocesser3(ffn_output, cross_attn_output)
+        ffn_output = self.ffn(self.preprocessor3(cross_attn_output))
+        ffn_output = self.postprocessor3(ffn_output, cross_attn_output)
         return ffn_output
 
 
@@ -461,7 +461,7 @@ class Decoder(Layer):
                     ),
                 )
             )
-        self.processer = PrePostProcessLayer(
+        self.processor = PrePostProcessLayer(
             preprocess_cmd, d_model, prepostprocess_dropout
         )
 
@@ -482,7 +482,7 @@ class Decoder(Layer):
                 None if caches is None else caches[i],
             )
             dec_input = dec_output
-        return self.processer(dec_output)
+        return self.processor(dec_output)
 
 
 class WrapDecoder(Layer):

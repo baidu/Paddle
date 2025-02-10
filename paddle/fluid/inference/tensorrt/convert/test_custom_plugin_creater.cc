@@ -106,7 +106,7 @@ TEST(CustomPluginCreater, StaticShapePlugin) {
 
   framework::Scope scope;
 
-  tensorrt::plugin::TrtPluginRegistry::Global()->RegistToTrt();
+  tensorrt::plugin::TrtPluginRegistry::Global()->RegisterToTrt();
 
   auto &custom_plugin_tell = OpTeller::Global().GetCustomPluginTeller();
 
@@ -192,7 +192,7 @@ TEST(CustomPluginCreater, DynamicShapePlugin) {
 
   framework::Scope scope;
 
-  tensorrt::plugin::TrtPluginRegistry::Global()->RegistToTrt();
+  tensorrt::plugin::TrtPluginRegistry::Global()->RegisterToTrt();
 
   auto &custom_plugin_tell = OpTeller::Global().GetCustomPluginTeller();
 

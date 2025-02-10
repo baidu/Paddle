@@ -250,12 +250,12 @@ class TestSwigluSpmd(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, self.y_dist_tensor_spec
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 0])
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, 0])
 
     def test_input_x_unshard_last_dim(self):
         x_shape = [64, 32]
@@ -268,12 +268,12 @@ class TestSwigluSpmd(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_dist_tensor_spec, DistTensorSpec()
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1])
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, -1])
 
 
 if __name__ == "__main__":

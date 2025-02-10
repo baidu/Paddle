@@ -15,7 +15,7 @@
 import argparse
 
 import yaml
-from api_gen import ForwardAPI
+from api_gen import ForwardAPI, backward_api_black_list
 from dist_api_gen import DistForwardAPI
 from sparse_api_gen import SparseAPI
 
@@ -131,12 +131,17 @@ def generate_intermediate_api(
 
     dygraph_header_file.write(sparse_namespace_pair[0])
     dygraph_source_file.write(sparse_namespace_pair[0])
-
-    with open(sparse_api_yaml_path, 'r') as f:
-        sparse_apis = yaml.load(f, Loader=yaml.FullLoader)
+    sparse_apis = []
+    for each_sparse_api_yaml in sparse_api_yaml_path:
+        with open(each_sparse_api_yaml, 'r') as f:
+            sparse_api_list = yaml.load(f, Loader=yaml.FullLoader)
+            if sparse_api_list:
+                sparse_apis.extend(sparse_api_list)
 
     for api in sparse_apis:
         sparse_api = SparseAPI(api)
+        if sparse_api.api in backward_api_black_list:
+            continue
         if sparse_api.is_dygraph_api:
             dygraph_header_file.write(sparse_api.gene_api_declaration())
             dygraph_source_file.write(sparse_api.gene_api_code())
@@ -164,6 +169,7 @@ def main():
 
     parser.add_argument(
         '--sparse_api_yaml_path',
+        nargs='+',
         help='path to sparse api yaml file',
         default='paddle/phi/ops/yaml/sparse_ops.yaml',
     )

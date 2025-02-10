@@ -31,7 +31,6 @@ limitations under the License. */
 
 #if defined(PADDLE_WITH_NCCL) || defined(PADDLE_WITH_RCCL)
 #include "paddle/phi/core/distributed/nccl_comm_context.h"
-COMMON_DECLARE_bool(dynamic_static_unified_comm);
 #endif
 
 #if defined PADDLE_WITH_PSCORE
@@ -1203,54 +1202,35 @@ bool HogwildWorker::CheckBatchNum(int flag) {
     //  g_barrier.wait();
     float *stat_ptr = sync_stat_.data<float>();
     int ring_id = 0;
-    platform::NCCLComm *comm = nullptr;
     const auto &comm_context_manager =
         phi::distributed::CommContextManager::GetInstance();
     phi::distributed::NCCLCommContext *comm_ctx = nullptr;
-    if (FLAGS_dynamic_static_unified_comm) {
-      PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(ring_id)),
-                        true,
-                        common::errors::InvalidArgument(
-                            "You choose to use new communication library by "
-                            "setting environment "
-                            "variable FLAGS_dynamic_static_unified_comm True. "
-                            "But ring_id(%d) is "
-                            "not found in comm_context_manager.",
-                            std::to_string(ring_id)));
-      comm_ctx = static_cast<phi::distributed::NCCLCommContext *>(
-          comm_context_manager.Get(std::to_string(ring_id)));
-      PADDLE_ENFORCE_NE(comm_ctx,
-                        nullptr,
-                        common::errors::Unavailable(
-                            "NCCLCommContext is nullptr, collective op should "
-                            "has ring_id attr."));
-    } else {
-      comm = platform::NCCLCommContext::Instance().Get(ring_id,
-                                                       place_.GetDeviceId());
-    }
+    PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(ring_id)),
+                      true,
+                      common::errors::InvalidArgument(
+                          "You choose to use new communication library. "
+                          "But ring_id(%d) is "
+                          "not found in comm_context_manager.",
+                          std::to_string(ring_id)));
+    comm_ctx = static_cast<phi::distributed::NCCLCommContext *>(
+        comm_context_manager.Get(std::to_string(ring_id)));
+    PADDLE_ENFORCE_NE(comm_ctx,
+                      nullptr,
+                      common::errors::Unavailable(
+                          "NCCLCommContext is nullptr, collective op should "
+                          "has ring_id attr."));
 
     auto stream = static_cast<phi::GPUContext *>(dev_ctx_)->stream();
-    if (comm_ctx) {
-      // comm_ctx->AllReduce only support allreduce on the whole tensor,
-      // single element is not supported now.
-      PADDLE_ENFORCE_GPU_SUCCESS(
-          phi::dynload::ncclAllReduce(&stat_ptr[flag],
-                                      &stat_ptr[2],
-                                      1,
-                                      ncclFloat32,
-                                      ncclProd,
-                                      comm_ctx->GetNcclComm(),
-                                      stream));
-
-    } else {
-      PADDLE_ENFORCE_GPU_SUCCESS(phi::dynload::ncclAllReduce(&stat_ptr[flag],
-                                                             &stat_ptr[2],
-                                                             1,
-                                                             ncclFloat32,
-                                                             ncclProd,
-                                                             comm->comm(),
-                                                             stream));
-    }
+    // comm_ctx->AllReduce only support allreduce on the whole tensor,
+    // single element is not supported now.
+    PADDLE_ENFORCE_GPU_SUCCESS(
+        phi::dynload::ncclAllReduce(&stat_ptr[flag],
+                                    &stat_ptr[2],
+                                    1,
+                                    ncclFloat32,
+                                    ncclProd,
+                                    comm_ctx->GetNcclComm(),
+                                    stream));
 
     PADDLE_ENFORCE_GPU_SUCCESS(cudaMemcpyAsync(&ret,  // output
                                                &stat_ptr[2],

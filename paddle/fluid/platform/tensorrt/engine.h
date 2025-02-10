@@ -145,7 +145,7 @@ class TensorRTEngine {
     dy::initLibNvInferPlugins(&logger_, "");
     static std::once_flag trt_plugin_registered;
     std::call_once(trt_plugin_registered,
-                   []() { TrtPluginRegistry::Global()->RegistToTrt(); });
+                   []() { TrtPluginRegistry::Global()->RegisterToTrt(); });
   }
 
   // Add an input and set its name, data type and dimension.
@@ -292,7 +292,7 @@ class TensorRTEngine {
     }
   }
 
-  // NOTE: The func bellow was modified to adapt the dynamic shape.
+  // NOTE: The func below was modified to adapt the dynamic shape.
   // Initialize the inference network, so that TensorRT layers can add to this
   // network.
   void InitNetwork();

@@ -675,7 +675,7 @@ def convert_super(super_fn):
 class VariableTuple:
     """
     this class will cause enumerate can't be wrapped by other iterator change function.
-    this will be fixed when list<Variable> is producted.
+    this will be fixed when list<Variable> is produced.
     VariableTuple can only deal with variables which is fixed.
     """
 

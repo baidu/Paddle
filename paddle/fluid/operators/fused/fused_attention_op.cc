@@ -380,7 +380,7 @@ class FusedAttentionOpMaker : public framework::OpProtoAndCheckerMaker {
     AddOutput("BiasDropoutResidualOut",
               "Result of residual + dropout(src + bias).")
         .AsIntermediate();
-    AddOutput("CacheKVOut", "The udpated cache KV.").AsDispensable();
+    AddOutput("CacheKVOut", "The updated cache KV.").AsDispensable();
     AddOutput("Y", "Result after attention.");
 
     AddAttr<int>("num_heads", "The number head for multi_head_attention.")

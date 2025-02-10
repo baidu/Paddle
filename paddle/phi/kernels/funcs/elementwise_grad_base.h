@@ -300,20 +300,20 @@ void ElemwiseGradComputeWithBroadcast(const CPUContext &ctx,
 
   int pre, n, post, is_run_common_broadcast, axis_trim = 0;
   if (is_xsize_larger) {
-    auto y_dims_trimed = TrimTrailingSingularDims(y_dims);
-    axis_trim = (y_dims_trimed.size() == 0) ? x_dims.size() : axis;
+    auto y_dims_trimmed = TrimTrailingSingularDims(y_dims);
+    axis_trim = (y_dims_trimmed.size() == 0) ? x_dims.size() : axis;
     GetMidDims(x_dims,
-               y_dims_trimed,
+               y_dims_trimmed,
                axis_trim,
                &pre,
                &n,
                &post,
                &is_run_common_broadcast);
   } else {
-    auto x_dims_trimed = TrimTrailingSingularDims(x_dims);
-    axis_trim = (x_dims_trimed.size() == 0) ? y_dims.size() : axis;
+    auto x_dims_trimmed = TrimTrailingSingularDims(x_dims);
+    axis_trim = (x_dims_trimmed.size() == 0) ? y_dims.size() : axis;
     GetMidDims(y_dims,
-               x_dims_trimed,
+               x_dims_trimmed,
                axis_trim,
                &pre,
                &n,
@@ -417,19 +417,19 @@ static inline bool CheckContiguousDims(const std::vector<int> &broadcast_pos) {
   return true;
 }
 
-inline void ComputeBroadcastTranspositionArray(const int *x_one_indexs,
-                                               int *x_trans_indexs,
+inline void ComputeBroadcastTranspositionArray(const int *x_one_indices,
+                                               int *x_trans_indices,
                                                const int max_dim,
                                                const int x_one_size) {
   int diff = max_dim - x_one_size;
-  std::copy_n(x_one_indexs, x_one_size, x_trans_indexs + diff);
+  std::copy_n(x_one_indices, x_one_size, x_trans_indices + diff);
   int p = 0;
   int q = diff;
   for (int i = 0; i < max_dim; ++i) {
-    if (q < max_dim && i == x_trans_indexs[q]) {
+    if (q < max_dim && i == x_trans_indices[q]) {
       ++q;
     } else {
-      x_trans_indexs[p++] = i;
+      x_trans_indices[p++] = i;
     }
   }
 }
@@ -1090,25 +1090,29 @@ void CommonGradBroadcastCUDA(const DenseTensor &x,
   T *dx_data = dx == nullptr ? nullptr : ctx.Alloc<T>(dx);
   T *dy_data = dy == nullptr ? nullptr : ctx.Alloc<T>(dy);
 
-  std::vector<int> x_one_indexs;
-  std::vector<int> y_one_indexs;
+  std::vector<int> x_one_indices;
+  std::vector<int> y_one_indices;
   for (int i = 0; i < max_dim; i++) {
     if (x_dims_array[i] != y_dims_array[i]) {
       if (x_dims_array[i] == 1) {
-        x_one_indexs.push_back(i);
+        x_one_indices.push_back(i);
       }
       if (y_dims_array[i] == 1) {
-        y_one_indexs.push_back(i);
+        y_one_indices.push_back(i);
       }
     }
   }
 
-  std::vector<int> x_trans_indexs(max_dim);
-  std::vector<int> y_trans_indexs(max_dim);
-  ComputeBroadcastTranspositionArray(
-      x_one_indexs.data(), x_trans_indexs.data(), max_dim, x_one_indexs.size());
-  ComputeBroadcastTranspositionArray(
-      y_one_indexs.data(), y_trans_indexs.data(), max_dim, y_one_indexs.size());
+  std::vector<int> x_trans_indices(max_dim);
+  std::vector<int> y_trans_indices(max_dim);
+  ComputeBroadcastTranspositionArray(x_one_indices.data(),
+                                     x_trans_indices.data(),
+                                     max_dim,
+                                     x_one_indices.size());
+  ComputeBroadcastTranspositionArray(y_one_indices.data(),
+                                     y_trans_indices.data(),
+                                     max_dim,
+                                     y_one_indices.size());
 
   // compute array stride for cuda kernel;
   // e.g. x.dims=[2,3,4], x_stride=[12,4,1]
@@ -1132,10 +1136,10 @@ void CommonGradBroadcastCUDA(const DenseTensor &x,
   std::vector<int> x_dims_order(max_dim);
   std::vector<int> y_dims_order(max_dim);
   for (int i = 0; i < max_dim; ++i) {
-    x_strides_order[i] = out_strides_array[x_trans_indexs[i]];
-    y_strides_order[i] = out_strides_array[y_trans_indexs[i]];
-    x_dims_order[i] = out_dims_array[x_trans_indexs[i]];
-    y_dims_order[i] = out_dims_array[y_trans_indexs[i]];
+    x_strides_order[i] = out_strides_array[x_trans_indices[i]];
+    y_strides_order[i] = out_strides_array[y_trans_indices[i]];
+    x_dims_order[i] = out_dims_array[x_trans_indices[i]];
+    y_dims_order[i] = out_dims_array[y_trans_indices[i]];
   }
   std::vector<int> x_broadcast_pos;
   std::vector<int> y_broadcast_pos;
@@ -1736,20 +1740,20 @@ void ElemwiseGradComputeWithBroadcast(const GPUContext &ctx,
 
   int pre, n, post, is_run_common_broadcast, axis_trim = 0;
   if (is_xsize_larger) {
-    auto y_dims_trimed = TrimTrailingSingularDims(y_dims);
-    axis_trim = (y_dims_trimed.size() == 0) ? x_dims.size() : axis;
+    auto y_dims_trimmed = TrimTrailingSingularDims(y_dims);
+    axis_trim = (y_dims_trimmed.size() == 0) ? x_dims.size() : axis;
     GetMidDims(x_dims,
-               y_dims_trimed,
+               y_dims_trimmed,
                axis_trim,
                &pre,
                &n,
                &post,
                &is_run_common_broadcast);
   } else {
-    auto x_dims_trimed = TrimTrailingSingularDims(x_dims);
-    axis_trim = (x_dims_trimed.size() == 0) ? y_dims.size() : axis;
+    auto x_dims_trimmed = TrimTrailingSingularDims(x_dims);
+    axis_trim = (x_dims_trimmed.size() == 0) ? y_dims.size() : axis;
     GetMidDims(y_dims,
-               x_dims_trimed,
+               x_dims_trimmed,
                axis_trim,
                &pre,
                &n,

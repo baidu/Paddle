@@ -266,7 +266,7 @@ Expr GetStoreOfSBlock(const Expr& block) {
   PADDLE_ENFORCE_NOT_NULL(block.As<ScheduleBlockRealize>(),
                           ::common::errors::InvalidArgument(
                               "Failed to cast block to ScheduleBlockRealize."));
-  std::set<Expr> find_store = ir_utils::CollectIRNodesWithoutTensor(
+  std::vector<Expr> find_store = ir_utils::CollectIRNodesWithoutTensor(
       block, [&](const Expr* x) { return x->As<Store>(); }, true);
   PADDLE_ENFORCE_EQ(find_store.size(),
                     1U,
@@ -437,6 +437,40 @@ ir::Expr ReplaceVarWithExpr(const ir::Expr& source,
   MappingVarToExprMutator mapper(replacing_map);
   mapper(&copied);
   return copied;
+}
+
+ir::Expr ExpandIterVar(const ir::Expr& expr, const ir::Expr& block) {
+  auto* s_block_realize = block.As<ir::ScheduleBlockRealize>();
+  PADDLE_ENFORCE_NOT_NULL(s_block_realize,
+                          ::common::errors::InvalidArgument(
+                              "The block is not a ScheduleBlockRealize"));
+  auto* s_block = s_block_realize->schedule_block.As<ScheduleBlock>();
+  PADDLE_ENFORCE_NOT_NULL(
+      s_block,
+      ::common::errors::InvalidArgument("The block is not a ScheduleBlock"));
+  return ReplaceVarWithExpr(
+      expr, s_block->iter_vars, s_block_realize->iter_values);
+}
+
+ir::Expr CanonicalizeLoopVar(const ir::Expr& expr,
+                             const std::vector<ir::Expr>& loops) {
+  std::vector<ir::Var> loop_vars;
+  std::vector<ir::Expr> new_loop_vars;
+
+  for (int i = 0; i < loops.size(); i++) {
+    PADDLE_ENFORCE_NOT_NULL(
+        loops[i].As<ir::For>(),
+        ::common::errors::InvalidArgument("The loop is not an ir::For"));
+
+    auto& loop_var = loops[i].As<ir::For>()->loop_var;
+    loop_vars.push_back(loop_var);
+
+    ir::Var new_loop_var = ir::ir_utils::IRCopy(loop_var);
+    new_loop_var->name = kLoopVar + std::to_string(i);
+    new_loop_vars.push_back(new_loop_var);
+  }
+
+  return ReplaceVarWithExpr(expr, loop_vars, new_loop_vars);
 }
 
 std::vector<ir::Expr> GetIterValuesOfAccess(ir::Expr load_or_store,

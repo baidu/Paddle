@@ -194,14 +194,14 @@ void UpdateRulebookAndOutIndex(const Context& dev_ctx,
                                SparseCooTensor* out) {
   const bool is2D = out_dims.size() == 4 ? true : false;
 
-  std::set<IntT> out_indexs;
+  std::set<IntT> tmp_indices;
   int n = rulebook->dims()[1];
   IntT* rulebook_ptr = rulebook->data<IntT>();
   for (int i = 0; i < n; i++) {
-    out_indexs.insert(rulebook_ptr[i + n * 2]);
+    tmp_indices.insert(rulebook_ptr[i + n * 2]);
   }
 
-  int out_non_zero_num = out_indexs.size();
+  int out_non_zero_num = tmp_indices.size();
   const int64_t sparse_dim = is2D ? 3 : 4;
   DenseTensorMeta indices_meta(phi::CppTypeToDataType<IntT>::Type(),
                                {sparse_dim, out_non_zero_num},
@@ -220,7 +220,7 @@ void UpdateRulebookAndOutIndex(const Context& dev_ctx,
   odim3 = is2D ? 1 : out_dims[1];
   const Dims4D c_out_dims(odim0, odim1, odim2, odim3);
 
-  for (auto it = out_indexs.begin(); it != out_indexs.end(); it++, i++) {
+  for (auto it = tmp_indices.begin(); it != tmp_indices.end(); it++, i++) {
     const IntT index = *it;
     IntT batch, x, y, z;
     phi::funcs::sparse::IndexToPoint<Dims4D>(
@@ -238,7 +238,7 @@ void UpdateRulebookAndOutIndex(const Context& dev_ctx,
   for (i = 0; i < n; i++) {
     IntT out_index = rulebook_ptr[i + n * 2];
     rulebook_ptr[i + n * 2] =
-        std::distance(out_indexs.begin(), out_indexs.find(out_index));
+        std::distance(tmp_indices.begin(), tmp_indices.find(out_index));
   }
 
   out->SetMember(out_indices, out_values, out_dims, true);
@@ -246,18 +246,18 @@ void UpdateRulebookAndOutIndex(const Context& dev_ctx,
 
 template <typename T, typename IntT = int>
 void Gather(
-    const T* x, const IntT* indexs, const int n, const int channels, T* out) {
+    const T* x, const IntT* indices, const int n, const int channels, T* out) {
   for (int i = 0; i < n; i++) {
-    IntT real_i = indexs[i];
+    IntT real_i = indices[i];
     memcpy(out + i * channels, x + real_i * channels, channels * sizeof(T));
   }
 }
 
 template <typename T, typename IntT = int>
 void Scatter(
-    const T* x, const IntT* indexs, const int n, const int channels, T* out) {
+    const T* x, const IntT* indices, const int n, const int channels, T* out) {
   for (int i = 0; i < n; i++) {
-    IntT real_i = indexs[i];
+    IntT real_i = indices[i];
     for (int j = 0; j < channels; j++) {
       out[real_i * channels + j] += x[i * channels + j];
     }

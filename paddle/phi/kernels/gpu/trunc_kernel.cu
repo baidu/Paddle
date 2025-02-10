@@ -74,10 +74,10 @@ void TruncKernel(const Context& dev_ctx,
 
   int64_t numel = x.numel();
 
-  int theads = PADDLE_CUDA_NUM_THREADS;
-  int blocks = (numel + theads - 1) / theads;
+  int threads = PADDLE_CUDA_NUM_THREADS;
+  int blocks = (numel + threads - 1) / threads;
 
-  Trunc<<<blocks, theads>>>(x_data, out_data, numel);
+  Trunc<<<blocks, threads>>>(x_data, out_data, numel);
 }
 
 }  // namespace phi

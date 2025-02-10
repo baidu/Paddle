@@ -67,6 +67,7 @@ class TestBuildOp(unittest.TestCase):
                     'pd_op.matmul',
                     'pd_op.add',
                     'pd_op.full_int_array',
+                    'pd_op.full_int_array',
                     'pd_op.sum',
                     'pd_op.full',
                     'pd_op.divide',

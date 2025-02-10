@@ -638,7 +638,7 @@ class PostTrainingQuantization:
                             op._set_attr("op_namescope", "skip_quant")
 
                 op_type = op.type
-                # skip quant form simular conv1d_transpose
+                # skip quant form similar conv1d_transpose
                 if op_type == 'conv2d_transpose':
                     in_name = op.input("Filter")[0]
                     for _op in self._program.blocks[block_id].ops:
@@ -1653,7 +1653,7 @@ class WeightQuantization:
 
     def convert_weight_to_fp16(self, save_model_dir):
         """
-        Convert all presistable vars from fp32 to fp16.
+        Convert all persistable vars from fp32 to fp16.
         Note that, this api only changes the data type of variables in
         __params__ file, and the __model__ file remains unchanged.
 

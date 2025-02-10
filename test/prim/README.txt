@@ -23,7 +23,7 @@ Test composite and primitive API and related autodiff rules.
 
 ## How to
 
-- Forward API and First-rder Autodiff
+- Forward API and First-order Autodiff
 
   Compare numerical value with raw phi operators using tools such as `np.testing.assert_allclose`
 

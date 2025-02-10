@@ -38,7 +38,7 @@ void DGCClipByNormKernel(const Context& dev_ctx,
   if (static_cast<int>(*current_step) < static_cast<int>(rampup_begin_step)) {
     VLOG(10) << "current_step:" << *current_step
              << " < rampup_begin_step:" << rampup_begin_step
-             << " so does't use dgc_clip_by_norm";
+             << " so doesn't use dgc_clip_by_norm";
     return;
   }
 

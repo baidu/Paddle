@@ -1049,14 +1049,14 @@ class TestAvgPoolAdaptive_AsyPadding_channel_last(
 
 # test padding = SAME VALID
 def create_test_padding_SAME_class(parent):
-    class TestPaddingSMAECase(parent):
+    class TestPaddingSAMECase(parent):
         def init_paddings(self):
             self.paddings = [0, 0, 0]
             self.padding_algorithm = "SAME"
 
     cls_name = "{}_{}".format(parent.__name__, "PaddingSAMEOp")
-    TestPaddingSMAECase.__name__ = cls_name
-    globals()[cls_name] = TestPaddingSMAECase
+    TestPaddingSAMECase.__name__ = cls_name
+    globals()[cls_name] = TestPaddingSAMECase
 
 
 create_test_padding_SAME_class(TestPool3D_Op)
@@ -1078,7 +1078,7 @@ def create_test_cudnn_padding_SAME_class(parent):
     @unittest.skipIf(
         not core.is_compiled_with_cuda(), "core is not compiled with CUDA"
     )
-    class TestCUDNNPaddingSMAECase(parent):
+    class TestCUDNNPaddingSAMECase(parent):
         def init_kernel_type(self):
             self.use_cudnn = True
 
@@ -1087,8 +1087,8 @@ def create_test_cudnn_padding_SAME_class(parent):
             self.padding_algorithm = "SAME"
 
     cls_name = "{}_{}".format(parent.__name__, "CudnnPaddingSAMEOp")
-    TestCUDNNPaddingSMAECase.__name__ = cls_name
-    globals()[cls_name] = TestCUDNNPaddingSMAECase
+    TestCUDNNPaddingSAMECase.__name__ = cls_name
+    globals()[cls_name] = TestCUDNNPaddingSAMECase
 
 
 create_test_cudnn_padding_SAME_class(TestPool3D_Op)

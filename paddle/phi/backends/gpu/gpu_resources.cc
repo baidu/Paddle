@@ -335,16 +335,24 @@ void DestroyDnnHandle(dnnHandle_t handle) {
 }
 
 void InitSolverHandle(solverHandle_t* handle, gpuStream_t stream) {
-#ifndef PADDLE_WITH_HIP
+#if defined(PADDLE_WITH_CUDA)
   PADDLE_RETRY_CUDA_SUCCESS(phi::dynload::cusolverDnCreate(handle));
   PADDLE_RETRY_CUDA_SUCCESS(phi::dynload::cusolverDnSetStream(*handle, stream));
+#elif defined(PADDLE_WITH_HIP)
+  phi::dynload::rocblas_create_handle(handle);
+  phi::dynload::rocblas_set_stream(*handle, stream);
 #endif
 }
 
 void DestroySolverHandle(solverHandle_t solver_handle) {
-#ifndef PADDLE_WITH_HIP
+#if defined(PADDLE_WITH_CUDA)
   if (solver_handle != nullptr) {
     PADDLE_ENFORCE_GPU_SUCCESS(phi::dynload::cusolverDnDestroy(solver_handle));
+    solver_handle = nullptr;
+  }
+#elif defined(PADDLE_WITH_HIP)
+  if (solver_handle != nullptr) {
+    phi::dynload::rocblas_destroy_handle(solver_handle);
     solver_handle = nullptr;
   }
 #endif

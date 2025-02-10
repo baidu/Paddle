@@ -117,7 +117,7 @@ class SumOp : public framework::OperatorWithKernel {
     PADDLE_THROW(common::errors::InvalidArgument(
         "Expected type of Input(X) must be Tensor,  SelectedRows or "
         "DenseTensorArray. But got "
-        "unsupport type: %s.",
+        "unsupported type: %s.",
         framework::ToTypeName(x_vars[0]->Type())));
   }
 };

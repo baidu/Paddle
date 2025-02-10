@@ -517,7 +517,7 @@ class GroupShardedOptimizerStage2(Optimizer):
                         dtype=Type.fp32.value,
                         device=self.offload_device,
                         destination=self._rank,
-                        parm2align=self.offload_param2align,
+                        param2align=self.offload_param2align,
                         convert_cpu=True,
                     )
                     for p in cpu_master_params:

@@ -87,7 +87,7 @@ def save(
             3. state_type(str):
                 Value can be 'params' or 'opt', specifying to save parameters or optimizer state.
             4. max_grouped_size(str|int):
-                To limit the max size(how many bits) a object group to be transfered a time.
+                To limit the max size(how many bits) a object group to be transferred a time.
                 If str, the format must be as num+'G/M/K', for example, 3G, 2K, 10M, etc. Default is 3G.
 
     Returns:

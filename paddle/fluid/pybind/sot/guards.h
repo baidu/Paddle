@@ -117,18 +117,6 @@ class ValueMatchGuard : public GuardBase {
   PyTypeObject* expected_type_;
 };
 
-class FloatCloseGuard : public GuardBase {
- public:
-  explicit FloatCloseGuard(double value, double epsilon)
-      : expected_(value), epsilon_(epsilon) {}
-
-  bool check(PyObject* value);
-
- private:
-  double expected_;
-  double epsilon_;
-};
-
 class LengthMatchGuard : public GuardBase {
  public:
   explicit LengthMatchGuard(const Py_ssize_t& length) : expected_(length) {}

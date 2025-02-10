@@ -42,8 +42,13 @@ void ReshardSToRWithPadding(DeviceContext* dev_ctx,
   // For balanced split to replicate, we need to do all gather first.
   // If the input value doesn't split on axis 0, we need to split
   // and concat on specific axis.
+#if defined(PADDLE_WITH_XPU)
+  PADDLE_THROW(
+      ::common::errors::Unimplemented("Not supported AllGather on xpu yet."));
+#else
   RESHARD_FUNCTOR_WITH_COMM(
       dev_ctx, AllGather, dtype, process_ids, in, num_of_process, out);
+#endif
 
   if (split_axis != 0 || padding_nums != 0) {
     IntArray sections(std::vector<int64_t>(num_of_process, in.dims()[0]));

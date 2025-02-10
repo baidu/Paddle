@@ -531,6 +531,339 @@ nvinfer1::IPluginV2Ext* YoloBoxPluginCreator::deserializePlugin(
   return plugin;
 }
 
+PIRYoloBoxPlugin::PIRYoloBoxPlugin(const nvinfer1::DataType data_type,
+                                   const std::vector<int>& anchors,
+                                   const int class_num,
+                                   const float conf_thresh,
+                                   const int downsample_ratio,
+                                   const bool clip_bbox,
+                                   const float scale_x_y,
+                                   const bool iou_aware,
+                                   const float iou_aware_factor,
+                                   const int input_h,
+                                   const int input_w)
+    : data_type_(data_type),
+      class_num_(class_num),
+      conf_thresh_(conf_thresh),
+      downsample_ratio_(downsample_ratio),
+      clip_bbox_(clip_bbox),
+      scale_x_y_(scale_x_y),
+      iou_aware_(iou_aware),
+      iou_aware_factor_(iou_aware_factor),
+      input_h_(input_h),
+      input_w_(input_w) {
+  anchors_.insert(anchors_.end(), anchors.cbegin(), anchors.cend());
+  assert(data_type_ == nvinfer1::DataType::kFLOAT ||
+         data_type_ == nvinfer1::DataType::kHALF);
+  assert(class_num_ > 0);
+  assert(input_h_ > 0);
+  assert(input_w_ > 0);
+  assert((iou_aware_factor_ > 0 && iou_aware_factor_ < 1));
+
+  cudaMalloc(&anchors_device_, anchors.size() * sizeof(int));
+  cudaMemcpy(anchors_device_,
+             anchors.data(),
+             anchors.size() * sizeof(int),
+             cudaMemcpyHostToDevice);
+}
+
+PIRYoloBoxPlugin::PIRYoloBoxPlugin(const void* data, size_t length) {
+  DeserializeValue(&data, &length, &data_type_);
+  DeserializeValue(&data, &length, &anchors_);
+  DeserializeValue(&data, &length, &class_num_);
+  DeserializeValue(&data, &length, &conf_thresh_);
+  DeserializeValue(&data, &length, &downsample_ratio_);
+  DeserializeValue(&data, &length, &clip_bbox_);
+  DeserializeValue(&data, &length, &scale_x_y_);
+  DeserializeValue(&data, &length, &iou_aware_);
+  DeserializeValue(&data, &length, &iou_aware_factor_);
+  DeserializeValue(&data, &length, &input_h_);
+  DeserializeValue(&data, &length, &input_w_);
+}
+
+PIRYoloBoxPlugin::~PIRYoloBoxPlugin() {
+  if (anchors_device_ != nullptr) {
+    cudaFree(anchors_device_);
+    anchors_device_ = nullptr;
+  }
+}
+
+const char* PIRYoloBoxPlugin::getPluginType() const TRT_NOEXCEPT {
+  return "pir_yolo_box_plugin";
+}
+
+const char* PIRYoloBoxPlugin::getPluginVersion() const TRT_NOEXCEPT {
+  return "1";
+}
+
+int PIRYoloBoxPlugin::getNbOutputs() const TRT_NOEXCEPT { return 2; }
+
+nvinfer1::Dims PIRYoloBoxPlugin::getOutputDimensions(
+    int index, const nvinfer1::Dims* inputs, int nb_input_dims) TRT_NOEXCEPT {
+  const int anchor_num = anchors_.size() / 2;
+  const int box_num = inputs[0].d[1] * inputs[0].d[2] * anchor_num;
+
+  assert(index <= 1);
+
+  if (index == 0) {
+    return nvinfer1::Dims2(box_num, 4);
+  }
+  return nvinfer1::Dims2(box_num, class_num_);
+}
+
+bool PIRYoloBoxPlugin::supportsFormat(
+    nvinfer1::DataType type, nvinfer1::TensorFormat format) const TRT_NOEXCEPT {
+  return ((type == data_type_ || type == nvinfer1::DataType::kINT32) &&
+          format == nvinfer1::TensorFormat::kLINEAR);
+}
+
+size_t PIRYoloBoxPlugin::getWorkspaceSize(int max_batch_size) const
+    TRT_NOEXCEPT {
+  return 0;
+}
+
+template <typename T>
+int PIRYoloBoxPlugin::enqueue_impl(int batch_size,
+                                   const void* const* inputs,
+                                   void* const* outputs,
+                                   void* workspace,
+                                   cudaStream_t stream) {
+  const int n = batch_size;
+  const int h = input_h_;
+  const int w = input_w_;
+  const int an_num = anchors_.size() / 2;
+  const int box_num = h * w * an_num;
+  int input_size_h = downsample_ratio_ * h;
+  int input_size_w = downsample_ratio_ * w;
+
+  float bias = -0.5 * (scale_x_y_ - 1.);
+  constexpr int threads = 256;
+
+  KeYoloBoxFw<T><<<(n * box_num + threads - 1) / threads, threads, 0, stream>>>(
+      reinterpret_cast<const T* const>(inputs[0]),
+      reinterpret_cast<const int* const>(inputs[1]),
+      reinterpret_cast<T*>(outputs[0]),
+      reinterpret_cast<T*>(outputs[1]),
+      conf_thresh_,
+      anchors_device_,
+      n,
+      h,
+      w,
+      an_num,
+      class_num_,
+      box_num,
+      input_size_h,
+      input_size_w,
+      clip_bbox_,
+      scale_x_y_,
+      bias,
+      iou_aware_,
+      iou_aware_factor_);
+  return cudaGetLastError() != cudaSuccess;
+}
+
+int PIRYoloBoxPlugin::enqueue(int batch_size,
+                              const void* const* inputs,
+#if IS_TRT_VERSION_LT(8000)
+                              void** outputs,
+                              void* workspace,
+#else
+                              void* const* outputs,
+                              void* workspace,
+#endif
+                              cudaStream_t stream) TRT_NOEXCEPT {
+  if (data_type_ == nvinfer1::DataType::kFLOAT) {
+    return enqueue_impl<float>(batch_size, inputs, outputs, workspace, stream);
+  } else if (data_type_ == nvinfer1::DataType::kHALF) {
+    return enqueue_impl<half>(batch_size, inputs, outputs, workspace, stream);
+  }
+  assert("unsupported type.");
+}
+
+int PIRYoloBoxPlugin::initialize() TRT_NOEXCEPT { return 0; }
+
+void PIRYoloBoxPlugin::terminate() TRT_NOEXCEPT {}
+
+size_t PIRYoloBoxPlugin::getSerializationSize() const TRT_NOEXCEPT {
+  size_t serialize_size = 0;
+  serialize_size += SerializedSize(data_type_);
+  serialize_size += SerializedSize(anchors_);
+  serialize_size += SerializedSize(class_num_);
+  serialize_size += SerializedSize(conf_thresh_);
+  serialize_size += SerializedSize(downsample_ratio_);
+  serialize_size += SerializedSize(clip_bbox_);
+  serialize_size += SerializedSize(scale_x_y_);
+  serialize_size += SerializedSize(input_h_);
+  serialize_size += SerializedSize(input_w_);
+  serialize_size += SerializedSize(iou_aware_);
+  serialize_size += SerializedSize(iou_aware_factor_);
+  return serialize_size;
+}
+
+void PIRYoloBoxPlugin::serialize(void* buffer) const TRT_NOEXCEPT {
+  SerializeValue(&buffer, data_type_);
+  SerializeValue(&buffer, anchors_);
+  SerializeValue(&buffer, class_num_);
+  SerializeValue(&buffer, conf_thresh_);
+  SerializeValue(&buffer, downsample_ratio_);
+  SerializeValue(&buffer, clip_bbox_);
+  SerializeValue(&buffer, scale_x_y_);
+  SerializeValue(&buffer, iou_aware_);
+  SerializeValue(&buffer, iou_aware_factor_);
+  SerializeValue(&buffer, input_h_);
+  SerializeValue(&buffer, input_w_);
+}
+
+void PIRYoloBoxPlugin::destroy() TRT_NOEXCEPT {}
+
+void PIRYoloBoxPlugin::setPluginNamespace(const char* lib_namespace)
+    TRT_NOEXCEPT {
+  namespace_ = std::string(lib_namespace);
+}
+
+const char* PIRYoloBoxPlugin::getPluginNamespace() const TRT_NOEXCEPT {
+  return namespace_.c_str();
+}
+
+nvinfer1::DataType PIRYoloBoxPlugin::getOutputDataType(
+    int index,
+    const nvinfer1::DataType* input_type,
+    int nb_inputs) const TRT_NOEXCEPT {
+  return input_type[0];
+}
+
+bool PIRYoloBoxPlugin::isOutputBroadcastAcrossBatch(
+    int output_index,
+    const bool* input_is_broadcast,
+    int nb_inputs) const TRT_NOEXCEPT {
+  return false;
+}
+
+bool PIRYoloBoxPlugin::canBroadcastInputAcrossBatch(int input_index) const
+    TRT_NOEXCEPT {
+  return false;
+}
+
+void PIRYoloBoxPlugin::configurePlugin(const nvinfer1::Dims* input_dims,
+                                       int nb_inputs,
+                                       const nvinfer1::Dims* output_dims,
+                                       int nb_outputs,
+                                       const nvinfer1::DataType* input_types,
+                                       const nvinfer1::DataType* output_types,
+                                       const bool* input_is_broadcast,
+                                       const bool* output_is_broadcast,
+                                       nvinfer1::PluginFormat float_format,
+                                       int max_batch_size) TRT_NOEXCEPT {}
+
+nvinfer1::IPluginV2Ext* PIRYoloBoxPlugin::clone() const TRT_NOEXCEPT {
+  return new PIRYoloBoxPlugin(data_type_,
+                              anchors_,
+                              class_num_,
+                              conf_thresh_,
+                              downsample_ratio_,
+                              clip_bbox_,
+                              scale_x_y_,
+                              iou_aware_,
+                              iou_aware_factor_,
+                              input_h_,
+                              input_w_);
+}
+
+PIRYoloBoxPluginCreator::PIRYoloBoxPluginCreator() = default;
+
+void PIRYoloBoxPluginCreator::setPluginNamespace(const char* lib_namespace)
+    TRT_NOEXCEPT {
+  namespace_ = std::string(lib_namespace);
+}
+
+const char* PIRYoloBoxPluginCreator::getPluginNamespace() const TRT_NOEXCEPT {
+  return namespace_.c_str();
+}
+
+const char* PIRYoloBoxPluginCreator::getPluginName() const TRT_NOEXCEPT {
+  return "pir_yolo_box_plugin";
+}
+
+const char* PIRYoloBoxPluginCreator::getPluginVersion() const TRT_NOEXCEPT {
+  return "1";
+}
+
+const nvinfer1::PluginFieldCollection* PIRYoloBoxPluginCreator::getFieldNames()
+    TRT_NOEXCEPT {
+  return &field_collection_;
+}
+
+nvinfer1::IPluginV2Ext* PIRYoloBoxPluginCreator::createPlugin(
+    const char* name, const nvinfer1::PluginFieldCollection* fc) TRT_NOEXCEPT {
+  const nvinfer1::PluginField* fields = fc->fields;
+
+  std::vector<int> anchors;
+
+  int type_id = -1;
+  int class_num = -1;
+  float conf_thresh = 0.01;
+  int downsample_ratio = 32;
+  bool clip_bbox = true;
+  float scale_x_y = 1.;
+  int h = -1;
+  int w = -1;
+  bool iou_aware = false;
+  float iou_aware_factor = 0.5;
+
+  for (int i = 0; i < fc->nbFields; ++i) {
+    const std::string field_name(fc->fields[i].name);
+    if (field_name.compare("type_id") == 0) {
+      type_id = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("anchors") == 0) {
+      const int length = fc->fields[i].length;
+      const int* data = static_cast<const int*>(fc->fields[i].data);
+      anchors.insert(anchors.end(), data, data + length);
+    } else if (field_name.compare("class_num") == 0) {
+      class_num = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("conf_thresh") == 0) {
+      conf_thresh = *static_cast<const float*>(fc->fields[i].data);
+    } else if (field_name.compare("downsample_ratio") == 0) {
+      downsample_ratio = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("clip_bbox") == 0) {
+      clip_bbox = *static_cast<const bool*>(fc->fields[i].data);
+    } else if (field_name.compare("scale_x_y") == 0) {
+      scale_x_y = *static_cast<const float*>(fc->fields[i].data);
+    } else if (field_name.compare("iou_aware") == 0) {
+      iou_aware = *static_cast<const bool*>(fc->fields[i].data);
+    } else if (field_name.compare("iou_aware_factor") == 0) {
+      iou_aware_factor = *static_cast<const float*>(fc->fields[i].data);
+    } else if (field_name.compare("h") == 0) {
+      h = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("w") == 0) {
+      w = *static_cast<const int*>(fc->fields[i].data);
+    } else {
+      assert(false && "unknown plugin field name.");
+    }
+  }
+
+  return new PIRYoloBoxPlugin(
+      type_id ? nvinfer1::DataType::kHALF : nvinfer1::DataType::kFLOAT,
+      anchors,
+      class_num,
+      conf_thresh,
+      downsample_ratio,
+      clip_bbox,
+      scale_x_y,
+      iou_aware,
+      iou_aware_factor,
+      h,
+      w);
+}
+
+nvinfer1::IPluginV2Ext* PIRYoloBoxPluginCreator::deserializePlugin(
+    const char* name,
+    const void* serial_data,
+    size_t serial_length) TRT_NOEXCEPT {
+  auto plugin = new YoloBoxPlugin(serial_data, serial_length);
+  plugin->setPluginNamespace(namespace_.c_str());
+  return plugin;
+}
+
 }  // namespace plugin
 }  // namespace tensorrt
 }  // namespace inference

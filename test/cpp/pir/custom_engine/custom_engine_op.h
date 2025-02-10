@@ -69,7 +69,8 @@ class FakeEngineOp
                     std::vector<phi::DataType> outputs_dtype);
 
   void VerifySig();
-
+  pir::Block *block();
+  pir::Block *block() const;
   pir::Value x() { return operand_source(0); }
   pir::Value out() { return result(0); }
 };

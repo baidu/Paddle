@@ -1,6 +1,5 @@
 add_subdirectory(auto_parallel)
 add_subdirectory(collective)
-add_subdirectory(fleet_executor)
 if(WITH_PYTHON)
   py_proto_compile(pslib_py_proto SRCS ps.proto)
   py_proto_compile(ps_py_proto SRCS the_one_ps.proto)

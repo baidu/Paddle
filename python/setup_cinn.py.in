@@ -24,7 +24,7 @@ def git_commit():
     return str(git_commit)
 
 def _get_version_detail(idx):
-    assert idx < 3, "vesion info consists of %(major)d.%(minor)d.%(patch)d, \
+    assert idx < 3, "version info consists of %(major)d.%(minor)d.%(patch)d, \
         so detail index must less than 3"
 
     if re.match(r'${TAG_VERSION_REGEX}', '${PADDLE_VERSION}'):

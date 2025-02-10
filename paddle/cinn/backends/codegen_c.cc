@@ -270,6 +270,77 @@ void CodeGenC::Visit(const ir::For *op) {
     str_ += "}";
   }
 }
+
+void CodeGenC::VisitStmt(const ir::stmt::For &stmt) {
+  Expr extent = stmt->extent();
+  Expr min = stmt->min();
+  int num_task = 1;
+  if (stmt->is_parallel()) {
+    str_ += "int num_task = max_concurrency();\n";
+    DoIndent();
+    str_ += "omp_set_num_threads(num_task);\n";
+    DoIndent();
+    str_ += "auto flambda = [=](int task_id, int num_task) -> int {\n";
+    IncIndent();
+    DoIndent();
+    str_ += "int n_per_task = ";
+    Expr num_task_var = Var("num_task");
+    IrPrinter::Visit((stmt->extent() + num_task_var - 1) / num_task_var);
+    str_ += ";\n";
+    PADDLE_ENFORCE_EQ(min.as_int32(),
+                      0,
+                      ::common::errors::InvalidArgument(
+                          "The min of the for loop should be 0"));
+    auto task_id = Var("task_id");
+    auto n_per_task = Var("n_per_task");
+    min = task_id * n_per_task;
+    extent = (task_id + 1) * n_per_task;
+    DoIndent();
+  }
+  str_ += "for (";
+  str_ += GetTypeRepr(Int(32));
+  str_ += " ";
+  str_ += stmt->loop_var()->name;
+  str_ += " = ";
+  IrPrinter::Visit(min);
+  str_ += "; ";
+  str_ += stmt->loop_var()->name;
+  str_ += " < ";
+  IrPrinter::Visit(stmt->extent());
+  if (stmt->is_parallel()) {
+    str_ += " && ";
+    str_ += stmt->loop_var()->name;
+    str_ += " < ";
+    IrPrinter::Visit(extent);
+  }
+  str_ += "; ";
+
+  str_ += stmt->loop_var()->name;
+  str_ += " += 1";
+  str_ += ") ";
+
+  VisitBlock(stmt->body());
+  if (stmt->is_parallel()) {
+    str_ += "\n";
+    DoIndent();
+    str_ += "return 0;\n";
+    DecIndent();
+    DoIndent();
+    str_ += "};\n";
+    str_ += "#pragma omp parallel num_threads(num_task)\n";
+    DoIndent();
+    str_ += "{\n";
+    IncIndent();
+    DoIndent();
+    str_ += "int task_id = omp_get_thread_num();\n";
+    DoIndent();
+    str_ += "flambda(task_id, num_task);\n";
+    DecIndent();
+    DoIndent();
+    str_ += "}";
+  }
+}
+
 void CodeGenC::Visit(const ir::PolyFor *op) {
   str_ += "for (";
   str_ += GetTypeRepr(Int(32));
@@ -310,6 +381,20 @@ void CodeGenC::Visit(const ir::IfThenElse *op) {
     IrPrinter::Visit(op->false_case);
   }
 }
+
+void CodeGenC::VisitStmt(const ir::stmt::IfThenElse &stmt) {
+  str_ += "if (";
+  IrPrinter::Visit(stmt->condition());
+  str_ += ") ";
+
+  VisitBlock(stmt->true_case());
+
+  if (!stmt->false_case()->stmts().empty()) {
+    str_ += " else ";
+    VisitBlock(stmt->false_case());
+  }
+}
+
 void CodeGenC::Visit(const ir::Block *op) {
   str_ += "{\n";
 
@@ -332,6 +417,29 @@ void CodeGenC::Visit(const ir::Block *op) {
   DoIndent();
   str_ += "}";
 }
+void CodeGenC::VisitBlock(const ir::stmt::BlockRef &stmt) {
+  str_ += "{\n";
+
+  IncIndent();
+
+  // Note: size_t (0 - 1) = 18446744073709551615
+  if (stmt->stmts().size() >= 1) {
+    for (int i = 0; i < stmt->stmts().size() - 1; i++) {
+      DoIndent();
+      IrPrinter::VisitStmt(stmt->stmts()[i]);
+      str_ += ";\n";
+    }
+    DoIndent();
+    IrPrinter::VisitStmt(stmt->stmts().back());
+    str_ += ";";
+  }
+
+  DecIndent();
+  str_ += "\n";
+  DoIndent();
+  str_ += "}";
+}
+
 void CodeGenC::Visit(const ir::Call *op) {
   if (op->name == runtime::intrinsic::buffer_malloc) {
     PrintCall_buffer_malloc(op);
@@ -527,6 +635,30 @@ void CodeGenC::Visit(const ir::Load *op) {
   }
 }
 
+void CodeGenC::VisitStmt(const ir::stmt::Store &stmt) {
+  PADDLE_ENFORCE_EQ(
+      stmt->is_addr_tensor(),
+      true,
+      ::common::errors::InvalidArgument(
+          "The operation type is invalid. It must be an address tensor."));
+  ir::Expr offset = [&] {
+    if (store_stmt_to_offset_.count(stmt) == 0) {
+      store_stmt_to_offset_[stmt] = stmt->index();
+    }
+    return store_stmt_to_offset_.at(stmt);
+  }();
+  auto *tensor = stmt->tensor().As<ir::_Tensor_>();
+  PADDLE_ENFORCE_NOT_NULL(tensor,
+                          ::common::errors::InvalidArgument(
+                              "The tensor is null. It must not be null."));
+  str_ += tensor->name;
+  str_ += "[";
+  IrPrinter::Visit(offset);
+  str_ += "]";
+  str_ += " = ";
+  IrPrinter::Visit(stmt->value());
+}
+
 void CodeGenC::Visit(const ir::Store *op) {
   PADDLE_ENFORCE_EQ(
       op->is_addr_tensor(),
@@ -560,12 +692,32 @@ void CodeGenC::Visit(const ir::Alloc *op) {
   str_ += ")";
 }
 
+void CodeGenC::VisitStmt(const ir::stmt::Alloc &stmt) {
+  str_ += runtime::intrinsic::buffer_malloc;
+  str_ += "(";
+  str_ += "(void*)(0), ";
+
+  auto *buffer = stmt->destination().As<ir::_Buffer_>();
+  str_ += buffer->name;
+  str_ += ")";
+}
+
 void CodeGenC::Visit(const ir::Free *op) {
   str_ += runtime::intrinsic::buffer_free;
   str_ += "(";
   str_ += "(void*)(0), ";
 
   auto *buffer = op->destination.As<ir::_Buffer_>();
+  str_ += buffer->name;
+  str_ += ")";
+}
+
+void CodeGenC::VisitStmt(const ir::stmt::Free &stmt) {
+  str_ += runtime::intrinsic::buffer_free;
+  str_ += "(";
+  str_ += "(void*)(0), ";
+
+  auto *buffer = stmt->destination().As<ir::_Buffer_>();
   str_ += buffer->name;
   str_ += ")";
 }
@@ -599,6 +751,36 @@ void CodeGenC::Visit(const ir::Let *op) {
   if (op->body.defined()) {
     str_ += " = ";
     IrPrinter::Visit(op->body);
+  }
+}
+
+void CodeGenC::VisitStmt(const ir::stmt::Let &stmt) {
+  bool is_vec = false;
+  PADDLE_ENFORCE_EQ(stmt->type().valid(),
+                    true,
+                    ::common::errors::InvalidArgument(
+                        "The operation type is invalid. It must be valid."));
+  if (stmt->body().defined() && stmt->body().As<ir::Broadcast>()) {
+    // broadcast's type is hard to decide, so use c++11 auto instead.
+    str_ += "auto";
+    is_vec = true;
+  } else {
+    str_ += GetTypeRepr(stmt->type());
+  }
+
+  str_ += " ";
+  IrPrinter::Visit(stmt->symbol());
+
+  // native C array.
+  if (stmt->type().lanes() > 1 && !is_vec) {
+    str_ += "[";
+    str_ += std::to_string(stmt->type().lanes());
+    str_ += "]";
+  }
+
+  if (stmt->body().defined()) {
+    str_ += " = ";
+    IrPrinter::Visit(stmt->body());
   }
 }
 
@@ -828,6 +1010,9 @@ void CodeGenC::PrintStackVecType(Type type, int lanes) {
 void CodeGenC::Visit(const ir::PrimitiveNode *op) { CINN_NOT_IMPLEMENTED }
 void CodeGenC::Visit(const ir::_BufferRange_ *op) { CINN_NOT_IMPLEMENTED }
 void CodeGenC::Visit(const ir::ScheduleBlock *op) { CINN_NOT_IMPLEMENTED }
+void CodeGenC::VisitStmt(const ir::stmt::Schedule &stmt) {
+  CINN_NOT_IMPLEMENTED
+}
 void CodeGenC::Visit(const ir::ScheduleBlockRealize *op) {
   CINN_NOT_IMPLEMENTED
 }

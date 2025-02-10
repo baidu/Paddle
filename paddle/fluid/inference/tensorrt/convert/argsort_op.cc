@@ -42,7 +42,7 @@ class ArgsortOpConverter : public OpConverter {
     bool need_cast = in_type != nvinfer1::DataType::kFLOAT ? true : false;
     int x_rank = input_tensor->getDimensions().nbDims;
     if (x_rank == 1) {
-      nvinfer1::Dims unsqueeze_shape;
+      nvinfer1::Dims unsqueeze_shape = {};
       unsqueeze_shape.nbDims = 2;
       unsqueeze_shape.d[0] = 1;
       unsqueeze_shape.d[1] = -1;
@@ -67,7 +67,7 @@ class ArgsortOpConverter : public OpConverter {
     auto* Indices = layer->getOutput(1);
 
     if (x_rank == 1) {
-      nvinfer1::Dims squeeze_shape;
+      nvinfer1::Dims squeeze_shape = {};
       squeeze_shape.nbDims = 1;
       squeeze_shape.d[0] = -1;
       Out = Reshape(Out, squeeze_shape);

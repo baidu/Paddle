@@ -152,13 +152,13 @@ class OpCompat {
 };
 
 /**
- * OpCompatSensiblePass is a base class for all the passes thouse is sensitive
+ * OpCompatSensiblePass is a base class for all the passes those is sensitive
  * to Op update.
  * There are two methods to help tell the compatibility of an Op
  *   bool IsCompat(const GraphPatternDetector::subgraph_t& subgraph, Graph* g);
  *   bool IsCompat(const OpDesc& op_desc);
  *
- * One can register the related Op compabilities using
+ * One can register the related Op compatibilities using
  *   void AddOpCompat(OpCompat&& judger);
  *
  * Most of the Passes are used for fusing ops, so we define a method for such

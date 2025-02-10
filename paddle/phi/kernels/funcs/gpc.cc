@@ -988,7 +988,7 @@ void gpc_polygon_clip(gpc_op op,
     result->contour = nullptr;
     return;
   }
-  /* Identify potentialy contributing contours */
+  /* Identify potentially contributing contours */
   if (((op == GPC_INT) || (op == GPC_DIFF)) && (subj->num_contours > 0) &&
       (clip->num_contours > 0)) {
     minimax_test(subj, clip, op);
@@ -1637,7 +1637,7 @@ void gpc_tristrip_clip(gpc_op op,
     return;
   }
 
-  /* Identify potentialy contributing contours */
+  /* Identify potentially contributing contours */
   if (((op == GPC_INT) || (op == GPC_DIFF)) && (subj->num_contours > 0) &&
       (clip->num_contours > 0)) {
     minimax_test(subj, clip, op);

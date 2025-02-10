@@ -225,7 +225,7 @@ std::vector<paddle::Tensor> RunBackward(
   std::unordered_map<GradNodeBase*, int> node_in_degree_map =
       getInDegreeMap(queue);
 
-  std::queue<GradNodeBase*> force_sequential_nodes_forward_queue =
+  std::list<GradNodeBase*> force_sequential_nodes_forward_queue =
       egr::Controller::Instance().GetForceSequentialNodes();
   std::deque<GradNodeBase*> force_sequential_nodes_queue;
   std::set<GradNodeBase*> force_sequential_nodes_set;
@@ -240,7 +240,7 @@ std::vector<paddle::Tensor> RunBackward(
       force_sequential_nodes_queue.push_front(
           force_sequential_nodes_forward_queue.front());
     }
-    force_sequential_nodes_forward_queue.pop();
+    force_sequential_nodes_forward_queue.pop_front();
   }
 
   VLOG(5) << "Startup_ops's size is " << queue.size();

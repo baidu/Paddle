@@ -1299,14 +1299,14 @@ int MultiEncoderXPUFusePass::ApplySingleEncoderXPUFuse(
 
     std::vector<Node*> fc_weight_max_nodes = {
         qkv_w_max, qkv_matmul_1_w_max, qkv_matmul_2_w_max, qkv_matmul_3_w_max};
-    std::vector<Node*> fc_weight_sacle_nodes = {qkv_scale_max,
+    std::vector<Node*> fc_weight_scale_nodes = {qkv_scale_max,
                                                 qkv_matmul_1_scale_max,
                                                 qkv_matmul_2_scale_max,
                                                 qkv_matmul_3_scale_max};
 
-    for (size_t i = 0; i < fc_weight_sacle_nodes.size(); i++) {
-      if (fc_weight_sacle_nodes[i]) {
-        fc_weight_max_names.push_back(fc_weight_sacle_nodes[i]->Name());
+    for (size_t i = 0; i < fc_weight_scale_nodes.size(); i++) {
+      if (fc_weight_scale_nodes[i]) {
+        fc_weight_max_names.push_back(fc_weight_scale_nodes[i]->Name());
       } else {
         fc_weight_max_names.push_back(fc_weight_max_nodes[i]->Name());
       }

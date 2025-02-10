@@ -44,7 +44,7 @@ class BrpcPsServer : public PSServer {
   virtual uint64_t Start(const std::string &ip, uint32_t port);
   virtual int32_t Stop() {
     std::unique_lock<std::mutex> lock(mutex_);
-    stoped_ = true;
+    stopped_ = true;
     cv_.notify_all();
 
     _server.Stop(1000);
@@ -64,7 +64,7 @@ class BrpcPsServer : public PSServer {
   virtual int32_t Initialize();
   mutable std::mutex mutex_;
   std::condition_variable cv_;
-  bool stoped_ = false;
+  bool stopped_ = false;
   brpc::Server _server;
   std::shared_ptr<PsBaseService> _service;
   std::vector<std::shared_ptr<brpc::Channel>> _pserver_channels;

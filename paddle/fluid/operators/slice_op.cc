@@ -427,7 +427,7 @@ class SliceCompositeGradOpMaker : public prim::CompositeGradOpMakerBase {
     auto ends = this->Attr<std::vector<int>>("ends");
     auto infer_flags = this->Attr<std::vector<int>>("infer_flags");
     auto decrease_axis = this->Attr<std::vector<int>>("decrease_axis");
-    VLOG(6) << "Runing slice_grad composite func";
+    VLOG(6) << "Running slice_grad composite func";
     std::vector<int64_t> new_axes =
         std::vector<int64_t>(axes.begin(), axes.end());
     std::vector<int64_t> new_infer_flags =

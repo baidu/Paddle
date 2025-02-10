@@ -71,7 +71,7 @@ class AttrTypeWriter {
  * If the pir type has value, it should have a data() method,
  * which returns the value of type. The data() method is better
  * suited to return TYPE  which supported by json like std::vector,
- * std::string, int, float and so on. if not, serailizeTypeToJson
+ * std::string, int, float and so on. if not, serializeTypeToJson
  * need to be specialized.
  */
 
@@ -95,7 +95,7 @@ Json serializeTypeToJson(const T& type) {
  * It also need have a data() method, which returns the value of
  * attribute. The data() method is better suited to return TYPE
  * which supported by json like std::vector, std::string, int,
- * float and so on. if not, serailizeAttrToJson
+ * float and so on. if not, serializeAttrToJson
  * need to be specialized.
  */
 

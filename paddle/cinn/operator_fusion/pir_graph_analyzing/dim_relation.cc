@@ -20,12 +20,12 @@
 namespace cinn::fusion {
 
 ValueUsage GetValueUsage(const pir::Value& v, const size_t usage_idx) {
-  ValueUsage valud_dim;
+  ValueUsage value_dim;
   size_t rank = GetRank(v);
   for (size_t i = 0; i < rank; ++i) {
-    valud_dim.emplace_back(v, i, usage_idx);
+    value_dim.emplace_back(v, i, usage_idx);
   }
-  return valud_dim;
+  return value_dim;
 }
 
 static std::vector<ValueUsage> GetInputValueUsage(pir::Operation* op) {

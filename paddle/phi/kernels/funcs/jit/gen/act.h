@@ -111,7 +111,7 @@ class VActFunc : public JitCode {
     vmovaps(jmm_tmp, ptr[reg_ptr_global + OFFSET_EXP_0P5]);
     vaddps(jmm_fx, jmm_fx, jmm_tmp);
     vroundps(jmm_fy, jmm_fx, 0x01);
-    // if greater, substract 1
+    // if greater, subtract 1
     vcmpgtps(jmm_mask, jmm_fy, jmm_fx);
     vmovaps(jmm_tmp, ptr[reg_ptr_global]);
     vandps(jmm_mask, jmm_mask, jmm_tmp);

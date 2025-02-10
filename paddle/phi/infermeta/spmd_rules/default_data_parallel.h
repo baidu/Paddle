@@ -24,10 +24,10 @@ namespace phi {
 namespace distributed {
 /**
  * A **hack** rule with a strong assumption that the first dimension of
- * all the input and ouput tensors is the batch dimension (broadcast dimension),
- * therefore, if any tensor's first dimension is sharded, the sharding would be
- * propagating to all the other tensors (for tensor first dimension). All the
- * other axes of tensors would be set as unshard (-1).
+ * all the input and output tensors is the batch dimension (broadcast
+ * dimension), therefore, if any tensor's first dimension is sharded, the
+ * sharding would be propagating to all the other tensors (for tensor first
+ * dimension). All the other axes of tensors would be set as unshard (-1).
  *
  *
  * This rule is used to support emerging op for hybrid parallelism quickly, and

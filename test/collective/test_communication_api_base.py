@@ -111,3 +111,7 @@ def gen_product_envs_list(default_envs, changeable_envs):
         envs.update(default_envs)
         envs_list.append(envs)
     return envs_list
+
+
+if __name__ == "__main__":
+    unittest.main()

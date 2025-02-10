@@ -56,7 +56,7 @@ bool AutoInline::CanInlineIntoConsumer(const Expr& sche_block_realize_expr,
       return false;
     }
   }
-  std::set<ir::Expr> find_store = ir::ir_utils::CollectIRNodesWithoutTensor(
+  std::vector<ir::Expr> find_store = ir::ir_utils::CollectIRNodesWithoutTensor(
       compute_body, [&](const Expr* x) { return x->As<ir::Store>(); });
   if (find_store.size() != 1UL) {
     return false;
@@ -85,7 +85,7 @@ bool AutoInline::CanInlineIntoConsumer(const Expr& sche_block_realize_expr,
   std::vector<ir::Expr> consumers =
       ir::GetConsumers(sche_block_realize_expr, root);
   for (const ir::Expr& consumer : consumers) {
-    std::set<ir::Expr> find_load = ir::ir_utils::CollectIRNodesWithoutTensor(
+    std::vector<ir::Expr> find_load = ir::ir_utils::CollectIRNodesWithoutTensor(
         consumer.As<ir::ScheduleBlockRealize>()
             ->schedule_block.As<ir::ScheduleBlock>()
             ->body,
@@ -117,7 +117,7 @@ bool AutoInline::CanInlineIntoConsumer(const Expr& sche_block_realize_expr,
   }
   // Check there is no overlap between the buffers the schedule block reads and
   // writes.
-  std::set<ir::Expr> find_load = ir::ir_utils::CollectIRNodesWithoutTensor(
+  std::vector<ir::Expr> find_load = ir::ir_utils::CollectIRNodesWithoutTensor(
       compute_body, [&](const Expr* x) {
         return x->As<ir::Load>() && x->As<ir::Load>()->tensor == tensor_expr;
       });

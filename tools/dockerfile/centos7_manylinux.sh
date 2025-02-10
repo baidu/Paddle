@@ -104,7 +104,7 @@ function main() {
      make_cuda125cudnn911trt8616
      ;;
     *)
-      echo "Make dockerfile error, Without this paramet."
+      echo "Make dockerfile error, Without this parameter."
       exit 1
       ;;
   esac

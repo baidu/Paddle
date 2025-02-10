@@ -134,5 +134,41 @@ class TestFlipIntNegAxisTRTPattern(TensorRTBaseTest):
         self.check_trt_result()
 
 
+class TestPNormTRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = paddle.linalg.norm
+        self.api_args = {
+            "x": np.random.randn(2, 3, 4).astype("float32"),
+            "p": 2,
+            "axis": -1,
+            "keepdim": False,
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {"x": [1, 3, 4]}
+        self.opt_shape = {"x": [2, 3, 4]}
+        self.max_shape = {"x": [4, 3, 4]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+
+class TestPNormCase1TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = paddle.linalg.norm
+        self.api_args = {
+            "x": np.random.randn(2, 3).astype("float16"),
+            "p": 2,
+            "axis": -1,
+            "keepdim": False,
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {"x": [1, 3]}
+        self.opt_shape = {"x": [2, 3]}
+        self.max_shape = {"x": [4, 3]}
+
+    def test_trt_result(self):
+        self.check_trt_result(precision_mode="fp16")
+
+
 if __name__ == '__main__':
     unittest.main()

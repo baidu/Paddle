@@ -104,7 +104,7 @@ const popart::DataType OnnxDType2PopartType(const ONNXDataType type);
 const ONNXDataType VarType2OnnxDType(const VarType::Type type);
 // VarType::Type to String in Popart
 const std::string VarType2PopartStr(const VarType::Type type);
-// Get bool from environment varaible
+// Get bool from environment variable
 const bool GetBoolEnv(const std::string& str);
 // Request number of ipus must be pow(2, n)
 const int RequestIpus(const int num_ipus);

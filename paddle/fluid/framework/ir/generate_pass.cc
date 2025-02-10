@@ -486,7 +486,7 @@ void GeneratePass::ApplyImpl(Graph* graph) const {
     } else {
       detector(graph, GetGenerateRewrite(detector.pattern(), pass_desc));
     }
-    // The rewrited graph needs to be verified. Current Pass should be skipped
+    // The rewritten graph needs to be verified. Current Pass should be skipped
     // if validation failed. Rewrite based on the original graph cannot
     // implement rollback operation.
     VerifyGraph(*graph);

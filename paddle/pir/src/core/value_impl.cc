@@ -28,7 +28,7 @@ namespace pir::detail {
 void ValueImpl::set_first_use(OpOperandImpl *first_use) {
   uint32_t offset = kind();
   uintptr_t ptr = reinterpret_cast<uintptr_t>(first_use) + offset;
-  first_use_offseted_by_kind_ = reinterpret_cast<OpOperandImpl *>(ptr);
+  first_use_offsetted_by_kind_ = reinterpret_cast<OpOperandImpl *>(ptr);
   VLOG(10) << "The index of this value is: " << offset
            << ". The address of this value is: " << this
            << ". This value first use is: " << first_use << ".";
@@ -58,7 +58,7 @@ ValueImpl::ValueImpl(Type type, uint32_t kind) : id_(GenerateId()) {
           kind));
   type_ = type;
   uintptr_t ptr = reinterpret_cast<uintptr_t>(nullptr) + kind;
-  first_use_offseted_by_kind_ = reinterpret_cast<OpOperandImpl *>(ptr);
+  first_use_offsetted_by_kind_ = reinterpret_cast<OpOperandImpl *>(ptr);
   VLOG(10) << "Construct a ValueImpl whose's kind is " << kind
            << ". The value_impl address is: " << this;
 }

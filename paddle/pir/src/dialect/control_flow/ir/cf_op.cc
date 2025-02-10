@@ -239,10 +239,9 @@ TuplePopOp StackCreateOp::tuple_pop_op() {
 }
 
 void StackCreateOp::Print(IrPrinter &printer) {  // NOLINT
-  static std::unordered_map<IrPrinter *,
-                            std::unordered_map<Operation *, size_t>>
+  static std::unordered_map<uint64_t, std::unordered_map<Operation *, size_t>>
       kCounters;
-  auto &counter = kCounters[&printer];
+  auto &counter = kCounters[printer.id()];
   auto iter = counter.insert({*this, counter.size()});
   auto index = iter.first->second;
   if (iter.second) {

@@ -3040,7 +3040,7 @@ int32_t SSDSparseTable::LoadWithBinary(const std::string& path, int param) {
   _db->get_estimate_key_num(ssd_key_num);
   _cache_tk_size =
       (LocalSize() + ssd_key_num) * _config.sparse_table_cache_rate();
-  VLOG(0) << " Load Binary Succeess. all feasign: " << feasign_size_all;
+  VLOG(0) << " Load Binary Success. all feasign: " << feasign_size_all;
   return 0;
 }
 

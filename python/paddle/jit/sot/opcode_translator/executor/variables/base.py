@@ -422,21 +422,14 @@ class VariableBase:
             f'{self.__class__.__name__} does not implement "_reconstruct" method'
         )
 
-    def flatten_items(self) -> list[VariableBase]:
+    def flatten_inner_vars(self) -> list[VariableBase]:
         """
         Recursively flatten the items in this container variable to a list of Variable objects.
 
         Returns:
             list[VariableBase]: Flattened items of a container variable.
         """
-        from .container import ContainerVariable
-
-        if not isinstance(self, ContainerVariable):
-            return [self]
-        flattened_items = []
-        for item in self.get_items():
-            flattened_items.extend(item.flatten_items())
-        return flattened_items
+        return [self]
 
     def get_inputs(self) -> list[VariableBase]:
         """
@@ -500,7 +493,6 @@ class VariableBase:
                 fn=fn,
                 graph=self.graph,
                 tracker=GetAttrTracker(self, name),
-                method_name=name,
             )
 
         return VariableFactory.from_value(
@@ -620,9 +612,35 @@ class VariableBase:
         return output
 
     def get_iter(self):
-        from .iter import UserDefinedIterVariable
+        from . import (
+            BuiltinVariable,
+            ConstantVariable,
+            SequenceIterVariable,
+            UserDefinedFunctionVariable,
+            UserDefinedIterVariable,
+        )
 
-        return UserDefinedIterVariable(self, self.graph, GetIterTracker(self))
+        if not hasattr(self.value, "__iter__"):
+            return UserDefinedIterVariable(
+                self, self.graph, GetIterTracker(self)
+            )
+        iter_name_var = ConstantVariable.wrap_literal("__iter__", self.graph)
+        iter_method = BuiltinVariable(
+            getattr, graph=self.graph, tracker=DummyTracker([self])
+        )(self, iter_name_var)
+        # If the target object is a builtin object like list_iterator, the iter_method's fn will be a ObjectVariable instead of UserDefinedFunctionVariable.
+        if not isinstance(iter_method.fn, UserDefinedFunctionVariable):
+            return UserDefinedIterVariable(
+                self, self.graph, GetIterTracker(self)
+            )
+        iter_result = iter_method()
+
+        if not isinstance(iter_result, SequenceIterVariable):
+            return UserDefinedIterVariable(
+                self, self.graph, GetIterTracker(self)
+            )
+
+        return iter_result
 
     @VariableFactory.register_from_value()
     def from_value(

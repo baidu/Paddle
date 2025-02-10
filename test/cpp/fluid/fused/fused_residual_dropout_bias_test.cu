@@ -36,7 +36,7 @@ bool CheckEqual(float value, float ref) { return std::abs(value - ref) < 1e-5; }
  * 1. random input data
  * 2. add bias, call paddle dropout op, add residual, and get the base result
  * 3. call FusedResidualDropoutBias function get fused result
- * 4. compare ther base result and fused result
+ * 4. compare the base result and fused result
  */
 
 template <typename T>

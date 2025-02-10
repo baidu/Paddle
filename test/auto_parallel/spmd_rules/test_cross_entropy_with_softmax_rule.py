@@ -68,20 +68,20 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['axis'],
         )
         self.assertEqual(len(result_dist_attrs), 2)
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, 0, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, 0, -1])
 
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, 0, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [1, 0, -1]
         )  # loss
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, 0, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [1, 0, -1]
         )  # softmax output
 
         # GPT MP case, shard normalized axis
@@ -97,17 +97,19 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_input_dist_attrs[1].dims_mapping, [-1, -1, -1]
+        )
 
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
         )  # loss
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
         )  # softmax output
 
         # GPT MP-DP case
@@ -123,14 +125,16 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1])
 
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, -1, 0])
 
         # Soft Label Error
         self.attrs['soft_label'] = True
@@ -161,14 +165,14 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, 0])
 
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, -1, 0])
         self.attrs['axis'] = -1
 
         # Soft Normalized axis Error
@@ -201,17 +205,17 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, 0])
 
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, -1, 0]
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, 0]
         )  # loss
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, []
+            inferred_output_dist_attrs[0].dims_mapping, []
         )  # softmax_out
         self.attrs['axis'] = -1
 
@@ -238,20 +242,20 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['axis'],
         )
         self.assertEqual(len(result_dist_attrs), 2)
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, 0, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, 0, -1])
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, 0, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [1, 0, -1]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, 0, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [1, 0, -1]
         )  # loss
 
         # GPT MP case, shard normalized axis
@@ -275,17 +279,19 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0])
+        self.assertEqual(
+            inferred_input_dist_attrs[1].dims_mapping, [-1, -1, -1]
+        )
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [-1, -1, -1]
         )  # loss
 
         # GPT MP-DP case
@@ -309,17 +315,17 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1])
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, -1, 0]
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, 0]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, -1]
         )  # loss
 
         # Soft Label, normalized axis = 1
@@ -342,17 +348,17 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, 0])
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, -1, 0]
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, 0]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, -1, 0]
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, 0]
         )  # loss
 
         # Soft Label, normalized axis = 1, shard on normalized axis
@@ -375,17 +381,17 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1])
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, -1]
         )  # loss
 
         # Soft Label, normalized axis = -1, shard on normalized axis
@@ -408,17 +414,17 @@ class TestCrossEntropyWithSoftmaxSPMDRule(unittest.TestCase):
             self.attrs['ignore_index'],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1])
 
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
         )  # softmax output
         self.assertEqual(
-            infered_output_dist_attrs[1].dims_mapping, [1, -1, -1]
+            inferred_output_dist_attrs[1].dims_mapping, [1, -1, -1]
         )  # loss
 
 

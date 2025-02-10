@@ -1,0 +1,47 @@
+on:
+  workflow_call:
+    inputs:
+      workflow-name:
+        required: true
+        type: string
+    secrets:
+      github-token:
+        required: true
+    outputs:
+      can-skip:
+        description: "Whether the workflow can be skipped."
+        value: ${{ jobs.check-bypass.outputs.can-skip }}
+
+jobs:
+  check-bypass:
+    name: Check Bypass
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CI_TEAM_MEMBERS: '["SigureMo", "risemeup1", "tianshuo78520a", "0x3878f", "swgu98", "luotao1"]'
+    outputs:
+      can-skip: ${{ steps.check-bypass.outputs.can-skip }}
+    steps:
+      - id: check-bypass
+        name: Check Bypass
+        uses: PFCCLab/ci-bypass@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          non-pull-request-event-strategy: 'always-skipped'
+          type: 'composite'
+          composite-rule: |
+            {
+              "any": [
+                {
+                  "type": "labeled",
+                  "label": ["skip-ci: ${{ inputs.workflow-name }}", "skip-ci: all"],
+                  "username": ${{ env.CI_TEAM_MEMBERS }}
+                },
+                {
+                  "type": "commented",
+                  "comment-pattern": [".*/skip-ci ${{ inputs.workflow-name }}.*", ".*/skip-ci all.*"],
+                  "username": ${{ env.CI_TEAM_MEMBERS }}
+                }
+              ]
+            }

@@ -92,8 +92,8 @@ uint64_t BrpcPsServer::Start(const std::string &ip, uint32_t port) {
     }
   }
 
-  _environment->RegistePsServer(ip, port, _rank);
-  cv_.wait(lock, [&] { return stoped_; });
+  _environment->RegisterPsServer(ip, port, _rank);
+  cv_.wait(lock, [&] { return stopped_; });
 
   PSHost host;
   host.ip = ip;
@@ -849,7 +849,7 @@ int32_t BrpcPsService::StopServer(Table *table,
   auto *p_server = _server;
   std::thread t_stop([p_server]() {
     p_server->Stop();
-    VLOG(3) << "Server Stoped";
+    VLOG(3) << "Server Stopped";
   });
   t_stop.detach();
   return 0;

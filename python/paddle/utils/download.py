@@ -268,7 +268,7 @@ def _decompress(fname):
 
     # For protecting decompressing interrupted,
     # decompress to fpath_tmp directory firstly, if decompress
-    # successed, move decompress files to fpath and delete
+    # succeeded, move decompress files to fpath and delete
     # fpath_tmp and remove download compress file.
 
     if tarfile.is_tarfile(fname):

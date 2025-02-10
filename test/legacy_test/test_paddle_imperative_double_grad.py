@@ -232,7 +232,7 @@ class TestDygraphDoubleGrad(TestCase):
 
         self.assertFalse(dx_actual.stop_gradient)
 
-        # Theoritical result based on math calculation
+        # Theoretical result based on math calculation
         dx_expected = (
             1.0 / float(numel) * (np.maximum(x_np, 0) + 1) * (x_np > 0) * 2
         ).astype('float32')

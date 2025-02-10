@@ -138,7 +138,7 @@ class PassTest(unittest.TestCase):
             outs, lods = self._run_program(executor, self.main_program)
         self.assertTrue(
             len(self.fetch_list) == len(outs),
-            f"Checking the number of fetchs failed. Expected: {len(self.fetch_list)}, Received: {len(outs)}",
+            f"Checking the number of fetches failed. Expected: {len(self.fetch_list)}, Received: {len(outs)}",
         )
 
         # Parameters may be changed in ir passes.
@@ -154,7 +154,7 @@ class PassTest(unittest.TestCase):
         outs_opt, lods_opt = self._run_program(executor, opt_program)
         self.assertTrue(
             len(self.fetch_list) == len(outs_opt),
-            f"Checking the number of fetchs failed. Expected: {len(self.fetch_list)}, Received: {len(outs_opt)}",
+            f"Checking the number of fetches failed. Expected: {len(self.fetch_list)}, Received: {len(outs_opt)}",
         )
         for i in range(len(self.fetch_list)):
             is_allclose = np.allclose(outs_opt[i], outs[i], atol=atol)

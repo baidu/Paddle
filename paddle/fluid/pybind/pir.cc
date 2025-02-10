@@ -70,6 +70,7 @@
 #include "paddle/pir/include/core/builtin_attribute.h"
 #include "paddle/pir/include/core/builtin_op.h"
 #include "paddle/pir/include/core/ir_mapping.h"
+#include "paddle/pir/include/core/ir_printer.h"
 #include "paddle/pir/include/core/program.h"
 #include "paddle/pir/include/core/type.h"
 #include "paddle/pir/include/core/value.h"
@@ -707,6 +708,15 @@ void BindBlock(py::module *m) {
         use `Program.block()` to get a block.
   )DOC");
   block.def("empty", &Block::empty)
+      .def(
+          "__str__",
+          [](Block &self) {
+            std::ostringstream print_stream;
+            pir::IrPrinter printer(print_stream);
+            printer.PrintBlock(self);
+            return print_stream.str();
+          },
+          return_value_policy::reference)
       .def(
           "front",
           [](Block &self) { return &self.front(); },
@@ -1445,14 +1455,14 @@ void BindValue(py::module *m) {
       .def_property(
           "place_attr",
           [](Value self) -> phi::Place {
-            auto palce_attr = self.attribute<PlaceAttribute>("place");
-            return palce_attr ? palce_attr.data() : phi::Place();
+            auto place_attr = self.attribute<PlaceAttribute>("place");
+            return place_attr ? place_attr.data() : phi::Place();
           },
           [](Value self, const phi::Place &place) {
             // auto place = CastPyArg2Place(place_obj.release().ptr(), 1);
             auto place_attr =
                 dialect::PlaceAttribute::get(pir::IrContext::Instance(), place);
-            self.set_attribute("palce", place_attr);
+            self.set_attribute("place", place_attr);
           })
       .def("initialized",
            [](Value self) {

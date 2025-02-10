@@ -31,7 +31,7 @@ from paddle.io import Dataset
 class TestOptimizerDtype(unittest.TestCase):
     '''
     The dtype of optimizer should be inferred by parameters, and the learning rate
-    is cteated with the same dtype.
+    is created with the same dtype.
     '''
 
     def check_with_dtype(self, dtype):

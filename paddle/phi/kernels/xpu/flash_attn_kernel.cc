@@ -150,7 +150,14 @@ void FlashAttnKernelBase(const Context& ctx,
                              {},         // alibi_slopes_shape
                              -1,         // window_size_left
                              -1,         // window_size_right
-                             -1          // v_head_dim
+                             -1,         // v_head_dim
+                             nullptr,    // downstart_row_indices_data
+                             nullptr,    // downend_row_indices_data
+                             nullptr,    // upstart_row_indices_data
+                             nullptr,    // upend_row_indices_data
+                             0,          // flash_mask_head_num
+                             nullptr,    // flashmask_maxmin
+                             nullptr     // side_stream
       );
   PADDLE_ENFORCE_XDNN_SUCCESS(r, "mha_varlen_fwd");
 }

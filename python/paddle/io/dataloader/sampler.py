@@ -113,7 +113,7 @@ class Sampler(Generic[_T]):
         raise NotImplementedError
 
     # Not define __len__ method in this base class here for __len__
-    # is not needed in same sence, e.g. paddle.io.IterableDataset
+    # is not needed in same sense, e.g. paddle.io.IterableDataset
     if TYPE_CHECKING:
 
         def __len__(self) -> int: ...

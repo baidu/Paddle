@@ -28,13 +28,13 @@ SEED = 2049
 np.random.seed(SEED)
 
 
-def matrix_rank_wraper(x, tol=None, use_default_tol=True, hermitian=False):
+def matrix_rank_wrapper(x, tol=None, use_default_tol=True, hermitian=False):
     return paddle.linalg.matrix_rank(x, tol, hermitian)
 
 
 class TestMatrixRankOP(OpTest):
     def setUp(self):
-        self.python_api = matrix_rank_wraper
+        self.python_api = matrix_rank_wrapper
         self.op_type = "matrix_rank"
         self.init_data()
         self.inputs = {'X': self.x}

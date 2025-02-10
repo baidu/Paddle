@@ -867,17 +867,54 @@ bool WhileOp::InferSymbolicShape(
   }
 
   // Set ShapeOrDataDimExpr for results
-  const auto &last_op = body().back();
-  for (size_t i = 1; i < last_op.operands_source().size(); ++i) {
-    infer_context->SetShapeOrDataForValue(
-        result(i - 1),
-        infer_context->GetShapeOrDataForValue(last_op.operand_source(i)));
-  }
-
   PADDLE_ENFORCE_EQ(body_args.size(),
                     num_results(),
                     common::errors::InvalidArgument(
                         "The body_args.size and num_results is not equal"));
+  const auto &yield_op = body().back();
+  bool need_infer_block_again = false;
+  for (size_t i = 1; i < yield_op.num_operands(); ++i) {
+    const symbol::ShapeOrDataDimExprs &yield_op_input_shape_or_data =
+        infer_context->GetShapeOrDataForValue(yield_op.operand_source(i));
+    if (!yield_op_input_shape_or_data
+             .isa<symbol::TensorShapeOrDataDimExprs>()) {
+      continue;
+    }
+    const std::vector<symbol::DimExpr> &yield_op_input_shape =
+        yield_op_input_shape_or_data.shape();
+    const std::vector<symbol::DimExpr> &block_arg_shape =
+        infer_context->GetShapeOrDataForValue(body_args[i - 1]).shape();
+    std::vector<symbol::DimExpr> new_block_arg_dims = block_arg_shape;
+
+    bool need_set_block_args_again = false;
+    for (size_t j = 0; j < yield_op_input_shape.size(); j++) {
+      if (block_arg_shape[j].isa<int64_t>() &&
+          (yield_op_input_shape[j] != block_arg_shape[j])) {
+        need_infer_block_again = true;
+        need_set_block_args_again = true;
+        new_block_arg_dims[j] =
+            symbol::DimExpr{infer_context->GetNextSymName()};
+      }
+    }
+    // Reset block_args.
+    if (need_set_block_args_again) {
+      infer_context->SetShapeOrDataForValue(
+          body_args[i - 1],
+          symbol::ShapeOrDataDimExprs(
+              symbol::TensorShapeOrDataDimExprs(new_block_arg_dims)));
+    }
+  }
+
+  if (need_infer_block_again) {
+    pir::InferSymExprForBlock(body(), infer_context);
+  }
+
+  for (size_t i = 0; i < num_results(); ++i) {
+    infer_context->SetShapeOrDataForValue(
+        result(i),
+        infer_context->GetShapeOrDataForValue(yield_op.operand_source(i + 1)));
+  }
+
   for (size_t i = 0; i < num_results(); ++i) {
     AddCstrForOutputs(
         operand_source(i + 1), result(i), body_args[i], infer_context);

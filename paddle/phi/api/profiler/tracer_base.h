@@ -21,7 +21,7 @@ namespace phi {
 class TracerBase {
  public:
   // The state machine for a Tracer.
-  enum class TracerState { UNINITED, READY, STARTED, STOPED };
+  enum class TracerState { UNINITED, READY, STARTED, STOPPED };
 
   virtual void PrepareTracing() { state_ = TracerState::READY; }
 

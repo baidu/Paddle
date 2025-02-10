@@ -116,7 +116,7 @@ class TestSimpleNetShardingTensorFusionSaveLoad:
             for k, v in a_op.attrs().items():
                 assert (
                     k in b_op.attrs()
-                ), f'Can not find key of {k} attribute in other progmam'
+                ), f'Can not find key of {k} attribute in other program'
                 if k == 'place':
                     assert type(v) == type(
                         b_op.attrs()[k]
@@ -158,7 +158,7 @@ class TestSimpleNetShardingTensorFusionSaveLoad:
         strategy.sharding.enable = True
         strategy.sharding.degree = 2
         strategy.sharding.stage = 1
-        strategy.sharding.enable_stage1_tensor_fusion = True
+        strategy.sharding.enable_tensor_fusion = True
         strategy.sharding.save_unbalanced_param = self.save_unbalanced_param
 
         if self._amp:
@@ -192,6 +192,16 @@ class TestSimpleNetShardingTensorFusionSaveLoad:
             lr_scheduler.step()
             if step == 2:
                 state_dict = dist_model.state_dict()
+                if self.save_unbalanced_param:
+                    state_dict = (
+                        dist_model._convert_state_dict_with_rank_unique_name(
+                            state_dict
+                        )
+                    )
+                else:
+                    state_dict = dist_model._convert_state_dict_without_tensor_fusion_param(
+                        state_dict
+                    )
                 dist.save_state_dict(
                     state_dict, self._ckpt_path, async_save=True
                 )
@@ -215,7 +225,29 @@ class TestSimpleNetShardingTensorFusionSaveLoad:
             lr_scheduler.step()
             if step == 2:
                 state_dict = dist_model.state_dict()
+                if self.save_unbalanced_param:
+                    state_dict = (
+                        dist_model._convert_state_dict_with_rank_unique_name(
+                            state_dict
+                        )
+                    )
+                else:
+                    state_dict = dist_model._convert_state_dict_without_tensor_fusion_param(
+                        state_dict
+                    )
                 dist.load_state_dict(state_dict, self._ckpt_path)
+                if self.save_unbalanced_param:
+                    state_dict = (
+                        dist_model._convert_state_dict_with_origin_name(
+                            state_dict
+                        )
+                    )
+                else:
+                    state_dict = (
+                        dist_model._convert_state_dict_with_tensor_fusion_param(
+                            state_dict
+                        )
+                    )
                 dist_model.set_state_dict(state_dict)
             if step > 2:
                 numpy_array = np.array(loss)

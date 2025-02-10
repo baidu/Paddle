@@ -21,6 +21,7 @@
 #include "paddle/cinn/ir/ir_printer.h"
 #include "paddle/cinn/ir/op/ir_operators.h"
 #include "paddle/cinn/ir/schedule/ir_schedule.h"
+#include "paddle/cinn/ir/utils/stmt_converter.h"
 #include "paddle/cinn/utils/string.h"
 
 namespace cinn {
@@ -40,8 +41,8 @@ TEST(CrossBlockReductionReplacer, SRLayout) {
 
   ast_gen_ius::TensorGroup tensor_group({A, B, C});
   auto func = lang::LowerToAst("reduce_sum_sqrt", {C}, &tensor_group);
-
-  ir::ModuleExpr mod_expr({func->body});
+  ir::Expr expr_func_body = ir::ConvertStmtBlockToExprBlock(func->body_block);
+  ir::ModuleExpr mod_expr({expr_func_body});
   ir::IRSchedule ir_sch(mod_expr);
 
   ir_sch.Bind(ir_sch.GetLoops("B")[0], "blockIdx.x");
@@ -68,7 +69,9 @@ TEST(CrossBlockReductionReplacer, SRLayout) {
         ScheduleBlock(B__reduce_init)
         {
           i0 = axis.bind(i)
-          B__reduce_init[i0] = 0.00000000f
+          {
+            B__reduce_init[i0] = 0.00000000f
+          }
         }
         thread_bind[blockIdx.y] for (reduce_k, 0, 8)
         {
@@ -77,7 +80,9 @@ TEST(CrossBlockReductionReplacer, SRLayout) {
             ScheduleBlock(B)
             {
               i0_0, i1 = axis.bind(i, reduce_k)
-              B[i0_0] = cinn_grid_reduce_sum_fp32(Tensor(A, [8,16]), 16, i0_0)
+              {
+                B[i0_0] = cinn_grid_reduce_sum_fp32(Tensor(A, [8,16]), 16, i0_0)
+              }
             }
           }
         }
@@ -88,7 +93,9 @@ TEST(CrossBlockReductionReplacer, SRLayout) {
           ScheduleBlock(C)
           {
             i0_1 = axis.bind(i)
-            C[i0_1] = sqrt(B[i0_1])
+            {
+              C[i0_1] = sqrt(B[i0_1])
+            }
           }
         }
       }
@@ -124,7 +131,8 @@ TEST(CrossBlockReductionReplacer, RSLayout) {
   ast_gen_ius::TensorGroup tensor_group({A, B, C});
   auto func = lang::LowerToAst("reduce_max_exp", {C}, &tensor_group);
 
-  ir::ModuleExpr mod_expr({func->body});
+  ir::Expr expr_func_body = ir::ConvertStmtBlockToExprBlock(func->body_block);
+  ir::ModuleExpr mod_expr({expr_func_body});
   ir::IRSchedule ir_sch(mod_expr);
 
   ir_sch.Bind(ir_sch.GetLoops("B")[0], "blockIdx.x");
@@ -155,7 +163,9 @@ TEST(CrossBlockReductionReplacer, RSLayout) {
           ScheduleBlock(B__reduce_init)
           {
             i0, i1 = axis.bind(i, j)
-            B__reduce_init[i0, i1] = -3.40282346e+38f
+            {
+              B__reduce_init[i0, i1] = -3.40282347e+38f
+            }
           }
           thread_bind[blockIdx.y] for (reduce_k, 0, 8)
           {
@@ -164,7 +174,9 @@ TEST(CrossBlockReductionReplacer, RSLayout) {
               ScheduleBlock(B)
               {
                 i0_0, i1_0, i2 = axis.bind(i, j, reduce_k)
-                B[i0_0, i1_0] = cinn_grid_reduce_max_fp32(Tensor(A, [8,4,32]), 128, ((i0_0 * 32) + i1_0))
+                {
+                  B[i0_0, i1_0] = cinn_grid_reduce_max_fp32(Tensor(A, [8,4,32]), 128, ((i0_0 * 32) + i1_0))
+                }
               }
             }
           }
@@ -178,7 +190,9 @@ TEST(CrossBlockReductionReplacer, RSLayout) {
             ScheduleBlock(C)
             {
               i0_1, i1_1 = axis.bind(i, j)
-              C[i0_1, i1_1] = exp(B[i0_1, i1_1])
+              {
+                C[i0_1, i1_1] = exp(B[i0_1, i1_1])
+              }
             }
           }
         }

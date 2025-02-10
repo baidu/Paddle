@@ -37,10 +37,10 @@ void TruncGradKernel(const Context& dev_ctx,
 
   int64_t numel = out_grad.numel();
 
-  int theads = PADDLE_CUDA_NUM_THREADS;
-  int blocks = (numel + theads - 1) / theads;
+  int threads = PADDLE_CUDA_NUM_THREADS;
+  int blocks = (numel + threads - 1) / threads;
 
-  TruncGrad<<<blocks, theads>>>(in_grad_data, numel);
+  TruncGrad<<<blocks, threads>>>(in_grad_data, numel);
 }
 
 }  // namespace phi

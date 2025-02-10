@@ -27,8 +27,7 @@ if(WITH_GPU OR WITH_ROCM)
     nv_test(
       test_fused_layernorm_residual_dropout_bias
       SRCS fused_layernorm_residual_dropout_bias_test.cu
-      DEPS fleet_executor
-           tensor
+      DEPS tensor
            op_registry
            dropout_op
            generated_op

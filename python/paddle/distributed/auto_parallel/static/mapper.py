@@ -35,13 +35,13 @@ def is_collective_comm_op(op):
         "all_reduce",
         "broadcast",
     ]
-    reduce_tyep = [
+    reduce_type = [
         dist.ReduceOp.SUM,
         dist.ReduceOp.MIN,
         dist.ReduceOp.MAX,
         dist.ReduceOp.PROD,
     ]
-    if op.type == "reduce" and op.attr("reduce_tyep") in reduce_tyep:
+    if op.type == "reduce" and op.attr("reduce_type") in reduce_type:
         return True
     if op.type in comm_list:
         return True

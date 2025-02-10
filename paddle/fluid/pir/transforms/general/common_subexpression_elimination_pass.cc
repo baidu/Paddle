@@ -256,7 +256,7 @@ struct Expression {
       return pir::detail::hash_combine(GetOperationHash(value.defining_op()),
                                        GetOpResultId(value));
     }
-    // hash(termiante_value) = terminate_value_id
+    // hash(terminate_value) = terminate_value_id
     return reinterpret_cast<size_t>(value.impl());
   }
 

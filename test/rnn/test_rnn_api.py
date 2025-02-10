@@ -391,6 +391,7 @@ class TestGRUBackward(unittest.TestCase):
         y2, h2, g1, g2 = out
 
         np.testing.assert_allclose(h1_grad, g1, atol=1e-8, rtol=1e-5)
+        self.exe._executor_cache._get_cached_program_and_executor_pir_mode.cache_clear()
 
     def runTest(self):
         self.test_base(True)

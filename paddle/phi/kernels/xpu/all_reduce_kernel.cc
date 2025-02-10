@@ -76,6 +76,8 @@ PD_REGISTER_KERNEL(all_reduce,
                    XPU,
                    ALL_LAYOUT,
                    phi::AllReduceKernel,
-                   float,
                    int,
-                   phi::dtype::float16) {}
+                   int64_t,
+                   float,
+                   phi::dtype::float16,
+                   phi::dtype::bfloat16) {}

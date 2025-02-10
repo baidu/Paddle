@@ -45,6 +45,19 @@ def activation_converter(network, paddle_op, inputs):
     return layer.get_output(0)
 
 
+@converter_registry.register(
+    "pd_op.logsigmoid", trt_version="trt_version_ge=8.0"
+)
+def logsigmoid_converter(network, paddle_op, inputs):
+    sigmoid_layer = network.add_activation(
+        inputs[0], trt.ActivationType.SIGMOID
+    )
+    layer = network.add_unary(
+        sigmoid_layer.get_output(0), trt.UnaryOperation.LOG
+    )
+    return layer.get_output(0)
+
+
 @converter_registry.register("pd_op.relu6", trt_version="trt_version_ge=8.0")
 def relu6_converter(network, paddle_op, inputs):
     layer = network.add_activation(inputs[0], trt.ActivationType.CLIP)

@@ -2631,7 +2631,7 @@ bool GroupNormOpInferSymbolicShape(
     channel_idx = 1;
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "GroupNorm only suport NHWC and NCHW data format"));
+        "GroupNorm only support NHWC and NCHW data format"));
   }
 
   symbol::DimExpr channel_dim = x_shape.shape()[channel_idx];

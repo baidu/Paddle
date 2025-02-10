@@ -764,7 +764,16 @@ class DygraphShardingOptimizerV2:
         color_dict = defaultdict(list)
         for param in self._parameter_list:
             color = getattr(param, 'color', -1)
-            color_dict[color].append(param)
+            color_color = -1
+            color_group = comm_group
+            if isinstance(color, dict):
+                # if color is dict: param.color = {'color': "1", 'group': group}
+                color_color = color.get('color', -1)
+                color_group = color.get('group', comm_group)
+            else:
+                # if color is not a dict: param.color = 1
+                color_color = color
+            color_dict[(color_color, color_group)].append(param)
 
         # NOTE(shenliang03): If comm_overlap is not used, the parameter list is sorted by data type to
         # to reduce communication overhead.
@@ -775,13 +784,15 @@ class DygraphShardingOptimizerV2:
         all_var_groups = []
         group_idx = 0
         for color, params in color_dict.items():
-            logger.info(f"Tensor Fusion Color {color}: ")
+            g_color = color[0]
+            g_group = color[1]
+            logger.info(f"Tensor Fusion Color {g_color} and Group {g_group}: ")
             var_groups = assign_group_by_size(params, group_size)
             for _, parameters in var_groups.items():
                 buffer = FusedCommBuffer(
                     group_idx,
                     parameters,
-                    comm_group,
+                    g_group,
                     acc_steps,
                     act=HOOK_ACTION.REDUCE_SCATTER,
                     release_grads=self.sd_release_grads,

@@ -23,7 +23,7 @@ class TestAutoParallelGraph(unittest.TestCase):
         self.assertEqual(graph.attrs["name"], "foo")
 
         graph.add_node(1, weight=0)
-        # Overide the existing node attribute
+        # Override the existing node attribute
         graph.add_node(1, weight=1)
         graph.add_node(2, weight=2)
         graph.add_node(3, weight=3)
@@ -75,8 +75,8 @@ class TestAutoParallelGraph(unittest.TestCase):
         self.assertIsNotNone(str)
 
         self.assertRaises(TypeError, 6 in graph)
-        self.assertRaises(TypeError, "unkown_attr" in graph.nodes[1])
-        self.assertRaises(TypeError, "unkown_attr" in graph[1][2])
+        self.assertRaises(TypeError, "unknown_attr" in graph.nodes[1])
+        self.assertRaises(TypeError, "unknown_attr" in graph[1][2])
         self.assertRaises(ValueError, graph.add_node, None)
         self.assertRaises(ValueError, graph.add_edge, 3, None)
         self.assertRaises(ValueError, graph.add_edge, None, 3)

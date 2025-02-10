@@ -32,7 +32,7 @@ from paddle.distributed.auto_parallel.static.pir_pass import (
 
 
 class TestOpRole(unittest.TestCase):
-    def test_signle(self):
+    def test_single(self):
         paddle.enable_static()
         with paddle.pir_utils.IrGuard():
             main_program = paddle.base.Program()

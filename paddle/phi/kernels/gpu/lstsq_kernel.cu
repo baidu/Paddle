@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PADDLE_WITH_HIP  // HIP not support cusolver
-
 #include <math.h>
 #include <algorithm>
 #include <complex>
@@ -167,11 +165,4 @@ void LstsqKernel(const Context& dev_ctx,
 
 }  // namespace phi
 
-PD_REGISTER_KERNEL(lstsq,  // cuda_only
-                   GPU,
-                   ALL_LAYOUT,
-                   phi::LstsqKernel,
-                   float,
-                   double) {}
-
-#endif  // not PADDLE_WITH_HIP
+PD_REGISTER_KERNEL(lstsq, GPU, ALL_LAYOUT, phi::LstsqKernel, float, double) {}

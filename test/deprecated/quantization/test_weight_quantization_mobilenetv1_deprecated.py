@@ -60,10 +60,10 @@ class TestWeightQuantization(unittest.TestCase):
         file_path = os.path.join(self.cache_folder, file_name)
         print(model_name + ' is downloaded at ' + file_path)
 
-        unziped_path = os.path.join(self.cache_folder, model_name)
-        self.cache_unzipping(unziped_path, file_path)
-        print(model_name + ' is unziped at ' + unziped_path)
-        return unziped_path
+        unzipped_path = os.path.join(self.cache_folder, model_name)
+        self.cache_unzipping(unzipped_path, file_path)
+        print(model_name + ' is unzipped at ' + unzipped_path)
+        return unzipped_path
 
     def cache_unzipping(self, target_folder, zip_path):
         if not os.path.exists(target_folder):

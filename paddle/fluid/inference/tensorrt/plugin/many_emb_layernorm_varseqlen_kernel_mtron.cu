@@ -66,7 +66,7 @@ __global__ void embLayerNormKernelMTron_2(int32_t ld,
   }
   __syncthreads();
 
-  // 2. load pos/tok/word embeddings and add them toghether
+  // 2. load pos/tok/word embeddings and add them together
   // offset into embeddings is given by wordId * hidden_size
   const int32_t poffset = blockIdx.x * ld;
   const int32_t outOffset = seqPos * ld;
@@ -139,7 +139,7 @@ __global__ void embLayerNormKernelMTron_3(int32_t ld,
   }
   __syncthreads();
 
-  // 2. load pos/tok/word embeddings and add them toghether
+  // 2. load pos/tok/word embeddings and add them together
   // offset into embeddings is given by wordId * hidden_size
   const int32_t poffset = blockIdx.x * ld;
   const int32_t outOffset = seqPos * ld;
@@ -227,7 +227,7 @@ __global__ void embLayerNormKernelMTron_4(int32_t ld,
   }
   __syncthreads();
 
-  // 2. load pos/tok/word embeddings and add them toghether
+  // 2. load pos/tok/word embeddings and add them together
   // offset into embeddings is given by wordId * hidden_size
   const int32_t poffset = blockIdx.x * ld;
   const int32_t outOffset = seqPos * ld;

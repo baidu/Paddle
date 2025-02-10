@@ -18,7 +18,7 @@
 
 ## 安装
 
-### PaddlePaddle 最新版本: [v2.6](https://github.com/PaddlePaddle/Paddle/tree/release/2.6)
+### PaddlePaddle 最新版本: [3.0-rc](https://github.com/PaddlePaddle/Paddle/tree/release/3.0-rc)
 
 跟进 PaddlePaddle 最新特性请参考我们的[版本说明](https://github.com/PaddlePaddle/Paddle/releases)
 

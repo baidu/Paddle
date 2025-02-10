@@ -59,8 +59,8 @@ struct Mutator : public ir::IRMutator<>, public ir::stmt::StmtMutator<> {
         Expr e = expr->as_tensor()->shape[i];
         Expr buf_e = buf->shape[i];
         if (buf->memory_type == ir::MemoryType::GPULocal) {
-          e = cinn::optim::ArithSimplify(e);
-          buf_e = cinn::optim::ArithSimplify(buf_e);
+          e = cinn::common::AutoSimplify(e);
+          buf_e = cinn::common::AutoSimplify(buf_e);
           if (!e.is_constant()) {
             auto new_shape = ir::ir_utils::IRCopy(e);
             new_shape = analyzer.UpperBound(new_shape);
@@ -86,7 +86,7 @@ struct Mutator : public ir::IRMutator<>, public ir::stmt::StmtMutator<> {
         auto e = buf->shape.size() > tensor->shape.size() ? buf->shape[i]
                                                           : tensor->shape[i];
         if (buf->memory_type == ir::MemoryType::GPULocal) {
-          e = cinn::optim::ArithSimplify(e);
+          e = cinn::common::AutoSimplify(e);
           if (!e.is_constant()) {
             auto new_shape = ir::ir_utils::IRCopy(e);
             new_shape = analyzer.UpperBound(new_shape);

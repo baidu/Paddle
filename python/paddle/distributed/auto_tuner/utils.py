@@ -1545,7 +1545,7 @@ def read_memory_log(path, file) -> tuple[float, bool]:
         return (0.0, True)
     memory_used = []
     utilization_gpu = []
-    indexs = []
+    indices = []
 
     with open(log_path, 'r') as f:
         reader = csv.reader(f)
@@ -1561,7 +1561,7 @@ def read_memory_log(path, file) -> tuple[float, bool]:
             # skip header
             if len(row) == 6:
                 index, util_gpu, _, mem_used, _, _ = row
-                indexs.append(int(index))
+                indices.append(int(index))
                 memory_used.append(int(mem_used))
                 utilization_gpu.append(int(util_gpu))
     return max(memory_used), False

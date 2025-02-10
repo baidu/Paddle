@@ -258,9 +258,9 @@ std::unordered_map<Variable, Value> InferValues(const Function* function,
 DEFINE_ADT_TAG(tValueInferSuccess);
 
 template <typename OnFailT>
-tValueInferSuccess<bool> MergeInferedValuesIntoCtx(const Function* function,
-                                                   IndexExprInferContext* ctx,
-                                                   const OnFailT& OnFail) {
+tValueInferSuccess<bool> MergeInferredValuesIntoCtx(const Function* function,
+                                                    IndexExprInferContext* ctx,
+                                                    const OnFailT& OnFail) {
   auto output_variable2value = InferValues(function, ctx);
   for (const auto& [variable, unsimplified_value] : output_variable2value) {
     Value simplified_value({SimplifyValue(unsimplified_value, *ctx)});
@@ -279,9 +279,9 @@ tValueInferSuccess<bool> MergeInferedValuesIntoCtx(const Function* function,
   return tValueInferSuccess<bool>{true};
 }
 
-tValueInferSuccess<bool> MergeInferedValuesIntoCtx(const Function* function,
-                                                   IndexExprInferContext* ctx) {
-  return MergeInferedValuesIntoCtx(
+tValueInferSuccess<bool> MergeInferredValuesIntoCtx(
+    const Function* function, IndexExprInferContext* ctx) {
+  return MergeInferredValuesIntoCtx(
       function, ctx, [&](const std::optional<Value>& lhs, const Value& rhs) {
         if (lhs.has_value()) {
           VLOG(1) << "opt_old_value = " << ToTxtString(lhs.value());
@@ -304,7 +304,7 @@ void SolveEquations(
   walker.WalkFunction(
       starts.begin(), starts.end(), [&](const Function* function) {
         tValueInferSuccess<bool> has_unique_value =
-            MergeInferedValuesIntoCtx(function, ctx);
+            MergeInferredValuesIntoCtx(function, ctx);
         PADDLE_ENFORCE_EQ(
             has_unique_value.value(),
             true,
@@ -322,8 +322,8 @@ void CheckEquationsSolvable(
     const EquationGraphTopoWalker<Variable, const Function*>& walker,
     const Variable& start,
     IndexExprInferContext* ctx) {
-  const auto& CheckNoConflictInferedValue = [&](const Function* function) {
-    MergeInferedValuesIntoCtx(
+  const auto& CheckNoConflictInferredValue = [&](const Function* function) {
+    MergeInferredValuesIntoCtx(
         function,
         ctx,
         [&](const auto& opt_old_value, const auto& simplified_value) {
@@ -335,7 +335,7 @@ void CheckEquationsSolvable(
         });
   };
 
-  walker.WalkFunction(start, CheckNoConflictInferedValue);
+  walker.WalkFunction(start, CheckNoConflictInferredValue);
 }
 
 tHasNoConflictValue<bool> TrySolveEquations(
@@ -344,14 +344,14 @@ tHasNoConflictValue<bool> TrySolveEquations(
     IndexExprInferContext* ctx) {
   bool has_no_conflict_value = true;
 
-  const auto& HasConflictInferedValue = [&](const Function* function) {
+  const auto& HasConflictInferredValue = [&](const Function* function) {
     tValueInferSuccess<bool> has_unique_value =
-        MergeInferedValuesIntoCtx(function, ctx);
+        MergeInferredValuesIntoCtx(function, ctx);
     return !has_unique_value.value();
   };
 
   walker.WalkFunction(start, [&](const Function* function) {
-    if (has_no_conflict_value && HasConflictInferedValue(function)) {
+    if (has_no_conflict_value && HasConflictInferredValue(function)) {
       has_no_conflict_value = false;
     }
   });

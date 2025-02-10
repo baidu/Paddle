@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import inspect
-import opcode
 import random
 import sys
 import types
@@ -49,6 +48,8 @@ from ..instruction_utils import (
     modify_vars,
 )
 from ..instruction_utils.opcode_info import (
+    ALL_JUMP,
+    RETURN,
     UNCONDITIONAL_JUMP,
     JumpDirection,
     PopJumpCond,
@@ -360,6 +361,7 @@ def stacksize(instructions: list[Instruction]) -> float:
         int: The maximum stack size.
     """
     max_stack = [float("-inf")] * len(instructions)
+    histories = [[] for _ in range(len(instructions))]
 
     max_stack[0] = 0
 
@@ -378,12 +380,12 @@ def stacksize(instructions: list[Instruction]) -> float:
         Returns:
             None
         """
-        old_max = max_stack[nexti]
-        max_stack[nexti] = max(
-            max_stack[nexti], max_stack[lasti] + stack_effect
-        )
-        if old_max != max_stack[nexti]:
-            if nexti not in queue:  # may be slow, we can use a flag.
+        if (new_stack_size := max_stack[lasti] + stack_effect) > max_stack[
+            nexti
+        ]:
+            histories[nexti] = histories[lasti] + [lasti]
+            max_stack[nexti] = new_stack_size
+            if nexti not in queue and nexti not in histories[nexti]:
                 queue.append(nexti)
 
     while len(queue) > 0:
@@ -393,12 +395,12 @@ def stacksize(instructions: list[Instruction]) -> float:
         opname = instr.opname
         if (
             idx + 1 < len(instructions)
-            and instr.opname not in UNCONDITIONAL_JUMP
+            and opname not in UNCONDITIONAL_JUMP | RETURN
         ):
             stack_effect = calc_stack_effect(instr, jump=False)
             update_stacksize(idx, idx + 1, stack_effect)
 
-        if instr.opcode in opcode.hasjabs or instr.opcode in opcode.hasjrel:
+        if opname in ALL_JUMP:
             stack_effect = calc_stack_effect(instr, jump=True)
             target_idx = instructions.index(instr.jump_to)
             update_stacksize(idx, target_idx, stack_effect)
@@ -1071,6 +1073,7 @@ class ResumeFunctionCreator:
         self.codegen._code_options['co_flags'] &= ~(
             inspect.CO_VARARGS | inspect.CO_VARKEYWORDS
         )
+        self.codegen._code_options['co_kwonlyargcount'] = 0
         new_code = self.codegen.gen_pycode()
         # TODO(SigureMo): cache_key should not be None
         if cache_key is not None:

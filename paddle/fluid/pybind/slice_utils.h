@@ -354,12 +354,12 @@ static void ParseIndex(const paddle::Tensor& tensor,
   }
 
   // valid_index is the number of dimensions exclude None index
-  const int valid_indexs = size - none_axes->size() - ell_count;
-  PADDLE_ENFORCE_EQ(valid_indexs <= rank,
+  const int valid_indices = size - none_axes->size() - ell_count;
+  PADDLE_ENFORCE_EQ(valid_indices <= rank,
                     true,
                     common::errors::InvalidArgument(
                         "Too many indices (%d) for tensor of dimension %d.",
-                        valid_indexs,
+                        valid_indices,
                         rank));
 }
 

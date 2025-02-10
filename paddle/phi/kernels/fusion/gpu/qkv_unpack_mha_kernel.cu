@@ -436,8 +436,8 @@ void fmha_impl_qkv(const phi::GPUContext &dev_ctx,
           params, dev_ctx.stream(), load_func, store_func);
       break;
     default:
-      PADDLE_THROW(common::errors::Unimplemented("Dim_head = %d is unsupport!",
-                                                 dim_head));
+      PADDLE_THROW(common::errors::Unimplemented(
+          "Dim_head = %d is unsupported!", dim_head));
   }
 }
 

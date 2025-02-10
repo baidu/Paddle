@@ -2747,7 +2747,7 @@ def mv(x: Tensor, vec: Tensor, name: str | None = None) -> Tensor:
             For more information, please refer to :ref:`api_guide_Name`. Default is None.
 
     Returns:
-        Tensor: The tensor which is producted by x and vec.
+        Tensor: The tensor which is produced by x and vec.
 
     Examples:
         .. code-block:: python
@@ -2930,7 +2930,7 @@ def svd(
     Let :math:`X` be the input matrix or a batch of input matrices, the output should satisfies:
 
     .. math::
-        X = U * diag(S) * VT
+        X = U * diag(S) * V^{H}
 
     Args:
         x (Tensor): The input tensor. Its shape should be `[..., N, M]`,
@@ -3010,7 +3010,7 @@ def svdvals(x: Tensor, name: str | None = None) -> Tensor:
     produced by singular value decomposition:
 
     .. math::
-        X = U * diag(S) * VH
+        X = U * diag(S) * V^{H}
 
     Args:
         x (Tensor): The input tensor. Its shape should be `[..., M, N]`, where
@@ -3091,12 +3091,12 @@ def svd_lowrank(
     If :math:`X` is the input matrix or a batch of input matrices, the output should satisfies:
 
     .. math::
-        X \approx U * diag(S) * V^{T}
+        X \approx U * diag(S) * V^{H}
 
     When :math:`M` is given, the output should satisfies:
 
     .. math::
-        X - M \approx U * diag(S) * V^{T}
+        X - M \approx U * diag(S) * V^{H}
 
     Args:
         x (Tensor): The input tensor. Its shape should be `[..., N, M]`, where `...` is
@@ -3387,7 +3387,7 @@ def qr(
     Args:
         x (Tensor): The input tensor. Its shape should be `[..., M, N]`,
             where ... is zero or more batch dimensions. M and N can be arbitrary
-            positive number. The data type of x should be float32 or float64.
+            positive number. The data type of x supports float, double, complex64, complex128.
         mode (str, optional): A flag to control the behavior of qr.
             Suppose x's shape is `[..., M, N]` and denoting `K = min(M, N)`:
             If mode = "reduced", qr op will return reduced Q and R matrices,
@@ -3429,7 +3429,9 @@ def qr(
         else:
             return q, r
     else:
-        check_variable_and_dtype(x, 'dtype', ['float32', 'float64'], 'qr')
+        check_variable_and_dtype(
+            x, 'dtype', ['float32', 'float64', 'complex64', 'complex128'], 'qr'
+        )
         check_type(mode, 'mode', str, 'qr')
         helper = LayerHelper('qr', **locals())
         q = helper.create_variable_for_type_inference(dtype=x.dtype)

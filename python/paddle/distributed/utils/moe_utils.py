@@ -61,7 +61,7 @@ def global_scatter(
         global_count (Tensor): Tensor which have n_expert * world_size elements that indicates
             how many data needed to be received. The tensor data type should be int64.
         group (Group, optional): The group instance return by new_group or None for global default group. Default: None.
-        use_calc_stream (bool, optional): Wether to use calculation stream (True) or communication stream. Default: True.
+        use_calc_stream (bool, optional): Whether to use calculation stream (True) or communication stream. Default: True.
 
     Returns:
         out (Tensor): The data received from all experts.
@@ -186,7 +186,7 @@ def global_gather(
         global_count (Tensor): Tensor which have n_expert * world_size elements that indicates
             how many data needed to be sent. Tensor data type should be int64.
         group (Group, optional): The group instance return by new_group or None for global default group. Default: None.
-        use_calc_stream (bool, optional): Wether to use calculation stream (True) or communication stream. Default: True.
+        use_calc_stream (bool, optional): Whether to use calculation stream (True) or communication stream. Default: True.
 
     Returns:
         out (Tensor): The data received from all experts.

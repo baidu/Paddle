@@ -960,7 +960,9 @@ void MoeGemmRunner<T, WeightType>::run_gemm<EpilogueTag>(
   } else {
     float best_time = std::numeric_limits<float>::max();
     CutlassGemmConfig best_config;
-    int profile_total_rows = gemmConfigManager.nextPowerOfTwo(total_rows);
+    int profile_total_rows =
+        std::min(gemmConfigManager.nextPowerOfTwo(total_rows),
+                 gemmConfigManager.getMaxProfileM());
     bool found_one = false;
 
     for (size_t ii = 0; ii < candidate_configs.size(); ++ii) {

@@ -137,7 +137,7 @@ Node *pool2d_handler(Graph *graph, Node *node) {
           graph, node, "popart_globalaveragepool", node->inputs, node->outputs);
     } else {
       PADDLE_THROW(common::errors::InvalidArgument(
-          "op pool2d with unkonwn pooling_type: %s", pooling_type));
+          "op pool2d with Unknown pooling_type: %s", pooling_type));
     }
   }
   if (op->HasAttr("padding_algorithm")) {
@@ -145,7 +145,7 @@ Node *pool2d_handler(Graph *graph, Node *node) {
         PADDLE_GET_CONST(std::string, op->GetAttr("padding_algorithm"));
     if (padding_algorithm != "EXPLICIT") {
       PADDLE_THROW(common::errors::InvalidArgument(
-          "op pool2d with unkonwn padding_algorithm: %s", padding_algorithm));
+          "op pool2d with Unknown padding_algorithm: %s", padding_algorithm));
     }
   }
 
@@ -195,7 +195,7 @@ Node *pool2d_handler(Graph *graph, Node *node) {
                         });
   } else {
     PADDLE_THROW(common::errors::InvalidArgument(
-        "op pool2d with unkonwn pooling_type: %s", pooling_type));
+        "op pool2d with Unknown pooling_type: %s", pooling_type));
   }
 }
 

@@ -47,8 +47,8 @@ inline const char* miopenGetErrorString(miopenStatus_t status) {
       return "MIOPEN_STATUS_NOT_INITIALIZED";
     case miopenStatusInvalidValue:
       return "MIOPEN_STATUS_INVALID_VALUE";
-    case miopenStatusBadParm:
-      return "MIOPEN_STATUS_BAD_PARAM";
+    case miopenStatusBadParm:            // typos: disable-line
+      return "MIOPEN_STATUS_BAD_PARAM";  // typos: disable-line
     case miopenStatusAllocFailed:
       return "MIOPEN_STATUS_ALLOC_FAILED";
     case miopenStatusInternalError:

@@ -323,7 +323,7 @@ static int BuildFusion(Graph* graph,
   int fusion_count{0};
   auto handler = [&](const GraphPatternDetector::subgraph_t& subgraph,
                      Graph* g) {
-    LOG(INFO) << "handle sqaure mat sub fuse";
+    LOG(INFO) << "handle square mat sub fuse";
     if (!pass->IsAcceptable(subgraph, g)) {
       LOG(WARNING) << "Pass in op compat failed.";
       return;

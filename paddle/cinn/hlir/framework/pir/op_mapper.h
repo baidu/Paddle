@@ -33,7 +33,7 @@ enum MapperType {
 };
 
 class OpMapper {
-  using OperandIndexsFunction = std::function<std::vector<size_t>()>;
+  using OperandIndicesFunction = std::function<std::vector<size_t>()>;
   using AppendAttrFunction =
       std::function<void(const ::pir::Operation& op,
                          utils::AttributeMap& attrs)>;  // NOLINT
@@ -59,7 +59,7 @@ class OpMapper {
         has(op, MapperType::OPERAND),
         true,
         ::common::errors::PreconditionNotMet(
-            "Not register OperandIndexsFunction for %s", op.name().c_str()));
+            "Not register OperandIndicesFunction for %s", op.name().c_str()));
     std::vector<::pir::Value> inputs;
     for (auto idx : operand_funcs_.at(op.name())()) {
       inputs.push_back(op.operand_source(idx));
@@ -81,7 +81,7 @@ class OpMapper {
   OpMapper() { RegisterMapRules(); }
   void RegisterMapRules();
 
-  std::unordered_map<std::string, OperandIndexsFunction> operand_funcs_;
+  std::unordered_map<std::string, OperandIndicesFunction> operand_funcs_;
   std::unordered_map<std::string, AppendAttrFunction> attr_funcs_;
 };
 

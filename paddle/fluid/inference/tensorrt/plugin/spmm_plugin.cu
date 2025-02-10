@@ -153,7 +153,7 @@ void SpmmPluginDynamic::cusparseLtContext::init(
       break;
     default:
       PADDLE_THROW(
-          common::errors::Fatal("cusparLtContext only supports data type"
+          common::errors::Fatal("cusparseLtContext only supports data type"
                                 "[CUDA_R_32F|CUDA_R_16F|CUDA_R_8I]"));
   }
   phi::dynload::cusparseLtDenseDescriptorInit(
@@ -1012,7 +1012,7 @@ nvinfer1::IPluginV2* SpmmPluginDynamicCreator::createPlugin(
       } else if (field_name.compare("activation_id") == 0) {
         activation_id = static_cast<const int*>(fc->fields[i].data)[0];
       } else {
-        PADDLE_THROW(common::errors::Fatal("Unsupport plugin field"));
+        PADDLE_THROW(common::errors::Fatal("Unsupported plugin field"));
       }
     }
 

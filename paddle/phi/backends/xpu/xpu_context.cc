@@ -381,7 +381,7 @@ void XPUContext::CheckValidStreamId(int i) const {
   PADDLE_ENFORCE_LT(
       i,
       GetStreamNum(),
-      errors::InvalidArgument("The stream index shoule be less than the number "
+      errors::InvalidArgument("The stream index should be less than the number "
                               "of stream used (%d), but got %d",
                               GetStreamNum(),
                               i));

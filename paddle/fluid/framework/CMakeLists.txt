@@ -419,18 +419,6 @@ if(WITH_PYTHON)
               ${PADDLE_BINARY_DIR}/python/paddle/distributed/fleet/proto
       COMMENT "Copy generated python proto into directory paddle/fluid/proto."
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-    if(NOT WITH_ROCM)
-      add_custom_target(
-        fleet_executor_proto_init ALL
-        DEPENDS fleet_proto_init fleet_executor_desc_py_proto
-        COMMAND
-          cp
-          ${PADDLE_BINARY_DIR}/paddle/fluid/distributed/fleet_executor/fleet_executor_*.py
-          ${PADDLE_BINARY_DIR}/python/paddle/distributed/fleet/proto
-        COMMENT
-          "Copy generated python proto into directory paddle/distributed/fleet/proto."
-      )
-    endif()
   else()
     string(REPLACE "/" "\\" proto_dstpath
                    "${PADDLE_BINARY_DIR}/python/paddle/base/proto/")
@@ -579,7 +567,7 @@ if(WITH_DISTRIBUTE)
     #         index_sampler index_wrapper sampler index_dataset_proto
     #         framework_io fleet_wrapper heter_wrapper box_wrapper metrics densetensor_printer feed_fetch_method feed_hook
     #         graph_to_program_pass variable_helper
-    #         heter_service_proto fleet heter_server brpc fleet_executor
+    #         heter_service_proto fleet heter_server brpc
     #         graph_gpu_wrapper)
 
     cc_library(

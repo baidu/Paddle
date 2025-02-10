@@ -55,14 +55,6 @@ void SameStatusReshardFunction::Eval(phi::DeviceContext* dev_ctx,
   const auto& out_process_mesh = out_dist_attr.process_mesh();
   const auto& out_process_ids = out_process_mesh.process_ids();
   auto all_process_ids = GetUnionProcessIds(in_process_ids, out_process_ids);
-  auto dtype = in.dtype();
-  // TODO(liyurui): Use dynamic shape will lead to poor performance, but we
-  // don't have any other good idea now. For the following reasons:
-  // 1. We can not ensure the meta being right deduce by the infermeta.
-  // 2. The meta of some kernels can't decide in compile time.
-  // 3. DenseTensor with empty value only need infermeta and skip the real
-  // kernel execution.
-  bool dynamic_shape = true;
 
   // TODO(GhostScreaming): After cross-mesh reshard, current device may
   // needs to execute next layer. When it construct next layer's backward
@@ -86,28 +78,44 @@ void SameStatusReshardFunction::Eval(phi::DeviceContext* dev_ctx,
     int64_t src = iter.first;
     int64_t dst = iter.second;
     if (src == cur_global_rank) {
+#if defined(PADDLE_WITH_XPU)
+      PADDLE_THROW(::common::errors::Unimplemented(
+          "Not supported PSendKernel on xpu yet."));
+#else
       VLOG(3) << "Send from src " << src << " to dst " << dst;
       int64_t dst_local_rank = GetLocalRankInParticipate(all_process_ids, dst);
       // Since send kernel only has input, so we don't need to infermeta
       // actually. According to this reason, just use the kernel directly.
       RESHARD_FUNCTOR_WITH_COMM(dev_ctx,
                                 PSendKernel,
-                                dtype,
+                                in.dtype(),
                                 all_process_ids,
                                 in.value(),
                                 dst_local_rank,
-                                dynamic_shape);
+                                /*dynamic_shape=*/true);
+      // TODO(liyurui): Use dynamic shape will lead to poor performance, but we
+      // don't have any other good idea now. For the following reasons:
+      // 1. We can not ensure the meta being right deduce by the infermeta.
+      // 2. The meta of some kernels can't decide in compile time.
+      // 3. DenseTensor with empty value only need infermeta and skip the real
+      // kernel execution.
+#endif
     } else if (dst == cur_global_rank) {
+#if defined(PADDLE_WITH_XPU)
+      PADDLE_THROW(::common::errors::Unimplemented(
+          "Not supported PRecvKernel on xpu yet."));
+#else
       VLOG(3) << "Recv from src " << src << " to dst " << dst;
       int64_t src_local_rank = GetLocalRankInParticipate(all_process_ids, src);
       RESHARD_FUNCTOR_WITH_COMM(dev_ctx,
                                 PRecv,
-                                dtype,
+                                in.dtype(),
                                 all_process_ids,
                                 src_local_rank,
                                 {} /*out_shape*/,
-                                dynamic_shape,
+                                /*dynamic_shape=*/true,
                                 GetMutableTensor(out));
+#endif
     }
   }
   SetDistProps(out, in.dims(), out_dist_attr);

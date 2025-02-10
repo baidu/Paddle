@@ -46,12 +46,13 @@ using ExecutionConfig = interpreter::ExecutionConfig;
 class IfInstruction;
 class WhileInstruction;
 class PyLayerInstruction;
+class CustomEngineInstruction;
 class ValueExecutionInfo {
  public:
   friend class IfInstruction;
   friend class WhileInstruction;
   friend class PyLayerInstruction;
-
+  friend class CustomEngineInstruction;
   explicit ValueExecutionInfo(Scope* scope) : scope_(scope) {}
 
   const ValueExecutionInfo* Parent() const { return parent_; }

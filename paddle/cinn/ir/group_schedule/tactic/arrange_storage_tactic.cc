@@ -142,9 +142,9 @@ IntSet Evaluate(Expr expr,
   Expr copy_for_upper_bound = ir::ir_utils::IRCopy(expr);
   Expr copy_for_lower_bound = ir::ir_utils::IRCopy(expr);
   common::cas_intervals_t var_intervals;
-  std::set<ir::Expr> var_set = ir::ir_utils::CollectIRNodesWithoutTensor(
+  std::vector<ir::Expr> var_vec = ir::ir_utils::CollectIRNodesWithoutTensor(
       expr, [](const ir::Expr* x) { return x->as_var(); });
-  for (Expr var_expr : var_set) {
+  for (Expr var_expr : var_vec) {
     ir::Var var = var_expr.as_var_ref();
     if (fixed.count(var) != 0) {
       const ir::Var& fixed_var = fixed.at(var);

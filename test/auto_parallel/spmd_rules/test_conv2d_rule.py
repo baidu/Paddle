@@ -54,23 +54,23 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.input_dist_tensor_spec, self.filter_dist_tensor_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), False)
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), False)
 
         # case 2
         # input: NCHinWin[-1, -1, -1, -1], filter: MCHkWk[0, -1, -1, -1] ---> output: NMHoutWout[-1, 0, -1, -1]
@@ -81,23 +81,23 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.input_dist_tensor_spec, self.filter_dist_tensor_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [0, -1, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, 0, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 0, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), False)
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), False)
 
         # case 3
         # input: NCHinWin[0, -1, -1, -1], filter: MCHkWk[1, -1, -1, -1] ---> output: NMHoutWout[0, 1, -1, -1]
@@ -108,23 +108,23 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.input_dist_tensor_spec, self.filter_dist_tensor_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [1, -1, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), False)
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), False)
 
         # case 4
         # input: NCHinWin[-1, 0, -1, -1], filter: MCHkWk[-1, 0, -1, -1] ---> output: NMHoutWout[-1, -1, -1, -1]
@@ -135,24 +135,24 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.input_dist_tensor_spec, self.filter_dist_tensor_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, 0, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, 0, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [-1, 0, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [-1, 0, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), True)
-        self.assertEqual(infered_output_dist_attrs[0]._partial_dims(), {0})
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), True)
+        self.assertEqual(inferred_output_dist_attrs[0]._partial_dims(), {0})
 
         # case 5
         # input: NCHinWin[0, 2, -1, -1], filter: MCHkWk[1, 2, -1, -1] ---> output: NMHoutWout[0, 1, -1, -1]
@@ -163,24 +163,24 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.input_dist_tensor_spec, self.filter_dist_tensor_spec
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, 2, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, 2, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [1, 2, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [1, 2, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), True)
-        self.assertEqual(infered_output_dist_attrs[0]._partial_dims(), {2})
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), True)
+        self.assertEqual(inferred_output_dist_attrs[0]._partial_dims(), {2})
 
     def test_conv2d_infer_backward(self):
         # backward setup
@@ -219,25 +219,25 @@ class TestConv2dSPMDRule(unittest.TestCase):
             self.output_dist_tensor_spec,
         )
 
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attrs[1].dims_mapping, [1, -1, -1, -1]
+            inferred_input_dist_attrs[1].dims_mapping, [1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, 1, -1, -1]
         )
-        self.assertEqual(infered_input_dist_attrs[0]._is_partial(), False)
-        self.assertEqual(infered_input_dist_attrs[1]._is_partial(), False)
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), False)
+        self.assertEqual(inferred_input_dist_attrs[0]._is_partial(), False)
+        self.assertEqual(inferred_input_dist_attrs[1]._is_partial(), False)
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), False)
 
 
 if __name__ == "__main__":

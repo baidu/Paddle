@@ -193,7 +193,7 @@ __global__ void KeBackwardLocalStats2D(const T *dy,
       auto x_i = static_cast<BatchNormParamType<T>>(x[id]);
       sum2 += g * (x_i - mean);
     }
-    funcs::BlockReduceByVetical<T, BatchNormParamType<T>>(
+    funcs::BlockReduceByVertical<T, BatchNormParamType<T>>(
         sum1, sum2, &smem_sum[0], &smem_square_sum[0], &sum1, &sum2);
 
     if (gridDim.y > 1) {
@@ -304,7 +304,7 @@ static __global__ void KeBNBackwardScaleBias2D(
       db_sum += dy_i;
     }
 
-    funcs::BlockReduceByVetical<T, BatchNormParamType<T>>(
+    funcs::BlockReduceByVertical<T, BatchNormParamType<T>>(
         ds_sum, db_sum, &smem_sum[0], &smem_square_sum[0], &ds_sum, &db_sum);
 
     if (gridDim.y > 1) {

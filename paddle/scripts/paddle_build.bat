@@ -257,7 +257,7 @@ if not defined CUDA_ARCH_NAME set CUDA_ARCH_NAME=Auto
 
 call :cmake || goto cmake_error
 call :build || goto build_error
-call :test_whl_pacakage || goto test_whl_pacakage_error
+call :test_whl_package || goto test_whl_package_error
 call :test_unit || goto test_unit_error
 call :test_inference || goto test_inference_error
 goto:success
@@ -273,7 +273,7 @@ if not defined CUDA_ARCH_NAME set CUDA_ARCH_NAME=Auto
 
 call :cmake || goto cmake_error
 call :build || goto build_error
-call :test_whl_pacakage || goto test_whl_pacakage_error
+call :test_whl_package || goto test_whl_package_error
 call :test_unit || goto test_unit_error
 goto:success
 
@@ -291,7 +291,7 @@ if not defined CUDA_ARCH_NAME set CUDA_ARCH_NAME=Auto
 
 call :cmake || goto cmake_error
 call :build || goto build_error
-call :test_whl_pacakage || goto test_whl_pacakage_error
+call :test_whl_package || goto test_whl_package_error
 call :test_unit || goto test_unit_error
 ::call :test_inference || goto test_inference_error
 ::call :test_inference_ut || goto test_inference_ut_error
@@ -307,7 +307,7 @@ if not defined CUDA_ARCH_NAME set CUDA_ARCH_NAME=All
 
 call :cmake || goto cmake_error
 call :build || goto build_error
-call :test_whl_pacakage || goto test_whl_pacakage_error
+call :test_whl_package || goto test_whl_package_error
 goto:success
 
 rem ------Build windows no-avx whl package------
@@ -318,7 +318,7 @@ if not defined CUDA_ARCH_NAME set CUDA_ARCH_NAME=All
 
 call :cmake || goto cmake_error
 call :build || goto build_error
-call :test_whl_pacakage || goto test_whl_pacakage_error
+call :test_whl_package || goto test_whl_package_error
 goto:success
 
 rem ------Build windows inference library------
@@ -658,7 +658,7 @@ echo Build Paddle failed, will exit!
 exit /b 7
 
 rem ---------------------------------------------------------------------------------------------
-:test_whl_pacakage
+:test_whl_package
 @ECHO OFF
 echo    ========================================
 echo    Step 3. Test pip install whl package ...
@@ -740,7 +740,7 @@ set CUDA_VISIBLE_DEVICES=0
 python %work_dir%\paddle\scripts\installation_validate.py
 goto:eof
 
-:test_whl_pacakage_error
+:test_whl_package_error
 ::echo 1 > %cache_dir%\error_code.txt
 ::type %cache_dir%\error_code.txt
 echo Test import paddle failed, will exit!

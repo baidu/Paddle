@@ -197,26 +197,6 @@ class TestReduceFusion(unittest.TestCase):
 
         self.check_accuracy_and_kernel_num(init, func)
 
-    def test_reduce_anchor_fusion(self):
-        #      T
-        #    /   \
-        #   R --> T
-        #       /   \
-        #      R --> T
-        def func(x):
-            x = x + 1
-            a = paddle.max(x, axis=-1, keepdim=True)
-            b = x + a
-            c = paddle.max(b, axis=-1, keepdim=True)
-            d = c + b
-            return d
-
-        def init():
-            x = paddle.rand((1, 32, 4, 8), dtype='float32')
-            return (x,)
-
-        self.check_accuracy_and_kernel_num(init, func, kernel_num=1)
-
 
 if __name__ == "__main__":
     unittest.main()

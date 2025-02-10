@@ -1365,7 +1365,7 @@ void CrossEntropyWithSoftmaxCUDAKernel(const GPUContext& dev_ctx,
                                         d / axis_dim);
   } else {
     if (!numeric_stable_mode) {
-      // CUDNN kernel only suppoer 2-D tensor and perfome softmax on last dim
+      // CUDNN kernel only suppoer 2-D tensor and perform softmax on last dim
       DenseTensor logits_2d(logits);
       logits_2d.Resize({n, d});
       DenseTensor softmax_2d(*softmax);

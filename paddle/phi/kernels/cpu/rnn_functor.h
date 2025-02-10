@@ -34,7 +34,7 @@ DEFINE_MODE_DETECTOR(gru, GRU);
 DEFINE_MODE_DETECTOR(rnn_relu, RNN_RELU);
 DEFINE_MODE_DETECTOR(rnn_tanh, RNN_TANH);
 
-inline void SwapPoniter(DenseTensor** a, DenseTensor** b) {
+inline void SwapPointer(DenseTensor** a, DenseTensor** b) {
   DenseTensor* c = *a;
   *a = *b;
   *b = c;
@@ -396,7 +396,7 @@ void RnnFunc(const Context& dev_ctx,
           input_holder->Resize(output->dims());
         }
       } else {
-        SwapPoniter(&output_holder, &input_holder);
+        SwapPointer(&output_holder, &input_holder);
       }
     }
     const DenseTensor* input_temp_holder = input;

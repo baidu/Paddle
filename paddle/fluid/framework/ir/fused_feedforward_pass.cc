@@ -250,7 +250,7 @@ ir::Graph *FusedFeedForwardPass::FusedFeedForwardFwd(
       dropout_mask_desc_1.SetDataType(proto::VarType::UINT8);
       dropout_mask_desc_1.SetLoDLevel(ele_add_out_1->Var()->GetLoDLevel());
       dropout_mask_desc_1.SetStopGradient(static_cast<bool>(true));
-      // Tranfer to backward operator.
+      // Transfer to backward operator.
       record.dropout_mask_node_1 = g->CreateVarNode(&dropout_mask_desc_1);
       fused_feedforward_op_desc.SetOutput("Dropout1Mask",
                                           {record.dropout_mask_node_1->Name()});

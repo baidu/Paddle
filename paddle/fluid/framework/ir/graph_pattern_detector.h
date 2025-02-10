@@ -223,7 +223,7 @@ struct PDNode {
  * and Variable Nodes can be ruled in PDNode.assert_more(...).
  *
  * PDPattern can record the general patterns, such as the pattern represents
- *   - Op in CPU -> Op in GPU -> Op in CPU, to findout the IO abnormal place.
+ *   - Op in CPU -> Op in GPU -> Op in CPU, to find out the IO abnormal place.
  *   - Ops whose inputs and outputs share the same variables
  */
 class PDPattern {

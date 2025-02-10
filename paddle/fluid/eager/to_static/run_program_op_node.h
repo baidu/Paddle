@@ -108,14 +108,15 @@ static auto GetNameFromValue(const std::vector<::pir::Value> &values) {
 }
 
 static void CheckInputVarStatus(const Tensor &tensor) {
-  PADDLE_ENFORCE_EQ(
-      tensor.defined() &&
-          (tensor.is_dense_tensor() || IsVariableRefArray(tensor)),
-      true,
-      common::errors::InvalidArgument(
-          "The input tensor %s of RunProgram(Grad)Op holds "
-          "wrong type. Expect type is DenseTensor or VariableRefArray.",
-          tensor.name()));
+  PADDLE_ENFORCE_EQ(tensor.defined() &&
+                        (tensor.is_dense_tensor() ||
+                         IsVariableRefArray(tensor) || tensor.is_dist_tensor()),
+                    true,
+                    common::errors::InvalidArgument(
+                        "The input tensor %s of RunProgram(Grad)Op holds "
+                        "wrong type. Expect type is DenseTensor or "
+                        "VariableRefArray or DistTensor.",
+                        tensor.name()));
 }
 
 static void CheckOutputVarStatus(const paddle::framework::Variable &src_var,
@@ -126,7 +127,7 @@ static void CheckOutputVarStatus(const paddle::framework::Variable &src_var,
                     common::errors::InvalidArgument(
                         "dst_tensor `%s` shall be defined.", name));
 
-  if (dst_tensor.is_dense_tensor()) {
+  if (dst_tensor.is_dense_tensor() || dst_tensor.is_dist_tensor()) {
     auto &src_tensor = src_var.Get<phi::DenseTensor>();
     PADDLE_ENFORCE_EQ(phi::DenseTensor::classof(&src_tensor),
                       true,
@@ -190,6 +191,11 @@ static void ShareTensorsIntoScopeWithName(
       auto t = std::dynamic_pointer_cast<paddle::framework::VariableRefArray>(
           tensor_base);
       *dst_tensor = *t;
+    } else if (phi::distributed::DistTensor::classof(tensor_base.get())) {
+      auto *dst_tensor = var->GetMutable<phi::DenseTensor>();
+      auto t =
+          std::dynamic_pointer_cast<phi::distributed::DistTensor>(tensor_base);
+      *dst_tensor = t->value();
     }
   }
 }
@@ -241,10 +247,19 @@ static void ShareTensorsFromScopeByValue(
     // share tensor
     if (var->IsType<phi::DenseTensor>()) {
       auto &src_tensor = var->Get<phi::DenseTensor>();
-      auto *dst_tensor = const_cast<phi::DenseTensor *>(
-          dynamic_cast<const phi::DenseTensor *>(tensors[i]->impl().get()));
-      VLOG(2) << "actually do sharing " << name << " from scope";
-      *dst_tensor = src_tensor;
+      if (tensors[i]->is_dist_tensor()) {
+        auto *dst_tensor =
+            std::dynamic_pointer_cast<phi::distributed::DistTensor>(
+                tensors[i]->impl())
+                ->unsafe_mutable_value();
+        VLOG(2) << "actually do sharing " << name << " from scope";
+        *dst_tensor = src_tensor;
+      } else {
+        auto *dst_tensor = const_cast<phi::DenseTensor *>(
+            dynamic_cast<const phi::DenseTensor *>(tensors[i]->impl().get()));
+        VLOG(2) << "actually do sharing " << name << " from scope";
+        *dst_tensor = src_tensor;
+      }
     } else if (var->IsType<phi::SelectedRows>()) {
       auto &src_tensor = var->Get<phi::SelectedRows>();
       auto *dst_tensor = const_cast<phi::SelectedRows *>(

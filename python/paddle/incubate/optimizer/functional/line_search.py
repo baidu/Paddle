@@ -152,7 +152,7 @@ def strong_wolfe(
         """
         phi_value, f_grad = _value_and_gradient(f, xk + a * pk)
         phi_grad = paddle.dot(f_grad, pk)
-        # return f_grad to be used in bfgs/l-bfgs to compute yk to avoid computint repeatly.
+        # return f_grad to be used in bfgs/l-bfgs to compute yk to avoid computint repeatedly.
         return phi_value, f_grad, phi_grad
 
     def zoom(

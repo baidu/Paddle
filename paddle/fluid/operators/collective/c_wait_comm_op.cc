@@ -22,6 +22,7 @@ class Scope;
 #include "paddle/phi/core/distributed/comm_context_manager.h"
 #include "paddle/phi/core/distributed/nccl_comm_context.h"
 #include "paddle/phi/core/platform/collective_helper.h"
+COMMON_DECLARE_bool(dynamic_static_unified_comm);
 #endif
 
 namespace paddle::operators {
@@ -55,20 +56,31 @@ class CWaitCommOp : public framework::OperatorBase {
 
     const auto& comm_context_manager =
         phi::distributed::CommContextManager::GetInstance();
+    if (FLAGS_dynamic_static_unified_comm) {
+      PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(ring_id)),
+                        true,
+                        common::errors::InvalidArgument(
+                            "You choose to use new communication library by "
+                            "setting environment "
+                            "variable FLAGS_dynamic_static_unified_comm True. "
+                            "But ring_id(%d) is "
+                            "not found in comm_context_manager.",
+                            std::to_string(ring_id)));
+      phi::distributed::NCCLCommContext* comm_ctx =
+          static_cast<phi::distributed::NCCLCommContext*>(
+              comm_context_manager.Get(std::to_string(ring_id)));
+      comm_stream = comm_ctx->GetStream();
+      event = comm_ctx->GetComputeEvent();
+      VLOG(3) << "new comm_context_manager has rid " << ring_id;
+    } else {
+      comm_stream =
+          platform::NCCLCommContext::Instance().Get(ring_id, place)->stream();
 
-    PADDLE_ENFORCE_EQ(comm_context_manager.Has(std::to_string(ring_id)),
-                      true,
-                      common::errors::InvalidArgument(
-                          "You choose to use new communication library. "
-                          "But ring_id(%d) is "
-                          "not found in comm_context_manager.",
-                          std::to_string(ring_id)));
-    phi::distributed::NCCLCommContext* comm_ctx =
-        static_cast<phi::distributed::NCCLCommContext*>(
-            comm_context_manager.Get(std::to_string(ring_id)));
-    comm_stream = comm_ctx->GetStream();
-    event = comm_ctx->GetComputeEvent();
-    VLOG(3) << "new comm_context_manager has rid " << ring_id;
+      event = platform::NCCLCommContext::Instance()
+                  .Get(ring_id, place)
+                  ->comm_event();
+      VLOG(3) << "old NCCLCommContext has rid " << ring_id;
+    }
 
 // comm_stream-->event-->compute_stream
 #ifdef PADDLE_WITH_HIP

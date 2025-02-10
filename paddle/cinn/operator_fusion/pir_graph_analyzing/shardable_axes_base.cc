@@ -196,14 +196,14 @@ ShardableAxesSignature CreateSignatureForTranspose(pir::Operation* op) {
 
   std::vector<int32_t> perm =
       GetInt32ArrayAttributeData(op->attributes().at("perm"));
-  PADDLE_ENFORCE_LE(
-      perm.size(),
-      input_axes.size(),
-      ::common::errors::PreconditionNotMet(
-          "The size of perm shoud be equal to or less than the input rank. But "
-          "received perm size is %d, input rank is %d",
-          perm.size(),
-          input_axes.size()));
+  PADDLE_ENFORCE_LE(perm.size(),
+                    input_axes.size(),
+                    ::common::errors::PreconditionNotMet(
+                        "The size of perm should be equal to or less than the "
+                        "input rank. But "
+                        "received perm size is %d, input rank is %d",
+                        perm.size(),
+                        input_axes.size()));
   std::vector<std::string> output_axes = input_axes;
   for (size_t i = 0; i < perm.size(); ++i) {
     output_axes[i] = input_axes[perm[i]];
@@ -263,7 +263,7 @@ ShardableAxesSignature CreateSignatureForBroadcast(
     pir::Operation* op, pir::ShapeConstraintIRAnalysis* shape_analysis) {
   ShardableAxesSignature result = ShardableAxesSignature();
 
-  const auto& broad_cast_value = GetBroadcastOpInputOuputValue(op);
+  const auto& broad_cast_value = GetBroadcastOpInputOutputValue(op);
   PADDLE_ENFORCE_EQ(broad_cast_value.has_value(),
                     true,
                     ::common::errors::PreconditionNotMet(
@@ -347,15 +347,15 @@ ShardableAxesSignature CreateSignatureForReshape(
     return result;
   }
 
-  std::vector<std::pair<int, int>> partion_indices =
-      PartionReshapeAxes(in_shape, out_shape);
+  std::vector<std::pair<int, int>> partition_indices =
+      PartitionReshapeAxes(in_shape, out_shape);
 
   std::vector<std::string> output_axes;
-  for (int idx = 1; idx < partion_indices.size(); ++idx) {
-    const auto& in_start = partion_indices[idx - 1].first;
-    const auto& in_end = partion_indices[idx].first;
-    const auto& out_start = partion_indices[idx - 1].second;
-    const auto& out_end = partion_indices[idx].second;
+  for (int idx = 1; idx < partition_indices.size(); ++idx) {
+    const auto& in_start = partition_indices[idx - 1].first;
+    const auto& in_end = partition_indices[idx].first;
+    const auto& out_start = partition_indices[idx - 1].second;
+    const auto& out_end = partition_indices[idx].second;
     if (in_end == in_start + 1 && out_end == out_start + 1) {
       output_axes.emplace_back(input_axes[in_start]);
     } else {

@@ -168,8 +168,8 @@ void ElementWiseCooKernelImpl(const Context& dev_ctx,
     max_len *= x.dims()[j];
   }
 
-  std::vector<IntT> sparse_offsets(sparse_dim), x_indexs(x.nnz()),
-      y_indexs(y.nnz());
+  std::vector<IntT> sparse_offsets(sparse_dim), x_indices(x.nnz()),
+      y_indices(y.nnz());
 
   phi::funcs::sparse::CalcOffsetsPerDim<IntT>(
       x.dims(), sparse_dim, sparse_offsets.data());
@@ -180,7 +180,7 @@ void ElementWiseCooKernelImpl(const Context& dev_ctx,
                                      sparse_dim,
                                      0,
                                      1,
-                                     x_indexs.data());
+                                     x_indices.data());
 
   phi::funcs::sparse::FlattenIndices(y.indices().data<IntT>(),
                                      sparse_offsets.data(),
@@ -188,27 +188,27 @@ void ElementWiseCooKernelImpl(const Context& dev_ctx,
                                      sparse_dim,
                                      0,
                                      1,
-                                     y_indexs.data());
+                                     y_indices.data());
 
-  std::vector<IntT> out_indexs;
+  std::vector<IntT> out_indices;
   std::vector<T> out_values_vec;
   if (is_divide) {
-    out_indexs.reserve(max_len);
+    out_indices.reserve(max_len);
   } else {
-    out_indexs.reserve(x.nnz() + y.nnz());
+    out_indices.reserve(x.nnz() + y.nnz());
   }
   out_values_vec.reserve(max_len * element_size);
 
   //  merge x and y
   Merge<T, IntT, Functor>(element_size,
-                          x_indexs.data(),
+                          x_indices.data(),
                           x_values,
-                          x_indexs.size(),
-                          y_indexs.data(),
+                          x_indices.size(),
+                          y_indices.data(),
                           y_values,
-                          y_indexs.size(),
+                          y_indices.size(),
                           max_len,
-                          out_indexs.data(),
+                          out_indices.data(),
                           out_values_vec.data(),
                           &nnz,
                           functor,
@@ -222,7 +222,7 @@ void ElementWiseCooKernelImpl(const Context& dev_ctx,
     const_dims[i] = x.dims()[i];
   }
 
-  funcs::sparse::IndexToCoordinate<IntT>(out_indexs.data(),
+  funcs::sparse::IndexToCoordinate<IntT>(out_indices.data(),
                                          const_dims,
                                          nnz,
                                          sparse_dim,

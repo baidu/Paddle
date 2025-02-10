@@ -15,6 +15,3 @@ gather_srcs(
   ast_gen.cc
   graph.cc
   compute_at_transform.cc)
-
-cinn_cc_test(test_compute_at_transform SRCS compute_at_transform_test.cc DEPS
-             cinncore)

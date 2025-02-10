@@ -64,11 +64,11 @@ TEST(XPUOverloadAllocTest, NestedScopeTest) {
   xpu::ctx_guard RAII_GUARD1(dev_ctx.x_context());
   int pre_alloc_value = DEVICE_MEMORY_STAT_CURRENT_VALUE(
       Allocated, dev_ctx.GetPlace().GetDeviceId());
-  int* buffer_outter = RAII_GUARD1.alloc<int>(64);
-  EXPECT_NE(buffer_outter, nullptr);
+  int* buffer_outer = RAII_GUARD1.alloc<int>(64);
+  EXPECT_NE(buffer_outer, nullptr);
   {
     // The destruction of inner guard should not free the memory allocated from
-    // outter guard.
+    // outer guard.
     xpu::ctx_guard RAII_GUARD2(dev_ctx.x_context());
     int* buffer_inner = RAII_GUARD2.alloc<int>(64);
     EXPECT_NE(buffer_inner, nullptr);

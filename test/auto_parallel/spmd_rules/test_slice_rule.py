@@ -53,16 +53,16 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, 0, 1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, 0, 1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, 0, 1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 0, 1, -1]
         )
 
         # axes: [-1]
@@ -79,14 +79,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, 1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, 1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 1, -1]
         )
 
         # axes: [1, 2]
@@ -103,14 +103,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
         )
 
         # axes: [1, 2]
@@ -127,14 +127,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
 
         # axes: [0, 1, 2, 3]
@@ -151,14 +151,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
 
     def test_slice_infer_backward(self):
@@ -186,16 +186,16 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, 0, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, 0, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, 0, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, 0, -1]
         )
 
         # axes: [-1]
@@ -213,14 +213,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, 1, 0, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, 1, 0, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, 1, 0, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, 1, 0, -1]
         )
 
         # axes: [1, 2]
@@ -238,14 +238,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
 
         # axes: [1, 2]
@@ -263,14 +263,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
+            inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
+            inferred_output_dist_attrs[0].dims_mapping, [0, -1, -1, 1]
         )
 
         # axes: [0, 1, 2, 3]
@@ -288,14 +288,14 @@ class TestSliceSPMDRule(unittest.TestCase):
             self.attrs['infer_flags'],
             self.attrs['decrease_axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(
-            infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
         self.assertEqual(
-            infered_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
+            inferred_output_dist_attrs[0].dims_mapping, [-1, -1, -1, -1]
         )
 
 

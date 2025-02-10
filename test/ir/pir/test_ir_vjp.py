@@ -115,7 +115,7 @@ class TestMeanVjp(unittest.TestCase):
         with paddle.pir.core.program_guard(pir_program):
             grad_outs = call_vjp(
                 mean_op,
-                [[mean_op.operand_source(0)]],
+                [[mean_op.operand_source(0)], [mean_op.operand_source(1)]],
                 [[mean_op.result(0)]],
                 out_grads,
                 stop_gradients,
@@ -141,7 +141,7 @@ class TestMeanVjp(unittest.TestCase):
                 .name(),
                 "pd_op.full",
             )
-            self.assertEqual(len(pir_program.global_block().ops), 4)
+            self.assertEqual(len(pir_program.global_block().ops), 5)
 
     def test_mean_vjp2(self):
         with paddle.pir_utils.OldIrGuard():
@@ -164,7 +164,7 @@ class TestMeanVjp(unittest.TestCase):
         with paddle.pir.core.program_guard(pir_program):
             grad_outs = call_vjp(
                 mean_op,
-                [[mean_op.operand_source(0)]],
+                [[mean_op.operand_source(0)], [mean_op.operand_source(1)]],
                 [[mean_op.result(0)]],
                 out_grads,
                 stop_gradients,

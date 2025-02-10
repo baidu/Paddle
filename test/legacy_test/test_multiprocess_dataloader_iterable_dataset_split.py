@@ -81,7 +81,7 @@ class TestDynamicDataLoaderIterInitFuncSplit(unittest.TestCase):
         with base.dygraph.guard(place):
             dataset = RangeIterableDataset(0, 10)
 
-            def worker_spliter(worker_id):
+            def worker_splitter(worker_id):
                 worker_info = get_worker_info()
 
                 dataset = worker_info.dataset
@@ -101,7 +101,7 @@ class TestDynamicDataLoaderIterInitFuncSplit(unittest.TestCase):
                 num_workers=1,
                 batch_size=1,
                 drop_last=True,
-                worker_init_fn=worker_spliter,
+                worker_init_fn=worker_splitter,
             )
 
             rets = []

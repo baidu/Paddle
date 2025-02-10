@@ -27,36 +27,36 @@ using phi::distributed::auto_parallel::str_join;
 
 ////////////////// Utils Functions //////////////////
 
-TensorDistAttr GetMatmulInferedDistAttr(
+TensorDistAttr GetMatmulInferredDistAttr(
     const TensorDistAttr& origin_dist_attr,
     const std::vector<int64_t>& shape,
     const std::string& tensor_axis,
     const std::unordered_map<std::string, int64_t>& axis_to_dim_map,
     bool trans_axis) {
   TensorDistAttr dist_attr = CopyTensorDistAttrForOutput(origin_dist_attr);
-  std::vector<int64_t> infered_dims_mapping;
-  infered_dims_mapping.reserve(tensor_axis.size());
+  std::vector<int64_t> inferred_dims_mapping;
+  inferred_dims_mapping.reserve(tensor_axis.size());
 
   for (size_t i = 0; i < tensor_axis.size(); ++i) {
     if (shape.size() > i && shape[i] == 1) {
-      infered_dims_mapping.push_back(-1);
+      inferred_dims_mapping.push_back(-1);
     } else {
       auto itr = axis_to_dim_map.find(tensor_axis.substr(i, 1));
       if (itr == axis_to_dim_map.end()) {
         // infer the k axis as -1 in inferbackward.
-        infered_dims_mapping.push_back(-1);
+        inferred_dims_mapping.push_back(-1);
       } else {
-        infered_dims_mapping.push_back(itr->second);
+        inferred_dims_mapping.push_back(itr->second);
       }
     }
   }
 
   if (trans_axis) {
-    std::iter_swap(infered_dims_mapping.end() - 2,
-                   infered_dims_mapping.end() - 1);
+    std::iter_swap(inferred_dims_mapping.end() - 2,
+                   inferred_dims_mapping.end() - 1);
   }
 
-  dist_attr.set_dims_mapping(infered_dims_mapping);
+  dist_attr.set_dims_mapping(inferred_dims_mapping);
   return dist_attr;
 }
 
@@ -199,9 +199,9 @@ SpmdInfo MatmulInferSpmd(const DistMetaTensor& x,
   if (trans_y) {
     std::iter_swap(y_shape.end() - 2, y_shape.end() - 1);
   }
-  TensorDistAttr x_dist_attr_dst = GetMatmulInferedDistAttr(
+  TensorDistAttr x_dist_attr_dst = GetMatmulInferredDistAttr(
       x_dist_attr_src, x_shape, x_axes, axis_to_dim_map, trans_x);
-  TensorDistAttr y_dist_attr_dst = GetMatmulInferedDistAttr(
+  TensorDistAttr y_dist_attr_dst = GetMatmulInferredDistAttr(
       y_dist_attr_src, y_shape, y_axes, axis_to_dim_map, trans_y);
 
   // Step2.3: Handle Partial
@@ -256,9 +256,9 @@ SpmdInfo MatmulInferSpmdReverse(const DistMetaTensor& x,
   auto axis_to_dim_map =
       ShardingMergeForTensors({{out_axes, out_dims_mapping}}, false);
 
-  TensorDistAttr x_dist_attr_dst = GetMatmulInferedDistAttr(
+  TensorDistAttr x_dist_attr_dst = GetMatmulInferredDistAttr(
       x.dist_attr(), x_shape, x_axes, axis_to_dim_map, trans_x);
-  TensorDistAttr y_dist_attr_dst = GetMatmulInferedDistAttr(
+  TensorDistAttr y_dist_attr_dst = GetMatmulInferredDistAttr(
       y.dist_attr(), y_shape, y_axes, axis_to_dim_map, trans_y);
 
   // step3: Handle Partial

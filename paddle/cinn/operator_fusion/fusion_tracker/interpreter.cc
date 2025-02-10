@@ -75,7 +75,7 @@ void RunTmpTransformInstr(const std::shared_ptr<TmpTransformInstr>& instr,
   PADDLE_ENFORCE_GT(
       interpreter->scope.count(instr->upstream_),
       0,
-      ::common::errors::NotFound("Can not find TmpTransformInstr uptream."));
+      ::common::errors::NotFound("Can not find TmpTransformInstr upstream."));
   PADDLE_ENFORCE_GT(
       interpreter->scope.count(instr->downstream_),
       0,

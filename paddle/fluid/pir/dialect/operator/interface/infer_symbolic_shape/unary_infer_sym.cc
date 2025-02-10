@@ -336,7 +336,7 @@ bool ArgmaxOpInferSymbolicShape(pir::Operation *op,
       if (keepdims) {
         out_sym_shape.emplace_back(std::int64_t(rank));
       } else {
-        out_sym_shape.emplace_back(std::int64_t(0));
+        out_sym_shape = {};
       }
     } else {
       for (int i = 0; i < axis; i++) {
@@ -2030,7 +2030,7 @@ bool MaxPool2dWithIndexOpInferSymbolicShape(
   PADDLE_ENFORCE_EQ(
       x_shape.size(),
       4,
-      common::errors::InvalidArgument("Pooling intput should be 4-D Tensor"
+      common::errors::InvalidArgument("Pooling input should be 4-D Tensor"
                                       "but received %dD-Tensor",
                                       x_shape.size()));
 
@@ -2064,7 +2064,7 @@ bool MaxPool3dWithIndexOpInferSymbolicShape(
   PADDLE_ENFORCE_EQ(
       x_shape.size(),
       5,
-      common::errors::InvalidArgument("Pooling intput should be 5-D Tensor"
+      common::errors::InvalidArgument("Pooling input should be 5-D Tensor"
                                       "but received %dD-Tensor",
                                       x_shape.size()));
 
@@ -2534,7 +2534,7 @@ bool PixelShuffleOpInferSymbolicShape(
 
   const bool channel_last = (data_format == "NHWC");
 
-  // the number of channels shoule be able to be divided by the upscale_factor
+  // the number of channels should be able to be divided by the upscale_factor
   // ^ 2.
   // TODO(Lans1ot, Buaa): add constrain for the channel number and
   // upscale_factor
@@ -3028,7 +3028,7 @@ bool ReshapeOpInferSymbolicShape(
       }
     }
 
-    // replace '-1' with infered shape
+    // replace '-1' with inferred shape
 
     const auto &product_exclude_minus_one =
         GetProduct(target_shape, IsPositiveInteger);
@@ -3335,7 +3335,7 @@ bool SplitOpInferSymbolicShape(pir::Operation *op,
       op->operand_source(2).defining_op()->isa<paddle::dialect::FullOp>(),
       true,
       common::errors::InvalidArgument(
-          "Invalid input args : axis, pleace check"));
+          "Invalid input args : axis, please check"));
 
   int64_t axis = op->operand_source(2)
                      .defining_op<paddle::dialect::FullOp>()

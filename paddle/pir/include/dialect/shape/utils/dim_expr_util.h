@@ -37,6 +37,14 @@ enum class PriorityComparisonStatus {
 IR_API PriorityComparisonStatus CompareDimExprPriority(const DimExpr& lhs,
                                                        const DimExpr& rhs);
 
+enum class DimExprCompareResult {
+  GT,       // lhs is greater than rhs
+  EQ,       // lhs and rhs is equal
+  LT,       // lhs is less than rhs
+  UNKNOWN,  // lhs and rhs is not comparable
+};
+IR_API DimExprCompareResult Compare(const DimExpr& lhs, const DimExpr& rhs);
+
 IR_API std::unordered_set<std::string> CollectDimExprSymbols(
     const DimExpr& dim_expr);
 

@@ -112,7 +112,7 @@ void ProgramProcessor::GetInputsOutputsInBlock(
     for (auto iter = inner_inputs->begin(); iter != inner_inputs->end();) {
       const std::string &in_var_name = *iter;
       if (current_block.HasVar(in_var_name)) {
-        VLOG(3) << "remove inner intput var:" << in_var_name;
+        VLOG(3) << "remove inner input var:" << in_var_name;
         iter = inner_inputs->erase(iter);
       } else {
         ++iter;

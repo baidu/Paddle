@@ -71,7 +71,7 @@ class ReduceAsOpPattern
     }
 
     bool x_y_shape_equal = false;
-    bool is_static_shape = IsStaicShape(x_shape, y_shape);
+    bool is_static_shape = IsStaticShape(x_shape, y_shape);
     bool keep_dim = true;
     bool need_squeeze = false;
     if (is_static_shape) {
@@ -79,9 +79,9 @@ class ReduceAsOpPattern
       ProcessStaticShape(
           x_shape, y_shape, &reduce_axis, &keep_dim, &need_squeeze);
     } else {
-      bool can_repalce = ProcessDynamicShape(
+      bool can_replace = ProcessDynamicShape(
           op, &reduce_axis, &x_y_shape_equal, &keep_dim, &need_squeeze);
-      if (!can_repalce) {
+      if (!can_replace) {
         return true;
       }
     }
@@ -117,8 +117,8 @@ class ReduceAsOpPattern
   }
 
  private:
-  bool IsStaicShape(const std::vector<int64_t> &x_shape,
-                    const std::vector<int64_t> &y_shape) const {
+  bool IsStaticShape(const std::vector<int64_t> &x_shape,
+                     const std::vector<int64_t> &y_shape) const {
     bool x_has_dynamic_shape =
         std::find(x_shape.begin(), x_shape.end(), -1) != x_shape.end();
     bool y_has_dynamic_shape =

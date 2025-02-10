@@ -67,6 +67,24 @@ def make_fn_mix(x: paddle.Tensor):
     return fn(2, 3, c=1, d=2.0) + x
 
 
+def make_fn_tensor_default(x: paddle.Tensor):
+    tensor = paddle.to_tensor(1.0)
+
+    def fn(a, b, c=tensor):
+        return a + b + c
+
+    return fn(1, 2) + x
+
+
+def make_fn_tensor_kwdefault(x: paddle.Tensor):
+    tensor = paddle.to_tensor(1.0)
+
+    def fn(*args, c=tensor):
+        return args[0] + args[1] + c
+
+    return fn(1, 2, c=3) + x
+
+
 class TestMakeFunction(TestCaseBase):
     def test_simple(self):
         self.assert_results(make_fn_simple, paddle.to_tensor(1))
@@ -75,6 +93,10 @@ class TestMakeFunction(TestCaseBase):
         self.assert_results(make_fn_kwdefault, paddle.to_tensor(1))
         self.assert_results(make_fn_closure, paddle.to_tensor(1))
         self.assert_results(make_fn_mix, paddle.to_tensor(1))
+
+    def test_tensor_default(self):
+        self.assert_results(make_fn_tensor_default, paddle.to_tensor(1))
+        self.assert_results(make_fn_tensor_kwdefault, paddle.to_tensor(1))
 
 
 if __name__ == "__main__":

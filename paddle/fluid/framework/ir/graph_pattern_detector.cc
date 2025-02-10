@@ -4646,7 +4646,7 @@ PDNode *patterns::FusedFeedForwardBwd::operator()(
   // other cases: may delete residual_add_grad, dropout1_grad, dropout2_grad
   // operators
 
-  // intermediate input_grad, and final pattern ouput_grad
+  // intermediate input_grad, and final pattern output_grad
   PDNode *out_grad = x_grad;
   // LayerNorm: in["Mean", "Variance", "Scale", "Bias", "Y@GRAD"],
   // out["X@GRAD", "Scale@GRAD", "Bias@GRAD"]

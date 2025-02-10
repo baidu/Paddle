@@ -54,7 +54,7 @@ def apply_mix2dist_pass(program, block=None):
         shard_operand_value = op.operand_source(0)
         if not shard_operand_value.has_one_use():
             raise RuntimeError(
-                f"shard_tensor is supposed to be called right after tensor is created, the use_count of tensor to be sharded is {shard_operand_value.use_count()}, which is "
+                f"shard_tensor is supposed to be called right after tensor is created, the use_count of tensor to be sharded is {shard_operand_value.use_count}, which is "
                 "not Supported in right now."
             )
         shard_result_value = op.result(0)

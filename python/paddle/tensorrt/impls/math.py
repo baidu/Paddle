@@ -29,6 +29,7 @@ from paddle.tensorrt.converter_utils import (
     get_shape_tensor_element,
     trt_cast,
     trt_concat,
+    trt_equal,
     trt_expand,
     trt_max,
     trt_reshape,
@@ -66,6 +67,7 @@ def scale_converter(network, paddle_op, inputs):
 
     scale = get_input_constant_value(paddle_op, inputs, 1)
     if scale is not None:
+        scale = scale[0]
         has_scale_tensor = False
         if is_int:
             scale_tensor = add_1D_constant_layer(
@@ -155,7 +157,7 @@ def divide_converter(network, paddle_op, inputs):
 
 
 @converter_registry.register("pd_op.subtract", trt_version="trt_version_ge=8.0")
-def substract_converter(network, paddle_op, inputs):
+def subtract_converter(network, paddle_op, inputs):
     return add_elementwise_layer(
         network, paddle_op, inputs, trt.ElementWiseOperation.SUB
     )
@@ -274,6 +276,11 @@ def min_converter(network, paddle_op, inputs):
 @converter_registry.register("pd_op.sum", trt_version="8.x")
 def sum_converter(network, paddle_op, inputs):
     return add_reduce_layer(network, paddle_op, inputs, trt.ReduceOperation.SUM)
+
+
+@converter_registry.register("pd_op.mean", trt_version="8.x")
+def mean_converter(network, paddle_op, inputs):
+    return add_reduce_layer(network, paddle_op, inputs, trt.ReduceOperation.AVG)
 
 
 @converter_registry.register("pd_op.any", trt_version="8.x")
@@ -399,6 +406,14 @@ def elementwise_pow_converter(network, paddle_op, inputs):
     )
 
 
+@converter_registry.register("pd_op.isnan", trt_version="8.x")
+def isnan_converter(network, paddle_op, inputs):
+    input_tensor = inputs[0]
+    equal_tensor = trt_equal(network, input_tensor, input_tensor)
+    layer = network.add_unary(equal_tensor, trt.UnaryOperation.NOT)
+    return layer.get_output(0)
+
+
 @converter_registry.register("pd_op.minimum", trt_version="8.x")
 def minimum_converter(network, paddle_op, inputs):
     min_layer = add_elementwise_layer(
@@ -413,3 +428,39 @@ def maximum_converter(network, paddle_op, inputs):
         network, paddle_op, inputs, trt.ElementWiseOperation.MAX
     )
     return max_layer
+
+
+@converter_registry.register("pd_op.greater_equal", trt_version="8.x")
+@converter_registry.register("pd_op.greater_equal_", trt_version="8.x")
+def greater_equal_converter(network, paddle_op, inputs):
+    greater_layer_output = add_elementwise_layer(
+        network, paddle_op, inputs, trt.ElementWiseOperation.GREATER
+    )
+    equal_layer_output = add_elementwise_layer(
+        network, paddle_op, inputs, trt.ElementWiseOperation.EQUAL
+    )
+    or_layer = add_elementwise_layer(
+        network,
+        paddle_op,
+        [greater_layer_output, equal_layer_output],
+        trt.ElementWiseOperation.OR,
+    )
+    return or_layer
+
+
+@converter_registry.register("pd_op.less_equal", trt_version="8.x")
+@converter_registry.register("pd_op.less_equal_", trt_version="8.x")
+def less_equal_converter(network, paddle_op, inputs):
+    less_layer_output = add_elementwise_layer(
+        network, paddle_op, inputs, trt.ElementWiseOperation.LESS
+    )
+    equal_layer_output = add_elementwise_layer(
+        network, paddle_op, inputs, trt.ElementWiseOperation.EQUAL
+    )
+    or_layer = add_elementwise_layer(
+        network,
+        paddle_op,
+        [less_layer_output, equal_layer_output],
+        trt.ElementWiseOperation.OR,
+    )
+    return or_layer

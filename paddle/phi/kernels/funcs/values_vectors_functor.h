@@ -14,9 +14,15 @@
 
 #pragma once
 #ifdef PADDLE_WITH_CUDA
-#include "paddle/common/errors.h"
 #include "paddle/phi/backends/dynload/cusolver.h"
 #endif  // PADDLE_WITH_CUDA
+#ifdef PADDLE_WITH_HIP
+#include <thrust/device_vector.h>
+#include "paddle/phi/backends/dynload/rocsolver.h"
+#endif  // PADDLE_WITH_HIP
+#if defined(PADDLE_WITH_CUDA) || defined(PADDLE_WITH_HIP)
+#include "paddle/common/errors.h"
+#endif
 #include "paddle/phi/backends/cpu/cpu_context.h"
 #include "paddle/phi/backends/gpu/gpu_context.h"
 #include "paddle/phi/common/memory_utils.h"
@@ -185,7 +191,7 @@ inline void syevjBatched<phi::dtype::complex<double>, double>(
 }
 #endif
 
-#ifdef PADDLE_WITH_CUDA
+#if defined(PADDLE_WITH_CUDA) || defined(PADDLE_WITH_HIP)
 static void CheckEighResult(const GPUContext &dev_ctx,
                             const int64_t batch_size,
                             int *info) {
@@ -322,6 +328,136 @@ struct MatrixEighFunctor<CPUContext, T> {
     }
   }
 };
+
+#ifdef PADDLE_WITH_HIP
+#define ROCSOLVER_SYEVJ_BATCHED_ARGTYPES(scalar_t, value_t)            \
+  solverHandle_t handle, rocblas_esort esort, rocblas_evect evect,     \
+      rocblas_fill uplo, int n, scalar_t *const A[], int lda,          \
+      const scalar_t abstol, scalar_t *residual, const int max_sweeps, \
+      int *n_sweeps, value_t *W, const int strideW, int *info,         \
+      const int batch_count
+
+template <class scalar_t, class value_t = scalar_t>
+void syevjBatched(ROCSOLVER_SYEVJ_BATCHED_ARGTYPES(scalar_t, value_t)) {
+  PADDLE_THROW(common::errors::InvalidArgument(
+      "syevjBatched: not implemented for %s", typeid(scalar_t).name()));
+}
+
+template <>
+inline void syevjBatched<float>(ROCSOLVER_SYEVJ_BATCHED_ARGTYPES(float,
+                                                                 float)) {
+  PADDLE_ENFORCE_GPU_SUCCESS(dynload::rocsolver_ssyevj_batched(handle,
+                                                               esort,
+                                                               evect,
+                                                               uplo,
+                                                               n,
+                                                               A,
+                                                               lda,
+                                                               abstol,
+                                                               residual,
+                                                               max_sweeps,
+                                                               n_sweeps,
+                                                               W,
+                                                               strideW,
+                                                               info,
+                                                               batch_count));
+}
+
+template <>
+inline void syevjBatched<double>(ROCSOLVER_SYEVJ_BATCHED_ARGTYPES(double,
+                                                                  double)) {
+  PADDLE_ENFORCE_GPU_SUCCESS(dynload::rocsolver_dsyevj_batched(handle,
+                                                               esort,
+                                                               evect,
+                                                               uplo,
+                                                               n,
+                                                               A,
+                                                               lda,
+                                                               abstol,
+                                                               residual,
+                                                               max_sweeps,
+                                                               n_sweeps,
+                                                               W,
+                                                               strideW,
+                                                               info,
+                                                               batch_count));
+}
+
+template <typename T>
+struct MatrixEighFunctor<GPUContext, T> {
+ public:
+  void operator()(const GPUContext &dev_ctx,
+                  const DenseTensor &input,
+                  DenseTensor *eigen_values,
+                  DenseTensor *eigen_vectors,
+                  bool is_lower,
+                  bool has_vectors) {
+    using ValueType = phi::dtype::Real<T>;
+
+    auto &dims = input.dims();
+    int dim_size = dims.size();
+    int64_t batch_size = GetBatchSize(dims);
+    int last_dim = dims[dim_size - 1];
+    int lda = std::max<int>(1, last_dim);
+    auto vector_stride = dims[dim_size - 1] * dims[dim_size - 2];
+    auto values_stride = dims[dim_size - 1];
+
+    rocblas_fill uplo = is_lower ? rocblas_fill_lower : rocblas_fill_upper;
+    rocblas_evect evect =
+        has_vectors ? rocblas_evect_original : rocblas_evect_none;
+
+    ValueType *out_value = dev_ctx.template Alloc<ValueType>(eigen_values);
+    DenseTensor input_trans = phi::TransposeLast2Dim<T>(dev_ctx, input);
+    T *input_vector = input_trans.data<T>();
+
+    auto handle = dev_ctx.cusolver_dn_handle();
+
+    size_t total_bytes = sizeof(T) * batch_size + sizeof(int) * batch_size * 2;
+    auto info = phi::memory_utils::Alloc(
+        dev_ctx.GetPlace(),
+        total_bytes,
+        phi::Stream(reinterpret_cast<phi::StreamId>(dev_ctx.stream())));
+    auto *residual_ptr = reinterpret_cast<T *>(info->ptr());
+    auto *info_ptr = reinterpret_cast<int *>(residual_ptr + batch_size);
+    auto *n_sweeps_ptr = reinterpret_cast<int *>(info_ptr + batch_size);
+
+    std::vector<T *> output_ptrs;
+    for (int i = 0; i < batch_size; i++) {
+      output_ptrs.emplace_back(input_vector + i * vector_stride);
+    }
+    thrust::device_vector<T *> dev_output_ptrs(output_ptrs.begin(),
+                                               output_ptrs.end());
+
+    syevjBatched<T>(handle,
+                    rocblas_esort_ascending,
+                    evect,
+                    uplo,
+                    last_dim,
+                    thrust::raw_pointer_cast(dev_output_ptrs.data()),
+                    lda,
+                    0,
+                    residual_ptr,
+                    100,  // 100 max_sweeps default
+                    n_sweeps_ptr,
+                    out_value,
+                    values_stride,
+                    info_ptr,
+                    batch_size);
+
+    CheckEighResult(dev_ctx, batch_size, info_ptr);
+
+    if (has_vectors) {
+      PADDLE_ENFORCE_NOT_NULL(eigen_vectors,
+                              common::errors::InvalidArgument(
+                                  "When has_vectors is true,"
+                                  "the eigenvectors needs to be calculated,"
+                                  "so the eigenvectors must be provided."));
+      input_trans = phi::TransposeLast2Dim<T>(dev_ctx, input_trans);
+      eigen_vectors->ShareDataWith(input_trans);
+    }
+  }
+};
+#endif
 
 #ifdef PADDLE_WITH_CUDA
 

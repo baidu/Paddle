@@ -42,7 +42,7 @@ class TemporalShiftOpConverter : public OpConverter {
     }
 
     if (data_format == "NHWC") {
-      // tanspose input to [N,C,H,W]
+      // transpose input to [N,C,H,W]
       auto transpose_layer = TRT_ENGINE_ADD_LAYER(engine_, Shuffle, *input);
       nvinfer1::Permutation perm{0, 3, 1, 2};
       transpose_layer->setFirstTranspose(perm);

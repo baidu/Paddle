@@ -151,7 +151,7 @@ void SetReduceFunc(P* opts, int reduce_type) {
       break;
     default:
       PADDLE_THROW(
-          errors::InvalidArgument("Unsupport reduce type: %d.", reduce_type));
+          errors::InvalidArgument("Unsupported reduce type: %d.", reduce_type));
   }
 }
 

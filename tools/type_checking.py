@@ -257,7 +257,7 @@ def get_test_results(
 
     codeblocks = []
     for api_name, raw_docstring in docstrings_to_test.items():
-        # we may extract more than one codeblocks from docsting.
+        # we may extract more than one codeblocks from docstring.
         for codeblock in extract_code_blocks_from_docstr(
             raw_docstring, google_style=google_style
         ):

@@ -39,7 +39,7 @@ namespace paddle::platform {
 
 void XPUTracer::PrepareTracing() {
   PADDLE_ENFORCE_EQ(
-      state_ == TracerState::UNINITED || state_ == TracerState::STOPED,
+      state_ == TracerState::UNINITED || state_ == TracerState::STOPPED,
       true,
       common::errors::PreconditionNotMet("XPUTracer must be UNINITED"));
 #ifdef PADDLE_WITH_XPTI
@@ -71,7 +71,7 @@ void XPUTracer::StopTracing() {
   XPTI_CALL(phi::dynload::xptiActivityDisable());
   VLOG(3) << "disable xpti activity";
 #endif
-  state_ = TracerState::STOPED;
+  state_ = TracerState::STOPPED;
 }
 
 #ifdef PADDLE_WITH_XPTI
@@ -158,8 +158,8 @@ void AddMemcpyRecord(const baidu::xpu::xpti::XPTIEventMem* memcpy,
 void XPUTracer::CollectTraceData(TraceEventCollector* collector) {
   PADDLE_ENFORCE_EQ(
       state_,
-      TracerState::STOPED,
-      common::errors::PreconditionNotMet("Tracer must be STOPED"));
+      TracerState::STOPPED,
+      common::errors::PreconditionNotMet("Tracer must be STOPPED"));
 #ifdef PADDLE_WITH_XPTI
   XPTI_CALL(phi::dynload::xptiActivityFlushAll());
   baidu::xpu::xpti::XPTIEvent* record = nullptr;

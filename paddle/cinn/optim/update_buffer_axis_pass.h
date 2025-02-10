@@ -16,6 +16,7 @@
 #include <string>
 
 #include "paddle/cinn/ir/ir.h"
+#include "paddle/cinn/pass/pass.h"
 
 namespace cinn {
 namespace optim {
@@ -58,7 +59,15 @@ namespace optim {
  *      B[i * n + 0] = ...
  *      ... = B[k * n + 0]
  */
-void UpdateBufferAxisPass(ir::Expr* expr);
+
+class UpdateBufferAxisPass : public BlockPass {
+ public:
+  UpdateBufferAxisPass() : BlockPass("update_buffer_axis_pass") {}
+
+  LogicalResult Run(ir::stmt::BlockRef) override;
+};
+
+std::unique_ptr<BlockPass> CreateUpdateBufferAxisPass();
 
 }  // namespace optim
 }  // namespace cinn

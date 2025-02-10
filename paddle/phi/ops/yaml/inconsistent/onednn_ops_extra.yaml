@@ -31,6 +31,7 @@
   extra_args : str mkldnn_data_type="float32"
 
 - op : cast
+  extra_args : str mkldnn_data_type="float32"
   dynamic_fallback : True
 
 - op : clip

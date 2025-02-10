@@ -69,7 +69,7 @@ class TestSigmoidCrossEntropyWithLogitsOp1(OpTest):
 
 
 class TestSigmoidCrossEntropyWithLogitsOp2(OpTest):
-    """Test sigmoid_cross_entropy_with_logit_op with probabalistic label"""
+    """Test sigmoid_cross_entropy_with_logit_op with probabilistic label"""
 
     def setUp(self):
         self.op_type = "sigmoid_cross_entropy_with_logits"
@@ -110,7 +110,7 @@ class TestSigmoidCrossEntropyWithLogitsOp2(OpTest):
 
 
 class TestSigmoidCrossEntropyWithLogitsOp3(OpTest):
-    """Test sigmoid_cross_entropy_with_logit_op with probabalistic label"""
+    """Test sigmoid_cross_entropy_with_logit_op with probabilistic label"""
 
     def setUp(self):
         self.op_type = "sigmoid_cross_entropy_with_logits"
@@ -146,7 +146,7 @@ class TestSigmoidCrossEntropyWithLogitsOp3(OpTest):
 
 
 class TestSigmoidCrossEntropyWithLogitsOp4(OpTest):
-    """Test sigmoid_cross_entropy_with_logit_op with probabalistic label"""
+    """Test sigmoid_cross_entropy_with_logit_op with probabilistic label"""
 
     def setUp(self):
         self.op_type = "sigmoid_cross_entropy_with_logits"
@@ -226,7 +226,7 @@ class TestSigmoidCrossEntropyWithNorm(OpTest):
 
 
 class TestSigmoidCrossEntropyWithLogitsOp5(OpTest):
-    """Test sigmoid_cross_entropy_with_logit_op with probabalistic label"""
+    """Test sigmoid_cross_entropy_with_logit_op with probabilistic label"""
 
     def setUp(self):
         self.op_type = "sigmoid_cross_entropy_with_logits"

@@ -261,9 +261,9 @@ class SToRReshardFunction(ReshardFunction):
                 allgather_op.result(0), num_of_process, 0
             )
             builtin_split_op = split_values[0].get_defining_op()
-            pd_splite_op = builtin_split_op.operand_source(0).get_defining_op()
-            pd_splite_op.dist_attr = copy_op_attr_with_new_member(
-                pd_splite_op.dist_attr, new_chunk_id=chunk_id
+            pd_split_op = builtin_split_op.operand_source(0).get_defining_op()
+            pd_split_op.dist_attr = copy_op_attr_with_new_member(
+                pd_split_op.dist_attr, new_chunk_id=chunk_id
             )
 
             # fix the split_with_num dist attribute.
@@ -277,7 +277,7 @@ class SToRReshardFunction(ReshardFunction):
             vec_type = paddle.base.libpaddle.pir.create_vec_type(
                 new_inner_types
             )
-            pd_splite_op.result(0).set_type(vec_type)
+            pd_split_op.result(0).set_type(vec_type)
 
             if padding_num != 0:
                 tmp_split_values = paddle._C_ops.split(
@@ -309,7 +309,7 @@ class SToRReshardFunction(ReshardFunction):
                 builtin_combine_op = concat_op.operand_source(
                     0
                 ).get_defining_op()
-                concat_op.operand(0).set_source(pd_splite_op.result(0))
+                concat_op.operand(0).set_source(pd_split_op.result(0))
                 builtin_combine_op.erase()
                 builtin_split_op.erase()
                 return concat_value

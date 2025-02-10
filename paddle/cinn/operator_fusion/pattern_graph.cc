@@ -231,17 +231,19 @@ void PatternGraph::LimitedAnchorFusion() {
       ->DisableStrategy(ItersTransformType::ReuseIters)
       ->DisableStrategy(ItersTransformType::AppendIters);
 
-  GraphTransformer<ReverseTopoNodePairPattern,
-                   CanFuseItersPermutationMatcher,
-                   FuseItersPermutatioOperation>(this);
+  GraphTransformer<
+      ReverseTopoNodePairPattern,
+      And<CanFuseItersPermutationMatcher, InputOutputMaximumConstrain>,
+      FuseItersPermutatioOperation>(this);
 }
 
 void PatternGraph::ItersPermutationFusion() {
   iters_fusion_policy()->EnableAllStrategies();
 
-  GraphTransformer<ReverseTopoNodePairPattern,
-                   CanFuseItersPermutationMatcher,
-                   FuseItersPermutatioOperation>(this);
+  GraphTransformer<
+      ReverseTopoNodePairPattern,
+      And<CanFuseItersPermutationMatcher, InputOutputMaximumConstrain>,
+      FuseItersPermutatioOperation>(this);
 }
 
 void PatternGraph::SplitRecomputePattern() {

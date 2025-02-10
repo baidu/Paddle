@@ -712,8 +712,8 @@ void fmha_impl(const phi::GPUContext &dev_ctx,
           params, dev_ctx.stream(), load_func, store_func);
       break;
     default:
-      PADDLE_THROW(common::errors::Unimplemented("Dim_head = %d is unsupport!",
-                                                 dim_head));
+      PADDLE_THROW(common::errors::Unimplemented(
+          "Dim_head = %d is unsupported!", dim_head));
   }
 }
 
@@ -1462,7 +1462,7 @@ void dispatch_mbmmha_impl_headsize(
       break;
     default:
       PADDLE_THROW(
-          errors::Unimplemented("Dim_head = %d is unsupport!", dim_head));
+          errors::Unimplemented("Dim_head = %d is unsupported!", dim_head));
   }
 }
 

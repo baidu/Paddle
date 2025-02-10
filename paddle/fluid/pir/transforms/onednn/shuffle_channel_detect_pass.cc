@@ -77,15 +77,15 @@ class ShuffleChannelDetectPattern : public paddle::drr::DrrPatternBase {
 
       int64_t unk_dim = -1;
       bool unk_flag = false;
-      bool all_postive = std::all_of(
+      bool all_positive = std::all_of(
           x_shape.cbegin(), x_shape.cend(), [](int64_t i) { return i > 0; });
       // There couldn't be more than 1 unknown dim in "shape" attr of reshape.
-      // Besides, when unknown dim is not on idx_0(BS) & not all postive dim in
+      // Besides, when unknown dim is not on idx_0(BS) & not all positive dim in
       // input shape, there is no enough info to calculate full dims of reshape
       for (size_t i = 0; i < shape_0.size(); i++) {
         if (!unk_flag) {
           if (shape_0[i] == unk_dim) {
-            if (i != 0 && !all_postive) return false;
+            if (i != 0 && !all_positive) return false;
             unk_flag = true;
           }
         } else {
@@ -93,13 +93,13 @@ class ShuffleChannelDetectPattern : public paddle::drr::DrrPatternBase {
         }
       }
       unk_flag = false;
-      all_postive = std::all_of(trans_shape.cbegin(),
-                                trans_shape.cend(),
-                                [](int64_t i) { return i > 0; });
+      all_positive = std::all_of(trans_shape.cbegin(),
+                                 trans_shape.cend(),
+                                 [](int64_t i) { return i > 0; });
       for (size_t j = 0; j < shape_1.size(); j++) {
         if (!unk_flag) {
           if (shape_1[j] == unk_dim) {
-            if (j != 0 && !all_postive) return false;
+            if (j != 0 && !all_positive) return false;
             unk_flag = true;
           }
         } else {

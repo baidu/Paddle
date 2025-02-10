@@ -27,7 +27,7 @@ class TestPsServerPass(PsPassTestBase):
     def tearDown(self):
         print('TestPsServerPass tearDown...')
 
-    def test_add_lr_decay_table_passs(self):
+    def test_add_lr_decay_table_pass(self):
         pass
 
 

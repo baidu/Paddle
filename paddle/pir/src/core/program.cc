@@ -47,7 +47,7 @@ int64_t GetUniqueRandomId() {
       return random_id;
     }
   }
-  LOG(FATAL) << "Fatal bug occured in GetUniqueRandomId().";
+  LOG(FATAL) << "Fatal bug occurred in GetUniqueRandomId().";
 }
 
 }  // namespace

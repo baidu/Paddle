@@ -26,7 +26,7 @@ class PlaceType:
     CPU = 0
     CUDA = 1
     CUDA_PINNED = 2
-    XPU = 3  # unsupport for now
+    XPU = 3  # unsupported for now
 
     @staticmethod
     def default_device():
@@ -89,13 +89,12 @@ class OffloadHelper:
         for ring in rings:
             block._insert_op_without_sync(
                 idx,
-                type="c_broadcast",
-                inputs={'X': param_name},
-                outputs={'Out': param_name},
+                type="broadcast",
+                inputs={'x': param_name},
+                outputs={'out': param_name},
                 attrs={
                     'ring_id': ring,
                     'root': 0,
-                    'use_calc_stream': True,
                     OP_ROLE_KEY: OpRole.Forward,
                 },
             )
@@ -517,7 +516,7 @@ class OffloadHelper:
 
         # step5: remove fp32 param which not need
         for idx, op in enumerate(block.ops):
-            if op.type not in ['coalesce_tensor', 'c_broadcast']:
+            if op.type not in ['coalesce_tensor', 'c_broadcast', 'broadcast']:
                 continue
             for input_name in op.desc.input_arg_names():
                 if input_name in param_to_fp16:

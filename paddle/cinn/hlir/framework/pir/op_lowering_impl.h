@@ -90,7 +90,7 @@ class OpLowererImpl : public OpLowererImplBase<OpLoweringGroupPtr> {
    * @param tensor_map All tensors used for calculating the group.
    * @return The lowered func bodies of Op set.
    */
-  std::vector<ir::Expr> LowerOps(
+  std::vector<ir::stmt::BlockRef> LowerOps(
       const OpLoweringGroupPtr& group,
       const std::vector<::pir::Operation*>& ops,
       std::vector<ir::Tensor>* group_func_arg_tensors,

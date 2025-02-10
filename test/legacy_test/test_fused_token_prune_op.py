@@ -36,7 +36,7 @@ class TestFusedTokenPruneOp(OpTest):
     def setDtype(self):
         self.dtype = np.float32
 
-    def setInouts(self):
+    def setInOuts(self):
         attn = [[1, 2], [3, 4]]
         attn = np.array(attn, dtype=self.dtype)
         attn = np.expand_dims(attn, axis=0)
@@ -68,7 +68,7 @@ class TestFusedTokenPruneOp(OpTest):
         self.python_api = api_wrapper
         self.python_out_sig = ["SlimmedX", "CLSInds"]
         self.setDtype()
-        self.setInouts()
+        self.setInOuts()
         self.inputs = {
             'Attn': self.attn,
             'Mask': self.mask,
@@ -97,7 +97,7 @@ class TestFusedTokenPruneOpFloat64(TestFusedTokenPruneOp):
     not core.is_compiled_with_cuda(), "core is not compiled with CUDA"
 )
 class TestFusedTokenPruneOp2(TestFusedTokenPruneOp):
-    def setInouts(self):
+    def setInOuts(self):
         attn = [
             [
                 [[1, 2, 3, 4], [4, 3, 2, 1], [5, 9, 5, 4], [9, 6, 5, 4]],

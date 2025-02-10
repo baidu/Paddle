@@ -112,6 +112,7 @@ void CreateProgram(pir::Program *program) {
       std::vector<std::string>{"output_0"},
       std::vector<std::vector<int64_t>>{{2, 2}},
       std::vector<phi::DataType>{phi::DataType::FLOAT32});
+  engine_op->region(0).emplace_back();
 
   auto output = builder.Build<pir::SplitOp>(engine_op.result(0)).outputs()[0];
   builder.Build<pir::ShadowOutputOp>(output, OUT_NAME);

@@ -16,12 +16,12 @@ limitations under the License. */
 
 namespace paddle::inference::tensorrt {
 
-template <typename RegistFunc, typename SetDilationFunc>
+template <typename RegisterFunc, typename SetDilationFunc>
 void ConvertConv3d(TensorRTEngine* engine,
                    const framework::proto::OpDesc& op,
                    const framework::Scope& scope,
                    bool test_mode,
-                   RegistFunc fadd_layer,
+                   RegisterFunc fadd_layer,
                    SetDilationFunc fset_dilation,
                    const std::string& name) {
   VLOG(3) << "convert a " << name << " op to tensorrt layer without bias";
@@ -33,7 +33,7 @@ void ConvertConv3d(TensorRTEngine* engine,
   auto* Y_v = scope.FindVar(filter_var_name);
   PADDLE_ENFORCE_NOT_NULL(
       Y_v,
-      common::errors::NotFound("Can not find %s presistable var in scope.",
+      common::errors::NotFound("Can not find %s persistable var in scope.",
                                filter_var_name));
   auto* Y_t = Y_v->GetMutable<phi::DenseTensor>();
   bool enable_int8 = op_desc.HasAttr("enable_int8");

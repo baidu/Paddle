@@ -1689,12 +1689,12 @@ class Layer:
                 else set_op_customized_attrs_post_hook
             )
 
-            already_registed = False
+            already_registered = False
             if layers_hooks:
                 last_key = next(reversed(layers_hooks))
-                already_registed = layers_hooks[last_key] == candidate_hook
+                already_registered = layers_hooks[last_key] == candidate_hook
 
-            return already_registed
+            return already_registered
 
         if not isinstance(attrs, dict):
             raise TypeError(

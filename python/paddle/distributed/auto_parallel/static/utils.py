@@ -2374,8 +2374,8 @@ def get_sub_process_mesh_by_program(dist_program):
     all_ops = dist_program.global_block().ops
     process_meshes = []
 
-    for op in all_ops:
-        if "pd_op" in op.name():
+    for idx, op in enumerate(all_ops):
+        if "pd_op" in op.name() and op.dist_attr:
             process_mesh = op.dist_attr.process_mesh
             if process_mesh not in process_meshes:
                 process_meshes.append(process_mesh)
@@ -2759,7 +2759,7 @@ def split_mesh(global_mesh: ProcessMesh, sub_mesh_dim: int):
 
 
 # Note: This function is intended for internal use within the PaddlePaddle framework for optimizing computational graphs.
-def update_pylayer_output(trival_value):
+def update_pylayer_output(trivial_value):
     """
     Update the subblock within a pylayer operation by modifying its output argument.
 
@@ -2785,14 +2785,14 @@ def update_pylayer_output(trival_value):
     Args:
         trivale_value(pir::Value): The output argument of the pylayer op to be updated.
     """
-    define_op = trival_value.get_defining_op()
+    define_op = trivial_value.get_defining_op()
     if define_op.get_parent_block().parent_op.name() != "pd_op.pylayer":
         return
     paddle.pir.set_insertion_point(define_op)
     fake_value = paddle.static.data(
         name="_fake_pylayer_out",
-        shape=trival_value.shape,
-        dtype=trival_value.dtype,
+        shape=trivial_value.shape,
+        dtype=trivial_value.dtype,
     )
-    fake_value.set_type(trival_value.type())
-    trival_value.replace_all_uses_with(fake_value)
+    fake_value.set_type(trivial_value.type())
+    trivial_value.replace_all_uses_with(fake_value)

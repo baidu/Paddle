@@ -55,7 +55,7 @@ void SetReduceAxis(ir::Expr loop, ir::Expr block) {
       ::common::errors::InvalidArgument(
           "The size of iter_vars and iter_values should be equal."));
   for (int i = 0; i < iter_values.size(); ++i) {
-    std::set<Expr> contains = ir::ir_utils::CollectIRNodesWithoutTensor(
+    std::vector<Expr> contains = ir::ir_utils::CollectIRNodesWithoutTensor(
         iter_values[i],
         [&var_name](const Expr *expr) {
           return expr->As<ir::_Var_>() != nullptr &&

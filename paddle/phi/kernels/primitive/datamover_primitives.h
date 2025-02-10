@@ -581,7 +581,7 @@ __device__ __forceinline__ void ReadDataReduce(Ty* dst,
  *
  * @template paraments
  * T: The type of data.
- * NX: The number of data continuously writed by each thread.
+ * NX: The number of data continuously written by each thread.
  * NY: The number of data rows loaded by each thread, only NY = 1 was supported.
  * threadIdx.x is used as the thread index. Currently only GPU was supported.
  * IsBoundary: Indicates whether to perform block access storage out-of-bounds

@@ -210,7 +210,7 @@ class TestSparseSoftmaxStaticAPI(unittest.TestCase):
 
             paddle.enable_static()
             with paddle.static.program_guard(
-                paddle.static.Program(), paddle.staic.Program()
+                paddle.static.Program(), paddle.static.Program()
             ):
                 indices = paddle.static.data(
                     name="indices",

@@ -434,7 +434,7 @@ class AnalysisPredictor : public PaddlePredictor {
   /// \param[out] output_data output tensor
   ///
   template <typename T>
-  void GetFetchOne(const phi::DenseTensor &fetchs, PaddleTensor *output_data);
+  void GetFetchOne(const phi::DenseTensor &fetches, PaddleTensor *output_data);
   ///
   /// \brief PreSet for Mkldnn multi-thread and dynamic shape input.
   ///

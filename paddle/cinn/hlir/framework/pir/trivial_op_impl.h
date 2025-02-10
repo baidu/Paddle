@@ -33,6 +33,7 @@
 #include "paddle/common/ddim.h"
 #include "paddle/fluid/pir/dialect/operator/ir/op_type.h"
 #include "paddle/pir/include/dialect/control_flow/ir/cf_op.h"
+#
 
 namespace cinn {
 namespace hlir {
@@ -158,12 +159,21 @@ std::vector<ir::Var> GetAllForIters(const ir::Expr& expr);
 
 }  // namespace trivial_fusion_detail
 
+struct GroupVectorizeInfo {
+  bool can_apply_vectorize{false};
+  bool has_if_else_op{false};
+  bool has_select_op{false};
+  int continuous_arg_nums{0};
+  int fusion_group_arg_nums{0};
+};
+
 struct FusionGroupInfo {
   std::vector<int64_t> loop_ranges;
   std::vector<int64_t> loop_strides;
   std::vector<int64_t> reduce_axis;
   std::vector<std::string> reduce_var_name;
   bool can_apply_grid_reduce;
+  GroupVectorizeInfo vectorize_info;
 
   std::string DebugPrint() {
     std::stringstream ss;
@@ -171,13 +181,18 @@ struct FusionGroupInfo {
        << "\nloop_strides: " << cinn::utils::Join(loop_strides, ", ")
        << "\nreduce_axis: " << cinn::utils::Join(reduce_axis, " ")
        << "\nreduce_var_name: " << cinn::utils::Join(reduce_var_name, " ")
-       << "\ncan_apply_grid_reduce: " << can_apply_grid_reduce;
+       << "\ncan_apply_grid_reduce: " << can_apply_grid_reduce
+       << "\ncan_apply_vectorize: " << vectorize_info.can_apply_vectorize
+       << "\nhas_select_op: " << vectorize_info.has_select_op
+       << "\ncontinuous_arg_nums: " << vectorize_info.continuous_arg_nums
+       << "\nfusion_group_arg_nums: " << vectorize_info.fusion_group_arg_nums;
     return ss.str();
   }
 };
 
 std::shared_ptr<FusionGroupInfo> GetFusionGroupInfo(
-    const std::vector<ir::Expr>& op_compute_bodies);
+    const std::vector<ir::Expr>& op_compute_bodies,
+    const std::unordered_set<std::string>& group_args);
 
 }  // namespace pir
 }  // namespace framework

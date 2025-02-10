@@ -43,7 +43,7 @@ class TestDygraphDataLoaderWithException(unittest.TestCase):
                 base.io.DataLoader.from_generator()
 
     def test_single_process_with_thread_exception(self):
-        def error_sample_genarator(batch_num):
+        def error_sample_generator(batch_num):
             def __reader__():
                 for _ in range(batch_num):
                     yield [[[1, 2], [1]]]
@@ -55,7 +55,7 @@ class TestDygraphDataLoaderWithException(unittest.TestCase):
                 capacity=self.capacity, iterable=False, use_multiprocess=False
             )
             loader.set_batch_generator(
-                error_sample_genarator(self.batch_num), places=base.CPUPlace()
+                error_sample_generator(self.batch_num), places=base.CPUPlace()
             )
             exception = None
             try:
@@ -67,7 +67,7 @@ class TestDygraphDataLoaderWithException(unittest.TestCase):
             self.assertIsNotNone(exception)
 
     def test_multi_process_with_process_exception(self):
-        def error_sample_genarator(batch_num):
+        def error_sample_generator(batch_num):
             def __reader__():
                 for _ in range(batch_num):
                     yield [[[1, 2], [1]]]
@@ -79,7 +79,7 @@ class TestDygraphDataLoaderWithException(unittest.TestCase):
                 capacity=self.capacity, use_multiprocess=True
             )
             loader.set_batch_generator(
-                error_sample_genarator(self.batch_num), places=base.CPUPlace()
+                error_sample_generator(self.batch_num), places=base.CPUPlace()
             )
             exception = None
             try:

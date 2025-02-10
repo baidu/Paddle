@@ -382,7 +382,7 @@ void _Tensor_::Bind(lang::Buffer &buffer) {
   PADDLE_ENFORCE_EQ(buffer->binded_tensor_names().empty(),
                     false,
                     ::common::errors::PreconditionNotMet(
-                        "Reqiured binded_tensor_names shall not be empty."));
+                        "Required binded_tensor_names shall not be empty."));
   this->buffer = buffer.buffer();
   PADDLE_ENFORCE_EQ(this->buffer.defined(),
                     true,
@@ -633,6 +633,10 @@ bool IsReduceInitTensorName(const std::string &tensor_name) {
   return tensor_name.length() > reduce_init_suffix.size() &&
          tensor_name.substr(tensor_name.length() - reduce_init_suffix.size(),
                             reduce_init_suffix.size()) == reduce_init_suffix;
+}
+
+bool IsSplitTransformTensorName(const std::string &tensor_name) {
+  return tensor_name.find("_split_transform") != std::string::npos;
 }
 
 std::string GetOriginalReduceTensorName(const std::string &tensor_name) {

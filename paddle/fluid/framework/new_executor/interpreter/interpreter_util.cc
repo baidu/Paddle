@@ -61,7 +61,7 @@ namespace paddle::framework::interpreter {
 
 using VariableIdMap = std::map<std::string, std::vector<int>>;
 
-// NOTE(Ruibiao): SingleStreamGuard make some multi-strem op (i.e.,
+// NOTE(Ruibiao): SingleStreamGuard make some multi-stream op (i.e.,
 // c_allreduce_sum) run in single stream. It is dedicated to BuildOpFuncList
 // which run kernel without stream synchronization.
 class SingleStreamGuard {

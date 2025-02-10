@@ -416,7 +416,7 @@ class GroupShardedStage3(nn.Layer):
                     ),
                     device=self._default_device,
                     destination=self._rank,
-                    parm2align=self._unslice_params2align,
+                    param2align=self._unslice_params2align,
                 )
             self._grad_storages[param.dtype].add_grad(
                 param, self._unslice_params2align[param.name]

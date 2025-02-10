@@ -29,7 +29,7 @@ class PairwiseDistance(Layer):
     r"""
 
     It computes the pairwise distance between two vectors. The
-    distance is calculated by p-oreder norm:
+    distance is calculated by p-order norm:
 
     .. math::
 

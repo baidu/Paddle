@@ -90,7 +90,7 @@ class DependencyBuilder {
 
   // ops_behind_ is the adjacency list about op to its posterior-ops, that is to
   // say, op_behind_[i] == {a, b, c} means op[a], op[b] and op[c] depend on
-  // op[i] directly or indirectly. ops_before_ is the revered adjacency list of
+  // op[i] directly or indirectly. ops_before_ is the reversed adjacency list of
   // ops_behind_.
   std::vector<std::vector<size_t>> ops_before_;
   std::vector<std::vector<size_t>> ops_behind_;
@@ -186,7 +186,7 @@ class DependencyBuilderSimplify {
 
   // ops_behind_ is the adjacency list about op to its posterior-ops, that is to
   // say, op_behind_[i] == {a, b, c} means op[a], op[b] and op[c] depend on
-  // op[i] directly or indirectly. ops_before_ is the revered adjacency list of
+  // op[i] directly or indirectly. ops_before_ is the reversed adjacency list of
   // ops_behind_.
   std::vector<std::vector<size_t>> ops_before_;
   std::vector<std::vector<size_t>> ops_behind_;

@@ -209,7 +209,7 @@ int QuantLinearFusePass::ApplyQuantLinearFusePattern(Graph* graph,
       input_scale = static_cast<float>(input_scale_data[0]);
     } else {
       PADDLE_THROW(common::errors::Unimplemented(
-          "Unsupport type. The type of 'Scale' in quantize_linear op is "
+          "Unsupported type. The type of 'Scale' in quantize_linear op is "
           "expected to be float32 or float16, but the current type is %d",
           input_scale_tensor.dtype()));
     }

@@ -501,9 +501,9 @@ std::vector<FeatureNode> GraphPyClient::pull_graph_list(
 void GraphPyClient::StopServer() {
   VLOG(0) << "going to stop server";
   std::unique_lock<std::mutex> lock(mutex_);
-  if (stoped_) return;
+  if (stopped_) return;
   auto status = this->worker_ptr->StopServer();
-  if (status.get() == 0) stoped_ = true;
+  if (status.get() == 0) stopped_ = true;
 }
 void GraphPyClient::FinalizeWorker() { this->worker_ptr->FinalizeWorker(); }
 }  // namespace paddle::distributed

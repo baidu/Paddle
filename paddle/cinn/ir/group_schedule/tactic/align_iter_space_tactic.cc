@@ -31,7 +31,7 @@ namespace {
  *    than discrete reads for the same volume of data due to the hardware design
  *    of cache. Therefore, we should ensure coalesced writes in priority.
  *
- * Note: we reorder spatial and reduce loops seperately, because we need to
+ * Note: we reorder spatial and reduce loops separately, because we need to
  * maintain the relative order between spatial and reduce loops, so as for later
  * tactics to work properly. Thus, we use two lists sp_loop_perm & rd_loop_perm
  * to record the permutation of spatial and reduce loops respectively.
@@ -54,7 +54,7 @@ namespace {
  *      indices[3] = i   =>  loops[0]  # S
  *   To make the indices of var_0 consistent with its original memory layout, we
  *   need to permute the loops in the order {1, 3, 2, 0}. However, as we reorder
- *   spatial and reduce loop seperately, we split the permutation into sp & rd,
+ *   spatial and reduce loop separately, we split the permutation into sp & rd,
  *   getting sp_loop_perm = {1, 0} and rd_loop_perm = {3, 2}.
  * Output:
  *   for (j, 0, 32):         # S

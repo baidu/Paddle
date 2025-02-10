@@ -76,7 +76,6 @@
 #include "paddle/fluid/platform/profiler/event_python.h"
 #include "paddle/fluid/platform/profiler/profiler.h"
 #include "paddle/fluid/pybind/bind_cost_model.h"
-#include "paddle/fluid/pybind/bind_fleet_executor.h"
 #include "paddle/fluid/pybind/box_helper_py.h"
 #include "paddle/fluid/pybind/communication.h"
 #include "paddle/fluid/pybind/compatible.h"

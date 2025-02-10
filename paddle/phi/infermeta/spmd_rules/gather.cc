@@ -70,7 +70,7 @@ SpmdInfo GatherInferSpmdBase(const DistMetaTensor& x,
     out_axes[axis] = 'k';
   }
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge input shardings
   std::vector<int64_t> x_dims_mapping(x_dims_mapping_src);
   if (axis < x_ndim) {
@@ -132,7 +132,7 @@ SpmdInfo GatherInferSpmdReverseBase(const DistMetaTensor& x,
     out_axes[axis] = 'k';
   }
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge output shardings
   std::unordered_map<std::string, int64_t> axis_to_dim_map =
       ShardingMergeForTensors({{out_axes, out_dims_mapping_src}});

@@ -284,7 +284,7 @@ phi::Scalar MakePhiScalarFromVar(const framework::Variable& variable) {
     }
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "Unsupport casting input `%s` type to Scalar when call pt "
+        "Unsupported casting input `%s` type to Scalar when call pt "
         "kernel.",
         framework::ToTypeName(variable.Type())));
   }
@@ -296,7 +296,7 @@ phi::IntArray MakePhiIntArrayFromVar(const framework::Variable& variable) {
     return phi::IntArray(tensor);
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "Unsupport casting input `%s` type to IntArray when call pt "
+        "Unsupported casting input `%s` type to IntArray when call pt "
         "kernel.",
         framework::ToTypeName(variable.Type())));
   }
@@ -347,7 +347,7 @@ phi::IntArray MakePhiIntArrayFromVarList(
       }
     } else {
       PADDLE_THROW(common::errors::Unimplemented(
-          "Unsupport casting input `%s` type to VectorTensor when call pt "
+          "Unsupported casting input `%s` type to VectorTensor when call pt "
           "kernel.",
           framework::ToTypeName(var->Type())));
     }

@@ -233,7 +233,7 @@ ir::Tensor Gather(const ir::Tensor& x,
  * @brief Perform meta op ScatterAssign
  * @param input The input tensor
  * @param assign The assign tensor
- * @param indexs The indexs tensor
+ * @param index The index tensor
  * @param output_name the name of the output tensor
  */
 ir::Tensor ScatterAssign(
@@ -248,7 +248,7 @@ ir::Tensor ScatterAssign(
  * @brief Perform meta op ScatterAdd
  * @param input The input tensor
  * @param updates The updates tensor
- * @param indexs The indexs tensor
+ * @param index The index tensor
  * @param output_name the name of the output tensor
  */
 ir::Tensor ScatterAdd(const ir::Tensor& input,

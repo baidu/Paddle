@@ -93,12 +93,78 @@ void AddmmKernel(const Context& dev_ctx,
     }
 #ifdef PADDLE_WITH_XPU_XRE5
   } else {
+    if (input.dims().size() == 1) {
+      input_dims = {1, input.dims()[0]};
+    }
+    // broadcast mode check
+    if (x_dims[0] != input_dims[0]) {
+      PADDLE_ENFORCE_EQ(input_dims[0],
+                        1,
+                        errors::InvalidArgument(
+                            "When x_dims[0] is not equal with input_dims[0], "
+                            "input_dims[0] must be 1 but got %s",
+                            input_dims[0]));
+      PADDLE_ENFORCE_EQ(
+          y_dims[1] == input_dims[1] || input_dims[1] == 1,
+          true,
+          errors::InvalidArgument(
+              "The input tensor shape mismatch, input shape=[%s], "
+              "x shape=[%s], y shape=[%s]",
+              input_dims,
+              x_dims,
+              y_dims));
+    }
+    // broadcast mode check
+    if (y_dims[1] != input_dims[1]) {
+      PADDLE_ENFORCE_EQ(input_dims[1],
+                        1,
+                        errors::InvalidArgument(
+                            "When y_dims[1] is not equal with input_dims[0], "
+                            "input_dims[0] must be 1 but got %s",
+                            input_dims[1]));
+      PADDLE_ENFORCE_EQ(
+          x_dims[0] == input_dims[0] || input_dims[0] == 1,
+          true,
+          errors::InvalidArgument(
+              "The input tensor shape mismatch, input shape=[%s], "
+              "x shape=[%s], y shape=[%s]",
+              input_dims,
+              x_dims,
+              y_dims));
+    }
+    // broadcast mode check
+    PADDLE_ENFORCE_EQ(
+        x_dims[1],
+        y_dims[0],
+        errors::InvalidArgument(
+            "The input tensor X's width must be equal with matrix Y' height. "
+            "But received X's shape = [%s], Y's shape = [%s].",
+            x_dims[1],
+            y_dims[0]));
+
+    bool broadcast_flag = false;
+    xpu::ctx_guard RAII_GUARD(dev_ctx.x_context());
+    XPUType* input_2d_ptr = nullptr;
+
+    if (input.dims().size() == 1) {
+      // broadcast input to input_2d
+      broadcast_flag = true;
+      input_2d_ptr = RAII_GUARD.alloc_l3_or_gm<XPUType>(x_dims[0] * y_dims[1]);
+      PADDLE_ENFORCE_XDNN_NOT_NULL(input_2d_ptr);
+      int r = xpu::broadcast<XPUType>(dev_ctx.x_context(),
+                                      input_ptr,
+                                      input_2d_ptr,
+                                      common::vectorize<int64_t>(input_dims),
+                                      {x_dims[0], y_dims[1]});
+      PADDLE_ENFORCE_XDNN_SUCCESS(r, "broadcast");
+    }
+
     xblas::FcFusionTensor<const XPUType> t_input{
-        input_ptr,
+        broadcast_flag ? input_2d_ptr : input_ptr,
         nullptr,
-        input.dims()[0],
-        input.dims()[1],
-        input.dims()[1],
+        broadcast_flag ? x_dims[0] : input_dims[0],
+        broadcast_flag ? y_dims[1] : input_dims[1],
+        broadcast_flag ? y_dims[1] : input_dims[1],
         false,
     };
     xblas::FcFusionTensor<const XPUType> t_x{

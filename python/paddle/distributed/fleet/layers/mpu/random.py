@@ -211,7 +211,7 @@ def dropout(
     )
 
     assert axis is None, TypeError(
-        "unsupport axis when using random seed generator"
+        "unsupported axis when using random seed generator"
     )
 
     mode = (

@@ -47,14 +47,14 @@ class TestConstructModuleWithPyLayerOp(unittest.TestCase):
                 )
                 y = paddle.mean(out)
 
-            pylayer_op = main_program.global_block().ops[-2]
+            pylayer_op = main_program.global_block().ops[-3]
             self.assertEqual(pylayer_op.name(), "pd_op.pylayer")
             self.assertEqual(len(pylayer_op.results()), 1)
             value_list = get_used_external_value(pylayer_op)
             self.assertEqual(len(value_list), 1)
             self.assertTrue(value_list[0].is_same(pylayer_op.operand_source(0)))
 
-    def test_fwd_only_with_multi_inputs_multi_outpus(self):
+    def test_fwd_only_with_multi_inputs_multi_outputs(self):
         """
         pseudocode:
 
@@ -115,7 +115,7 @@ class TestConstructModuleWithPyLayerOp(unittest.TestCase):
                 ret = paddle.mean(out_0 - 2 * out_1 + out_2)
 
                 dataop = main_program.global_block().ops[0]
-                pylayer_op = main_program.global_block().ops[-6]
+                pylayer_op = main_program.global_block().ops[-7]
                 self.assertEqual(pylayer_op.name(), "pd_op.pylayer")
                 self.assertEqual(len(pylayer_op.results()), 3)
 
@@ -168,7 +168,7 @@ class TestConstructModuleWithPyLayerOp(unittest.TestCase):
                 ret = paddle.mean(out_0 - 2 * out_1 + out_2)
 
                 dataop = main_program.global_block().ops[0]
-                pylayer_op = main_program.global_block().ops[-6]
+                pylayer_op = main_program.global_block().ops[-7]
                 self.assertEqual(pylayer_op.name(), "pd_op.pylayer")
                 self.assertEqual(len(pylayer_op.results()), 3)
 
@@ -181,3 +181,7 @@ class TestConstructModuleWithPyLayerOp(unittest.TestCase):
                     pylayer_op.results(),
                     [dataop_0.result(0), dataop_1.result(0)],
                 )
+
+
+if __name__ == "__main__":
+    unittest.main()

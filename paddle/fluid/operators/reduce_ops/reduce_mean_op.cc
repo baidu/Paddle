@@ -317,7 +317,7 @@ class ReduceBaseOpMaker : public paddle::framework::OpProtoAndCheckerMaker {
     AddAttr<int>(
         "out_dtype",
         "(int, default -1)"
-        "The dtype of output, default value is -1, the dtype is same as intput")
+        "The dtype of output, default value is -1, the dtype is same as input")
         .SetDefault(-1);
     AddComment(string::Sprintf(R"DOC(
 %s Operator.

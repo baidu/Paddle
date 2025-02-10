@@ -286,7 +286,7 @@ __forceinline__ __device__ void MomentumUpdate(
 
 #if CUDA_VERSION >= 11000
 template <typename T, typename MT>
-struct LarsParamWarpper {
+struct LarsParamWrapper {
   int64_t numel_arr[LARS_MAX_MERGED_OPS];
   int repeat_arr[LARS_MAX_MERGED_OPS];
   const T* __restrict__ g_arr[LARS_MAX_MERGED_OPS];
@@ -298,7 +298,7 @@ struct LarsParamWarpper {
 };
 
 template <typename T, typename MT>
-__global__ void MergedMomentumLarsKernel(LarsParamWarpper<T, MT> lars_warpper,
+__global__ void MergedMomentumLarsKernel(LarsParamWrapper<T, MT> lars_wrapper,
                                          MT* __restrict__ p_buffer,
                                          MT* __restrict__ g_buffer,
                                          const int op_num,
@@ -311,30 +311,30 @@ __global__ void MergedMomentumLarsKernel(LarsParamWarpper<T, MT> lars_warpper,
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   const cooperative_groups::grid_group cg = cooperative_groups::this_grid();
   for (int i = 0; i < op_num; ++i) {
-    int numel = lars_warpper.numel_arr[i];
+    int numel = lars_wrapper.numel_arr[i];
     MT param_norm = static_cast<MT>(0);
     MT grad_norm = static_cast<MT>(0);
     L2NormKernel<T, MT>(&cg,
-                        lars_warpper.p_out_arr[i],
-                        lars_warpper.g_arr[i],
+                        lars_wrapper.p_out_arr[i],
+                        lars_wrapper.g_arr[i],
                         p_buffer,
                         g_buffer,
                         numel,
-                        lars_warpper.repeat_arr[i],
+                        lars_wrapper.repeat_arr[i],
                         rescale_grad,
                         0,
                         &param_norm,
                         &grad_norm);
-    MomentumUpdate<T, MT>(lars_warpper.p_out_arr[i],
-                          lars_warpper.g_arr[i],
-                          lars_warpper.v_out_arr[i],
-                          lars_warpper.p_out_arr[i],
-                          lars_warpper.v_out_arr[i],
-                          lars_warpper.master_p_out_arr[i],
-                          lars_warpper.master_p_out_arr[i],
-                          lars_warpper.lr_arr[i],
+    MomentumUpdate<T, MT>(lars_wrapper.p_out_arr[i],
+                          lars_wrapper.g_arr[i],
+                          lars_wrapper.v_out_arr[i],
+                          lars_wrapper.p_out_arr[i],
+                          lars_wrapper.v_out_arr[i],
+                          lars_wrapper.master_p_out_arr[i],
+                          lars_wrapper.master_p_out_arr[i],
+                          lars_wrapper.lr_arr[i],
                           mu,
-                          lars_warpper.weight_decay_arr[i],
+                          lars_wrapper.weight_decay_arr[i],
                           lars_coeff,
                           epsilon,
                           rescale_grad,
@@ -507,23 +507,23 @@ void LarsMomentumKernel(
   int op_num = grad.size();
 #if CUDA_VERSION >= 11000
   if (op_num > 1) {
-    LarsParamWarpper<T, MT> lars_warpper;
+    LarsParamWrapper<T, MT> lars_wrapper;
     PADDLE_ENFORCE_LT(
         op_num,
         LARS_MAX_MERGED_OPS,
         errors::InvalidArgument(
             "The maximum number of merged-ops supported is (%d), but"
-            "lars op required for trainning this model is (%d)\n",
+            "lars op required for training this model is (%d)\n",
             LARS_MAX_MERGED_OPS,
             op_num));
 
     /* Implementation of lars optimizer consists of following two steps:
       1. Figure out the L2 norm statistic result of grad data and param data.
       2. Update param and velocity with usage of L2 norm statistic result.
-    Step1 and step2 can be merged with api provided by nvida
+    Step1 and step2 can be merged with api provided by nvidia
       cudaLaunchCooperativeKernel:
-      - The thread quantity shall less than pyhsical SM limited threads
-      - Launche as thread-block can synchronizlly execute. */
+      - The thread quantity shall less than physical SM limited threads
+      - Launches as thread-block can synchronizlly execute. */
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(
         &num_blocks_per_sm,
         MergedMomentumLarsKernel<T, MT>,
@@ -534,19 +534,19 @@ void LarsMomentumKernel(
     for (int i = 0; i < op_num; ++i) {
       size_t temp_numel = param[i]->numel();
       total_numel += temp_numel;
-      lars_warpper.numel_arr[i] = temp_numel;
-      lars_warpper.g_arr[i] = grad[i]->data<T>();
-      lars_warpper.lr_arr[i] = learning_rate[i]->data<MT>();
-      lars_warpper.p_out_arr[i] = dev_ctx.template Alloc<T>(param_out[i]);
-      lars_warpper.v_out_arr[i] = dev_ctx.template Alloc<MT>(velocity_out[i]);
-      lars_warpper.weight_decay_arr[i] = static_cast<MT>(weight_decay_arr[i]);
+      lars_wrapper.numel_arr[i] = temp_numel;
+      lars_wrapper.g_arr[i] = grad[i]->data<T>();
+      lars_wrapper.lr_arr[i] = learning_rate[i]->data<MT>();
+      lars_wrapper.p_out_arr[i] = dev_ctx.template Alloc<T>(param_out[i]);
+      lars_wrapper.v_out_arr[i] = dev_ctx.template Alloc<MT>(velocity_out[i]);
+      lars_wrapper.weight_decay_arr[i] = static_cast<MT>(weight_decay_arr[i]);
       PADDLE_ENFORCE_EQ(
           param[i]->data<T>(),
-          lars_warpper.p_out_arr[i],
+          lars_wrapper.p_out_arr[i],
           errors::InvalidArgument(
               "Input(Param) and Output(ParamOut) must be the same Tensors."));
       PADDLE_ENFORCE_EQ(velocity[i]->data<MT>(),
-                        lars_warpper.v_out_arr[i],
+                        lars_wrapper.v_out_arr[i],
                         errors::InvalidArgument(
                             "Input(Velocity) and Output(VelocityOut) must be "
                             "the same Tensors."));
@@ -555,21 +555,21 @@ void LarsMomentumKernel(
     LarsThreadConfig<float> lars_thread_config(
         avg_numel, sm_num, num_blocks_per_sm);
     for (int i = 0; i < op_num; ++i) {
-      lars_warpper.repeat_arr[i] =
-          lars_thread_config.GetRepeatTimes(lars_warpper.numel_arr[i]);
+      lars_wrapper.repeat_arr[i] =
+          lars_thread_config.GetRepeatTimes(lars_wrapper.numel_arr[i]);
     }
     if (multi_precision) {
       for (int i = 0; i < op_num; ++i) {
-        lars_warpper.master_p_out_arr[i] =
+        lars_wrapper.master_p_out_arr[i] =
             dev_ctx.template Alloc<MT>(master_param_out[i]);
         PADDLE_ENFORCE_EQ(master_param.get()[i]->data<MT>(),
-                          lars_warpper.master_p_out_arr[i],
+                          lars_wrapper.master_p_out_arr[i],
                           errors::InvalidArgument(
                               "Input(MasterParam) and Output(MasterParamOut) "
                               "must be the same Tensors."));
       }
     }
-    void* cuda_param[] = {reinterpret_cast<void*>(&lars_warpper),
+    void* cuda_param[] = {reinterpret_cast<void*>(&lars_wrapper),
                           reinterpret_cast<void*>(&p_buffer),
                           reinterpret_cast<void*>(&g_buffer),
                           reinterpret_cast<void*>(&op_num),
@@ -578,7 +578,7 @@ void LarsMomentumKernel(
                           reinterpret_cast<void*>(&epsilon_),
                           reinterpret_cast<void*>(&rescale_grad_),
                           reinterpret_cast<void*>(&multi_precision)};
-    // Launch all sm theads, and thead of each block synchronizedly cooperate.
+    // Launch all sm threads, and thead of each block synchronized cooperate.
     cudaLaunchCooperativeKernel(
         reinterpret_cast<void*>(MergedMomentumLarsKernel<T, MT>),
         lars_thread_config.grid_for_lars,
@@ -630,7 +630,7 @@ void LarsMomentumKernel(
         reinterpret_cast<void*>(&thresh),  // Just a placeholder
         reinterpret_cast<void*>(&numel),
         reinterpret_cast<void*>(&multi_precision)};
-    // Launch all sm theads.
+    // Launch all sm threads.
     cudaLaunchCooperativeKernel(
         reinterpret_cast<void*>(MomentumLarsKernel<T, MT>),
         lars_thread_config.grid_for_lars,

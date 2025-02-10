@@ -121,7 +121,7 @@ UniqueFlattenedCUDATensor(const Context& context,
                           bool return_inverse,
                           bool return_counts,
                           int64_t num_input) {
-  // 0. Prepration
+  // 0. Preparation
   auto equal = thrust::equal_to<InT>();
   auto not_equal = thrust::not_equal_to<InT>();
   DenseTensor in_hat;

@@ -53,10 +53,11 @@ class LowerTensorGroup {
 
   std::vector<ir::LoweredFunc> operator()();
 
-  std::vector<ir::Expr> GenerateFunctionBody(
+  std::vector<ir::stmt::BlockRef> GenerateFunctionBody(
       ast_gen_ius::TensorGroup* tensor_group);
 
-  std::vector<ir::Argument> GenerateFunctionArgumentList(ir::Expr fn_body);
+  std::vector<ir::Argument> GenerateFunctionArgumentList(
+      const ir::stmt::BlockRef& fn_body);
 
  private:
   const std::string& fn_name_;

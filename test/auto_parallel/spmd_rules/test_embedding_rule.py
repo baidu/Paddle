@@ -54,16 +54,18 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # table col-wise parallel & dp
         self.x_dist_tensor_spec.set_dims_mapping([1, -1])
@@ -74,12 +76,12 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, 0])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, 0])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, 0])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, -1, 0])
 
         # table row-wise parallel & dp
         self.x_dist_tensor_spec.set_dims_mapping([1, -1])
@@ -90,14 +92,16 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [0, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0]._is_partial(), True)
-        self.assertEqual(infered_output_dist_attrs[0]._partial_dims(), {0})
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [0, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0]._is_partial(), True)
+        self.assertEqual(inferred_output_dist_attrs[0]._partial_dims(), {0})
 
         # table row-wise parallel & padding_idx
         self.x_dist_tensor_spec.set_dims_mapping([1, -1])
@@ -161,16 +165,18 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 2)
-        self.assertEqual(len(infered_output_dist_attrs), 1)
+        self.assertEqual(len(inferred_input_dist_attrs), 2)
+        self.assertEqual(len(inferred_output_dist_attrs), 1)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, -1])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, -1, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, -1])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, -1])
+        self.assertEqual(
+            inferred_output_dist_attrs[0].dims_mapping, [1, -1, -1]
+        )
 
         # table col-wise parallel & dp
         self.out_dist_tensor_spec.set_dims_mapping([-1, 0, 1])
@@ -181,12 +187,12 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, 0, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [-1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, 1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, 0, 1])
 
         # sharded on multiple broadcast axes
         self.out_dist_tensor_spec.set_dims_mapping([1, 0, -1])
@@ -198,12 +204,12 @@ class TestEmbeddingSPMDRule(unittest.TestCase):
             self.attrs['padding_idx'],
             self.attrs['sparse'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [1, 0])
-        self.assertEqual(infered_input_dist_attrs[1].dims_mapping, [-1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [1, 0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [1, 0])
+        self.assertEqual(inferred_input_dist_attrs[1].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [1, 0, -1])
 
         # table row-wise parallel
         # skipped

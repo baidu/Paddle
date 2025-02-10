@@ -48,16 +48,18 @@ class TestUnbindSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [-1, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [-1, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [-1, -1])
+        self.assertEqual(
+            inferred_input_dist_attrs[0].dims_mapping, [-1, -1, -1]
+        )
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [-1, -1])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [-1, -1])
 
         # axis = 1
         # [0, -1, 1] --> [0, -1, 1], [0, 1], [0, 1]
@@ -66,16 +68,16 @@ class TestUnbindSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, 1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, 1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, 1])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [0, 1])
 
         # axis = -2
         # [0, 1, -1] --> [0, -1, -1], [0, -1], [0, -1]
@@ -84,16 +86,16 @@ class TestUnbindSPMDRule(unittest.TestCase):
         result_dist_attrs = self.rule.infer_forward(
             self.x_spec, self.attrs['axis']
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, -1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, -1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, -1])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [0, -1])
 
         # axis = 3
         # raise error
@@ -121,16 +123,16 @@ class TestUnbindSPMDRule(unittest.TestCase):
             [self.out_spec0, self.out_spec1],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, 1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, 1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, 1])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [0, 1])
 
         # axis = -2
         # [0, -1], [-1, 1] --> [0, -1, 1], [0, 1], [0, 1]
@@ -142,16 +144,16 @@ class TestUnbindSPMDRule(unittest.TestCase):
             [self.out_spec0, self.out_spec1],
             self.attrs['axis'],
         )
-        infered_input_dist_attrs = result_dist_attrs[0]
-        infered_output_dist_attrs = result_dist_attrs[1]
+        inferred_input_dist_attrs = result_dist_attrs[0]
+        inferred_output_dist_attrs = result_dist_attrs[1]
 
         self.assertEqual(len(result_dist_attrs), 2)
-        self.assertEqual(len(infered_input_dist_attrs), 1)
-        self.assertEqual(len(infered_output_dist_attrs), 2)
+        self.assertEqual(len(inferred_input_dist_attrs), 1)
+        self.assertEqual(len(inferred_output_dist_attrs), 2)
 
-        self.assertEqual(infered_input_dist_attrs[0].dims_mapping, [0, -1, 1])
-        self.assertEqual(infered_output_dist_attrs[0].dims_mapping, [0, 1])
-        self.assertEqual(infered_output_dist_attrs[1].dims_mapping, [0, 1])
+        self.assertEqual(inferred_input_dist_attrs[0].dims_mapping, [0, -1, 1])
+        self.assertEqual(inferred_output_dist_attrs[0].dims_mapping, [0, 1])
+        self.assertEqual(inferred_output_dist_attrs[1].dims_mapping, [0, 1])
 
         # axis = 1
         # [0, 1], [1, 0] --> raise error

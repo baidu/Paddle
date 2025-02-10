@@ -51,12 +51,14 @@ class OneDNNBf16PlacementPattern : public pir::RewritePattern {
  public:
   explicit OneDNNBf16PlacementPattern(pir::IrContext* context)
       : pir::RewritePattern(MatchAnyOpTypeTag(),
-                            1 /*benefit*/,
+                            5 /*benefit*/,
                             context,
                             {} /*generated_names*/) {}
 
   bool Match(pir::Operation* op) const override {  // NOLINT
     if (!op->isa<paddle::onednn::dialect::BilinearInterpOp>() &&
+        !op->isa<paddle::onednn::dialect::CastOp>() &&
+        !op->isa<paddle::onednn::dialect::Cast_Op>() &&
         !op->isa<paddle::onednn::dialect::ClipOp>() &&
         !op->isa<paddle::onednn::dialect::Clip_Op>() &&
         !op->isa<paddle::onednn::dialect::ConcatOp>() &&
@@ -89,6 +91,7 @@ class OneDNNBf16PlacementPattern : public pir::RewritePattern {
         !op->isa<paddle::onednn::dialect::Squeeze_Op>() &&
         !op->isa<paddle::onednn::dialect::SumOp>() &&
         !op->isa<paddle::onednn::dialect::TransposeOp>() &&
+        !op->isa<paddle::onednn::dialect::SplitOp>() &&
         !op->isa<paddle::onednn::dialect::Transpose_Op>() &&
         !op->isa<paddle::onednn::dialect::FusedConv2dOp>() &&
         !op->isa<paddle::onednn::dialect::FusedMatmulOp>()) {
@@ -116,7 +119,7 @@ class OneDNNBf16PlacementPattern : public pir::RewritePattern {
       bool bias_after_scale =
           op_attr.at("bias_after_scale").dyn_cast<pir::BoolAttribute>().data();
       if (bias_after_scale) {
-        // If bias after scale, add quant/dequant for sacle will cause some
+        // If bias after scale, add quant/dequant for scale will cause some
         // error
         return false;
       }
@@ -225,6 +228,8 @@ class RemoveOrphanedPattern : public pir::RewritePattern {
   // revert mkldnn_data_type attr to float32
   bool Match(pir::Operation* op) const override {  // NOLINT
     if (!op->isa<paddle::onednn::dialect::BilinearInterpOp>() &&
+        !op->isa<paddle::onednn::dialect::CastOp>() &&
+        !op->isa<paddle::onednn::dialect::Cast_Op>() &&
         !op->isa<paddle::onednn::dialect::ClipOp>() &&
         !op->isa<paddle::onednn::dialect::Clip_Op>() &&
         !op->isa<paddle::onednn::dialect::ConcatOp>() &&
@@ -257,6 +262,7 @@ class RemoveOrphanedPattern : public pir::RewritePattern {
         !op->isa<paddle::onednn::dialect::Squeeze_Op>() &&
         !op->isa<paddle::onednn::dialect::SumOp>() &&
         !op->isa<paddle::onednn::dialect::TransposeOp>() &&
+        !op->isa<paddle::onednn::dialect::SplitOp>() &&
         !op->isa<paddle::onednn::dialect::Transpose_Op>() &&
         !op->isa<paddle::onednn::dialect::FusedConv2dOp>() &&
         !op->isa<paddle::onednn::dialect::FusedMatmulOp>()) {
@@ -280,13 +286,31 @@ class RemoveOrphanedPattern : public pir::RewritePattern {
                                              "pd_op.fetch",
                                              "pd_op.assign"});
 
+    const std::vector<std::string> permitted_input_names = {
+        "x", "y", "input", "residual_param", "residual_data"};
+    auto op_name = op->name();
+    auto op_info = pir::IrContext::Instance()->GetRegisteredOpInfo(op_name);
+    if (!op_info) return false;
+    paddle::dialect::OpYamlInfoParser yaml_parser(
+        op_info.GetInterfaceImpl<paddle::dialect::OpYamlInfoInterface>()
+            ->get_op_info_(op_name),
+        paddle::dialect::IsLegacyOp(op_name));
+    auto input_names = yaml_parser.InputNames();
+
     if (op->num_operands()) {
       for (uint32_t i = 0; i < op->num_operands(); i++) {
         if (!op->operand_source(i) || !op->operand_source(i).type()) {
           continue;
         }
+        std::string input_name = input_names[i];
+        auto iter = std::find(permitted_input_names.begin(),
+                              permitted_input_names.end(),
+                              input_name);
+        if (iter == permitted_input_names.end()) {
+          // The input in permitted_input, it must be bf16, others can be fp32
+          continue;
+        }
         auto* prev_op = pir::GetDefiningOpForInput(op, i);
-        // if (!prev_op) continue;
         // Some ops do not need to be processed
         std::string prev_name = prev_op->name();
         if (constant_op.count(prev_name)) {

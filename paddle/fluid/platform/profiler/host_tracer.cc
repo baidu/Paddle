@@ -139,7 +139,7 @@ void HostTracer::PrepareTracing() {
 
 void HostTracer::StartTracing() {
   PADDLE_ENFORCE_EQ(
-      state_ == TracerState::READY || state_ == TracerState::STOPED,
+      state_ == TracerState::READY || state_ == TracerState::STOPPED,
       true,
       common::errors::PreconditionNotMet("TracerState must be READY"));
   HostEventRecorder<CommonEvent>::GetInstance().GatherEvents();
@@ -156,14 +156,14 @@ void HostTracer::StopTracing() {
       TracerState::STARTED,
       common::errors::PreconditionNotMet("TracerState must be STARTED"));
   HostTraceLevel::GetInstance().SetLevel(HostTraceLevel::kDisabled);
-  state_ = TracerState::STOPED;
+  state_ = TracerState::STOPPED;
 }
 
 void HostTracer::CollectTraceData(TraceEventCollector* collector) {
   PADDLE_ENFORCE_EQ(
       state_,
-      TracerState::STOPED,
-      common::errors::PreconditionNotMet("TracerState must be STOPED"));
+      TracerState::STOPPED,
+      common::errors::PreconditionNotMet("TracerState must be STOPPED"));
   HostEventSection<CommonEvent> host_events =
       HostEventRecorder<CommonEvent>::GetInstance().GatherEvents();
   ProcessHostEvents(host_events, collector);

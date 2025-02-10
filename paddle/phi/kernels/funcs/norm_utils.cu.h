@@ -667,12 +667,12 @@ void NormDoubleGradFunctor(const DeviceContext &ctx,
 }
 
 template <typename T, typename BnT>
-__device__ __forceinline__ void BlockReduceByVetical(BnT x_sum,
-                                                     BnT x_square_sum,
-                                                     BnT *smem_sum,
-                                                     BnT *smem_square_sum,
-                                                     BnT *x_sum_out,
-                                                     BnT *x_square_sum_out) {
+__device__ __forceinline__ void BlockReduceByVertical(BnT x_sum,
+                                                      BnT x_square_sum,
+                                                      BnT *smem_sum,
+                                                      BnT *smem_square_sum,
+                                                      BnT *x_sum_out,
+                                                      BnT *x_square_sum_out) {
   int tid = threadIdx.x + threadIdx.y * blockDim.x;
 #pragma unroll
   for (int offset = blockDim.y / 2; offset > 0; offset >>= 1) {
@@ -733,7 +733,7 @@ __device__ __forceinline__ void ReduceSumPost(const int C,  // channels
     }
 
     // vertical block sum
-    funcs::BlockReduceByVetical<T, BnT>(
+    funcs::BlockReduceByVertical<T, BnT>(
         *sum1, *sum2, &cache1[0], &cache2[0], sum1, sum2);
   }
 }

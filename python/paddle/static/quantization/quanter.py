@@ -421,7 +421,7 @@ def quant_aware(
         for sub_graph in sub_graphs:
             save_dict(sub_graph.out_node_mapping_table)
 
-    # TDOD: remove it.
+    # TODO: remove it.
     if draw_graph:
         main_graph.draw('./', 'graph.pdf')
 

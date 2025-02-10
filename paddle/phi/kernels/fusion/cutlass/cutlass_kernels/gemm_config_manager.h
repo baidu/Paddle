@@ -245,7 +245,7 @@ class GemmConfigManager {
     return ++v;
   }
 
-  int getMaxProfileM() const { return 256; }
+  int getMaxProfileM() const { return 1024; }
 
   bool loadFromJson(const std::string& filename) {
     std::ifstream inFile(filename);

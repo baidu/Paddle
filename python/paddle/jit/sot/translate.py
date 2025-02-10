@@ -102,7 +102,7 @@ def symbolic_translate(fn: Callable[P, R], **kwargs) -> Callable[P, R]:
         ), "Target function doesn't have code for simulating."
         StepInfoManager().sot_step()
         GraphLogger().clear()
-        InfoCollector().clear()
+        InfoCollector().clear_step_info()
         paddle.framework.core.set_eval_frame(callback)
         try:
             outs = fn(*args, **kwargs)
@@ -112,7 +112,7 @@ def symbolic_translate(fn: Callable[P, R], **kwargs) -> Callable[P, R]:
             paddle.framework.core.set_eval_frame(None)
 
         log_do(1, lambda: GraphLogger().print_info())
-        InfoCollector().print_report()
+        InfoCollector().print_step_report()
         return outs
 
     def impl_dynamic(*args: P.args, **kwargs: P.kwargs) -> R:

@@ -109,8 +109,8 @@ class PSServer {
   }
 
   typedef std::function<int32_t(int, int, const std::string &)> MsgHandlerFunc;
-  virtual int RegistePServer2PServerMsgHandler(int msg_type,
-                                               MsgHandlerFunc handler) {
+  virtual int RegisterPServer2PServerMsgHandler(int msg_type,
+                                                MsgHandlerFunc handler) {
     _msg_handler_map[msg_type] = handler;
     return 0;
   }

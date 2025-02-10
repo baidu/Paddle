@@ -118,7 +118,7 @@ void SmallVectorCheck(size_t n) {
           vec.size()));
 }
 
-TEST(samll_vector, small_vector) {
+TEST(small_vector, small_vector) {
   for (size_t i = 0; i < 20; ++i) {
     SmallVectorCheck<1>(i);
     SmallVectorCheck<10>(i);

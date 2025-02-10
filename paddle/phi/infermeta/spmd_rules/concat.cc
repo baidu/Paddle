@@ -49,7 +49,7 @@ SpmdInfo ConcatInferSpmd(const std::vector<DistMetaTensor>& x, int axis) {
   /*
 # paddle.concat requires all tensors must either have the same shape (except
 # in the concatenating dimension) or be "empty". "Empty" here strictly means
-# tensor.shape is torch.Size([0]). When tensor.ndim > 1, it will be treated
+# tensor.ndim == 0. When tensor.ndim > 0, it will be treated
 # as a non-empty tensor and the shape must match on non-cat dimensions.
  */
 

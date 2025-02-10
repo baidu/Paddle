@@ -156,16 +156,16 @@ void Conv3dCooGradGPUKernel(const GPUContext& dev_ctx,
   if (!cutlass) {
 #endif
 
-    GroupIndexsV2<<<config.block_per_grid,
-                    config.thread_per_block,
-                    0,
-                    dev_ctx.stream()>>>(rulebook_len,
-                                        x.nnz(),
-                                        kernel_size,
-                                        offsets[kernel_size / 2],
-                                        rulebook_ptr,
-                                        out_index_ptr,
-                                        unique_value_ptr);
+    GroupIndicesV2<<<config.block_per_grid,
+                     config.thread_per_block,
+                     0,
+                     dev_ctx.stream()>>>(rulebook_len,
+                                         x.nnz(),
+                                         kernel_size,
+                                         offsets[kernel_size / 2],
+                                         rulebook_ptr,
+                                         out_index_ptr,
+                                         unique_value_ptr);
 
     GatherV2<T, IntT>(dev_ctx,
                       x.values().data<T>(),

@@ -16,11 +16,17 @@ import numpy as np
 import tensorrt as trt
 
 from paddle.tensorrt.converter_utils import (
+    WithFp16,
+    add_1D_constant_layer,
     append_ones,
     get_axes_for_reduce_op,
     get_dynamic_dims,
     get_trt_plugin,
     has_dynamic_shape,
+    trt_expand,
+    trt_prod,
+    trt_reshape,
+    trt_sum,
 )
 from paddle.tensorrt.register import converter_registry
 
@@ -152,3 +158,105 @@ def instance_norm_converter(network, paddle_op, inputs):
     )
     instance_norm_layer = network.add_plugin_v2(instance_norm_inputs, plugin)
     return instance_norm_layer.get_output(0)
+
+
+@converter_registry.register(
+    "pd_op.fused_bias_dropout_residual_layer_norm",
+    trt_version="trt_version_ge=8.0",
+)
+def fused_bias_dropout_residual_layer_norm_converter(
+    network, paddle_op, inputs
+):
+    input1, input2, ele_bias, scale, bias = inputs
+    has_bias = ele_bias is not None
+    bias_size = bias.size
+    scale_size = scale.size
+    ele_bias_size = ele_bias.size if has_bias else 0
+    epsilon = paddle_op.attrs().get("ln_epsilon", 1e-5)
+    with_fp16 = int(WithFp16())
+    ele_bias_data = (
+        ele_bias.numpy().astype('float16') if with_fp16 else ele_bias.numpy()
+    )
+    plugin_fields = [
+        trt.PluginField("bias", bias.numpy(), trt.PluginFieldType.FLOAT32),
+        trt.PluginField("scale", scale.numpy(), trt.PluginFieldType.FLOAT32),
+        trt.PluginField(
+            "ele_bias",
+            ele_bias_data,
+            (
+                trt.PluginFieldType.FLOAT16
+                if with_fp16
+                else trt.PluginFieldType.FLOAT32
+            ),
+        ),
+        trt.PluginField(
+            "bias_size",
+            np.array([bias_size], dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "scale_size",
+            np.array([scale_size], dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "ele_bias_size",
+            np.array([ele_bias_size], dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "epsilon",
+            np.array([epsilon], dtype=np.float32),
+            trt.PluginFieldType.FLOAT32,
+        ),
+        trt.PluginField(
+            "with_fp16",
+            np.array([with_fp16], dtype=np.bool_),
+            trt.PluginFieldType.INT32,
+        ),
+    ]
+    plugin_field_collection = trt.PluginFieldCollection(plugin_fields)
+    plugin_name = "pir_preln_residual_bias_plugin_dynamic"
+    plugin_version = "1"
+    plugin = get_trt_plugin(
+        plugin_name, plugin_field_collection, plugin_version
+    )
+    plugin_inputs = [input1, input2]
+    layer = network.add_plugin_v2(plugin_inputs, plugin)
+    return layer.get_output(0)
+
+
+@converter_registry.register(
+    "pd_op.group_norm", trt_version="trt_version_ge=8.6"
+)
+def group_norm_converter(network, paddle_op, inputs):
+    x, scale, bias = inputs
+    groups = paddle_op.attrs().get("groups", 1)
+    eps = paddle_op.attrs().get("epsilon", 1e-05)
+
+    axes_mask = 0
+    x_shape = paddle_op.operands()[0].source().shape
+    rank_x = len(x_shape)
+
+    fake_shape = [1, groups] + [1] * (rank_x - 2)
+    broadcast_shape = [1, x_shape[1]] + [1] * (rank_x - 2)
+    for d in range(2, rank_x):
+        axes_mask |= 1 << d
+
+    weight_one = add_1D_constant_layer(network, 1.0, np.float32)
+    bias_zero = add_1D_constant_layer(network, 0.0, np.float32)
+    fake_shape = add_1D_constant_layer(network, fake_shape, np.int32)
+    weight_one = trt_expand(network, weight_one, 1, fake_shape, rank_x)
+    bias_zero = trt_expand(network, bias_zero, 1, fake_shape, rank_x)
+    layer = network.add_normalization(x, weight_one, bias_zero, axes_mask)
+    layer.num_groups = groups
+    layer.epsilon = eps
+    output = layer.get_output(0)
+    if scale is not None:
+        scale = trt_reshape(network, scale, broadcast_shape)
+        output = trt_prod(network, output, scale)
+    if bias is not None:
+        bias = trt_reshape(network, bias, broadcast_shape)
+        output = trt_sum(network, output, bias)
+
+    return output

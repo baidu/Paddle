@@ -260,7 +260,7 @@ class TestPlacementCastFailedCase(PassTest):
 
 
 # This case is for testing layout transformation
-class TestConv2dAddPlacmentPass(PassTest):
+class TestConv2dAddPlacementPass(PassTest):
     def is_program_valid(self, program=None):
         return True
 

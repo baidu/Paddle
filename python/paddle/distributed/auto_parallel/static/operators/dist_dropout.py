@@ -72,10 +72,10 @@ class DistributedDropout(DistributedOperatorImplContainer):
         if changed:
             (
                 _,
-                infered_output_dims_mappings,
+                inferred_output_dims_mappings,
             ) = merge_forward_backward_dims_mapping(fw_results, bw_results)
             dist_op.dist_attr.set_output_dims_mapping(
-                mask_name, infered_output_dims_mappings[0]
+                mask_name, inferred_output_dims_mappings[0]
             )
 
         return changed

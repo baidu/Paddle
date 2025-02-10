@@ -130,7 +130,7 @@ class CumsumOpConverter : public OpConverter {
                   newDims,
                   ("cumsum: reshape: (Output(" + output_name + ")").c_str());
 
-      // creat ZeroTensor
+      // create ZeroTensor
       std::vector<float> zero_vec{0.f};
       auto zero = Add1DConstantLayer(zero_vec);
       auto cast = TRT_ENGINE_ADD_LAYER(engine_, Identity, *zero);

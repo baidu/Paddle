@@ -92,7 +92,7 @@ PYBIND11_INVALID_FULL_MAPPING = {
     'TensorOrTensors': 'paddle._typing.TensorOrTensors',
 }
 
-# some bad patial expression pybind11-stubgen can not catch as invalid exp
+# some bad partial expression pybind11-stubgen can not catch as invalid exp
 _PYBIND11_INVALID_PART_MAPPING = {
     'NestedSequence': 'paddle._typing.NestedSequence',
     'Dep': 'Node.Dep',
@@ -531,8 +531,8 @@ class OpsYamlBaseAPI:
             ')'
         ), f"Args declaration should start with '(' and end with ')', please check the args of {api_name} in yaml."
         args_str = args_str[1:-1]
-        patten = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
-        args_list = re.split(patten, args_str.strip())
+        pattern = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
+        args_list = re.split(pattern, args_str.strip())
         args_list = [x.strip() for x in args_list]
 
         for item in args_list:

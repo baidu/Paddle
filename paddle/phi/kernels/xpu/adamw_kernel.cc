@@ -244,21 +244,15 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
   }
 
   // template <typename T, typename TG, typename MT> DLL_EXPORT int
-  // adamw_v2(Context* ctx, MT beta1, MT beta2, MT epsilon, MT coeff, MT
-  // lr_ratio, const MT* beta1_pow, MT beta1_pow_scalar, const MT* beta2_pow, MT
+  // adamw(Context* ctx, MT beta1, MT beta2, MT epsilon, MT coeff, MT lr_ratio,
+  // const MT* beta1_pow, MT beta1_pow_scalar, const MT* beta2_pow, MT
   // beta2_pow_scalar, const MT* moment1, MT* moment1_out, const MT* moment2,
   // MT* moment2_out, const MT* lr, const TG* grad, const T* param, T*
-  // param_out, const MT* master_param, MT* master_param_out, int64_t n, bool
-  // round_bf16_output);
-  bool round_bf16_output = false;
-  if (std::getenv("XPU_PADDLE_ADAMW_ROUND_BF16_OUTPUT") != nullptr) {
-    round_bf16_output = true;
-  }
-
+  // param_out, const MT* master_param, MT* master_param_out, int64_t n);
   if (beta1_pow.place() == CPUPlace() && beta2_pow.place() == CPUPlace()) {
     // Compute with betapow in REG
     if (grad_type == phi::DataType::FLOAT32) {
-      int r = xpu::adamw_v2<XPUType, float, MPDType>(
+      int r = xpu::adamw<XPUType, float, MPDType>(
           dev_ctx.x_context(),
           beta1_,
           beta2_,
@@ -283,11 +277,10 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
           reinterpret_cast<XPUType*>(dev_ctx.template Alloc<T>(param_out)),
           master_in_data,
           master_out_data,
-          param.numel(),
-          round_bf16_output);
-      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw_v2");
+          param.numel());
+      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw");
     } else {
-      int r = xpu::adamw_v2<XPUType, XPUType, MPDType>(
+      int r = xpu::adamw<XPUType, XPUType, MPDType>(
           dev_ctx.x_context(),
           beta1_,
           beta2_,
@@ -312,9 +305,8 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
           reinterpret_cast<XPUType*>(dev_ctx.template Alloc<T>(param_out)),
           master_in_data,
           master_out_data,
-          param.numel(),
-          round_bf16_output);
-      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw_v2");
+          param.numel());
+      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw");
     }
     if (!use_global_beta_pow) {
       // Cpu update
@@ -325,7 +317,7 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
     }
   } else {
     if (grad_type == phi::DataType::FLOAT32) {
-      int r = xpu::adamw_v2<XPUType, float, MPDType>(
+      int r = xpu::adamw<XPUType, float, MPDType>(
           dev_ctx.x_context(),
           beta1_,
           beta2_,
@@ -350,11 +342,10 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
           reinterpret_cast<XPUType*>(dev_ctx.template Alloc<T>(param_out)),
           master_in_data,
           master_out_data,
-          param.numel(),
-          round_bf16_output);
-      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw_v2");
+          param.numel());
+      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw");
     } else {
-      int r = xpu::adamw_v2<XPUType, XPUType, MPDType>(
+      int r = xpu::adamw<XPUType, XPUType, MPDType>(
           dev_ctx.x_context(),
           beta1_,
           beta2_,
@@ -379,9 +370,8 @@ void AdamwDenseKernelKL3(const Context& dev_ctx,
           reinterpret_cast<XPUType*>(dev_ctx.template Alloc<T>(param_out)),
           master_in_data,
           master_out_data,
-          param.numel(),
-          round_bf16_output);
-      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw_v2");
+          param.numel());
+      PADDLE_ENFORCE_XDNN_SUCCESS(r, "adamw");
     }
     if (!use_global_beta_pow) {
       // Update with xpu

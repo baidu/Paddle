@@ -433,6 +433,7 @@ class OpInfoParser:
         self.op_compat_item = op_compat_item
         self.yaml_file = yaml_file
         self.is_sparse_op = self.parse_op_type()
+        self.is_fused_op = self.parse_fused_op_type()
         self.op_phi_name = self.parse_op_phi_name()
         self.class_name: str | None = None
         self.kernel_input_type_list: list[str] | None = None
@@ -780,6 +781,14 @@ class OpInfoParser:
         if self.yaml_file.endswith(
             "sparse_ops.parsed.yaml"
         ) or self.yaml_file.endswith("sparse_backward.parsed.yaml"):
+            return True
+        else:
+            return False
+
+    def parse_fused_op_type(self) -> bool:
+        if self.yaml_file.endswith(
+            "fused_ops.parsed.yaml"
+        ) or self.yaml_file.endswith("fused_backward.parsed.yaml"):
             return True
         else:
             return False
@@ -1191,7 +1200,7 @@ def GenOneDnnExtraAttrsDefaultValue(onednn_extra_args):
 """
     ARRAY_ATTRIBUTE_TEMPLATE = """  std::vector<pir::Attribute> vec_{attr_name};
 {{
-    std::vector<{cpp_type}> vec_values = {attr_valuse};
+    std::vector<{cpp_type}> vec_values = {attr_values};
     for (size_t i = 0; i < static_cast<size_t>(vec_values.size()); i++) {{
         {create_attribute}
         vec_{attr_name}.push_back(attr_{attr_name});
@@ -1215,7 +1224,7 @@ pir::Attribute attr_{attr_name} = pir::ArrayAttribute::get(pir::IrContext::Insta
                     cpp_type=onednn_extra_args[idx]['typename'].replace(
                         '[]', ''
                     ),
-                    attr_valuse=onednn_extra_args[idx]['default_value'],
+                    attr_values=onednn_extra_args[idx]['default_value'],
                     create_attribute=INTARRAY_STR_TEMPLATE.format(
                         attr_name=onednn_extra_args[idx]['name'],
                         op_attribute_type=inner_attribute_type,
@@ -1228,7 +1237,7 @@ pir::Attribute attr_{attr_name} = pir::ArrayAttribute::get(pir::IrContext::Insta
                     cpp_type=onednn_extra_args[idx]['typename'].replace(
                         '[]', ''
                     ),
-                    attr_valuse=onednn_extra_args[idx]['default_value'],
+                    attr_values=onednn_extra_args[idx]['default_value'],
                     create_attribute=SCALAR_STR_TEMPLATE.format(
                         attr_name=onednn_extra_args[idx]['name'],
                         attr="vec_values[i]",
@@ -1240,7 +1249,7 @@ pir::Attribute attr_{attr_name} = pir::ArrayAttribute::get(pir::IrContext::Insta
                     cpp_type=onednn_extra_args[idx]['typename'].replace(
                         '[]', ''
                     ),
-                    attr_valuse=onednn_extra_args[idx]['default_value'],
+                    attr_values=onednn_extra_args[idx]['default_value'],
                     create_attribute=STR_TEMPLATE.format(
                         attr_name=onednn_extra_args[idx]['name'],
                         op_attribute_type=inner_attribute_type,

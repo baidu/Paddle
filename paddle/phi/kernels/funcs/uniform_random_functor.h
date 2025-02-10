@@ -101,7 +101,7 @@ inline std::vector<int64_t> GetNewDataFromShapeTensor(
   } else {
     PADDLE_THROW(common::errors::InvalidArgument(
         "Expected dtype of ShapeTensor must be int32, int64. But got "
-        "unsupport dtype: %s.",
+        "unsupported dtype: %s.",
         new_data_tensor->dtype()));
   }
 }
@@ -141,7 +141,7 @@ inline std::vector<int64_t> GetNewDataFromShapeTensorList(
       PADDLE_THROW(common::errors::InvalidArgument(
           "Expected dtype of ShapeTensorList of %d-th must be int32, int64. "
           "But got "
-          "unsupport dtype: %s.",
+          "unsupported dtype: %s.",
           i,
           phi::DataTypeToString(tensor->dtype())));
     }

@@ -715,6 +715,14 @@ def shard_index(
     That is, the value `v` is set to the new offset within the range represented by the shard `shard_id`
     if it in the range. Otherwise, we reset it to be `ignore_value`.
 
+    As shown below, a ``[2, 1]`` 2D tensor is updated with the ``shard_index`` operation. Given ``index_num = 20``, ``nshards = 2``, and ``shard_id = 0``, the shard size is ``shard_size = (20 + 2 - 1) // 2 = 10``.
+    For each label element: if its value is in [0, 10), it's adjusted to its offset; e.g., 1 becomes 1 - 0 * 10 = 1. Otherwise, it's set to the default ignore_value of -1, like 16 becoming -1.
+
+    .. image:: https://githubraw.cdn.bcebos.com/PaddlePaddle/docs/develop/docs/images/api_legend/shard_index.png
+       :width: 500
+       :alt: Illustration of Case 2
+       :align: center
+
     Args:
         input (Tensor): Input tensor with data type int64 or int32. It's last dimension must be 1.
         index_num (int): An integer represents the integer above the maximum value of `input`.
@@ -737,6 +745,8 @@ def shard_index(
             >>> print(shard_label.numpy())
             [[-1]
              [ 1]]
+
+
     """
     if in_dynamic_or_pir_mode():
         return _C_ops.shard_index(
@@ -5099,6 +5109,19 @@ def masked_scatter(
     each occurrence of `mask` being True. The shape of `mask` must be broadcastable with the shape of the underlying tensor.
     The `value` should have at least as many elements as the number of ones in `mask`.
 
+    The image illustrates a typical case of the masked_scatter operation.
+
+      1. Tensor  ``value``: Contains the data to be filled into the target tensor. Only the parts where the mask is True will take values from the value tensor, while the rest will be ignored;
+      2. Tensor  ``mask``: Specifies which positions should extract values from the value tensor and update the target tensor. True indicates the corresponding position needs to be updated;
+      3. Tensor  ``origin``: The input tensor, where only the parts satisfying the mask will be replaced, and the rest remains unchanged;
+
+    Result: After the ``masked_scatter`` operation, the parts of the ``origin`` tensor where the ``mask`` is ``True`` are updated with the corresponding values from the ``value`` tensor, while the parts where the ``mask`` is ``False`` remain unchanged, forming the final updated tensor.
+
+    .. image:: https://githubraw.cdn.bcebos.com/PaddlePaddle/docs/develop/docs/images/api_legend/masked_scatter.png
+        :width: 500
+        :alt: legend of masked_scatter API
+        :align: center
+
     Args:
         x (Tensor): An N-D Tensor. The data type is ``float16``, ``float32``, ``float64``, ``int32``,
             ``int64`` or ``bfloat16``.
@@ -6251,7 +6274,10 @@ def moveaxis(
     """
     src = [source] if isinstance(source, int) else source
     dst = [destination] if isinstance(destination, int) else destination
-
+    if isinstance(source, tuple):
+        src = list(source)
+    if isinstance(destination, tuple):
+        dst = list(destination)
     assert len(src) == len(
         dst
     ), "'source' must have the same number with 'destination'"
@@ -7292,6 +7318,13 @@ def index_fill(
 ):
     """
     Fill the elements of the input tensor with value by the specific axis and index.
+
+    As shown below, a ``[3, 3]`` 2D tensor is updated via the index_fill operation. With ``axis=0``, ``index=[0, 2]`` and ``value=-1``, the 1st and 3rd row elements become ``-1``. The resulting tensor, still [3, 3], has updated values.
+
+    .. image:: https://githubraw.cdn.bcebos.com/PaddlePaddle/docs/develop/docs/images/api_legend/index_fill.png
+       :width: 500
+       :alt: Illustration of Case 2
+       :align: center
 
     Args:
         x (Tensor) : The Destination Tensor. Supported data types are int32, int64, float16, float32, float64.

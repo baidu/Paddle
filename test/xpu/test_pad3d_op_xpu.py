@@ -20,6 +20,7 @@ from get_test_cover_info import (
     create_test_class,
     get_xpu_op_support_types,
 )
+from op_test import convert_float_to_uint16, convert_uint16_to_float
 from op_test_xpu import XPUOpTest
 
 import paddle
@@ -304,6 +305,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                     (0, 0),
                 ]
 
+            if self.dtype == np.uint16:
+                input_data = convert_uint16_to_float(input_data)
+
             if mode == "constant":
                 out = np.pad(input_data, pad, mode=mode, constant_values=value)
             elif mode == "reflect":
@@ -313,6 +317,8 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
             elif mode == "circular":
                 out = np.pad(input_data, pad, mode="wrap")
 
+            if self.dtype == np.uint16:
+                out = convert_float_to_uint16(out)
             return out
 
         def test_static(self):
@@ -485,6 +491,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                     (0, 0),
                 ]
 
+            if self.dtype == np.uint16:
+                input_data = convert_uint16_to_float(input_data)
+
             if mode == "constant":
                 out = np.pad(input_data, pad, mode=mode, constant_values=value)
             elif mode == "reflect":
@@ -493,6 +502,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                 out = np.pad(input_data, pad, mode="edge")
             elif mode == "circular":
                 out = np.pad(input_data, pad, mode="wrap")
+
+            if self.dtype == np.uint16:
+                out = convert_float_to_uint16(out)
 
             return out
 
@@ -568,6 +580,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                     (0, 0),
                 ]
 
+            if self.dtype == np.uint16:
+                input_data = convert_uint16_to_float(input_data)
+
             if mode == "constant":
                 out = np.pad(input_data, pad, mode=mode, constant_values=value)
             elif mode == "reflect":
@@ -576,6 +591,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                 out = np.pad(input_data, pad, mode="edge")
             elif mode == "circular":
                 out = np.pad(input_data, pad, mode="wrap")
+
+            if self.dtype == np.uint16:
+                out = convert_float_to_uint16(out)
 
             return out
 
@@ -653,6 +671,8 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                     (0, 0),
                 ]
 
+            if self.dtype == np.uint16:
+                input_data = convert_uint16_to_float(input_data)
             if mode == "constant":
                 out = np.pad(input_data, pad, mode=mode, constant_values=value)
             elif mode == "reflect":
@@ -661,6 +681,9 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                 out = np.pad(input_data, pad, mode="edge")
             elif mode == "circular":
                 out = np.pad(input_data, pad, mode="wrap")
+
+            if self.dtype == np.uint16:
+                out = convert_float_to_uint16(out)
 
             return out
 
@@ -727,7 +750,7 @@ class XPUTestPad3dOp(XPUOpTestWrapper):
                 input_shape = (3, 4, 5, 6, 7)
                 pad = [1, 2, 2, 1, 1, 0]
                 pad_tensor = paddle.to_tensor(pad)
-                input_data = np.random.rand(*input_shape).astype(np.float32)
+                input_data = np.random.rand(*input_shape).astype(self.dtype)
 
                 pad_reflection_ncdhw = nn.Pad3D(
                     padding=pad_tensor, mode="reflect", data_format="NCDHW"

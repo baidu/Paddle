@@ -32,7 +32,7 @@ class ConcatSliceScaleNet(nn.Layer):
     def forward(self, x, y):
         x_shape = paddle.shape(x)
         # Use 'y' to generate 'cond' and 'right' to avoid
-        # usless operations in paddle.where api.
+        # useless operations in paddle.where api.
         cond = y.cast(dtype="bool")
         right = y
 

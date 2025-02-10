@@ -76,7 +76,7 @@ inline void HOSTDEVICE IndexToCoordinate(const IntT index,
 }
 
 template <typename IntT>
-inline void HOSTDEVICE IndexToCoordinate(const IntT* indexs,
+inline void HOSTDEVICE IndexToCoordinate(const IntT* index,
                                          const Dim<DDim::kMaxRank>& dims,
                                          const int64_t non_zero_num,
                                          const int64_t sparse_dim,
@@ -84,7 +84,7 @@ inline void HOSTDEVICE IndexToCoordinate(const IntT* indexs,
                                          const int64_t stride,
                                          IntT* indices) {
   for (int64_t i = start; i < non_zero_num; i += stride) {
-    IntT tmp_index = indexs[i];
+    IntT tmp_index = index[i];
     IndexToCoordinate(tmp_index, dims, non_zero_num, sparse_dim, i, indices);
   }
 }

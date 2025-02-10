@@ -62,8 +62,6 @@ struct ItersFusionPolicy final : public PolicyBase {
  private:
   std::optional<ItersTransform> GetReuseItersTransform(
       FusionIters* source_iters, const FusionIters& target_iters);
-  std::optional<ItersTransform> GetAppendItersTransform(
-      FusionIters* source_iters, const FusionIters& target_iters);
   std::optional<ItersTransformRoute> SearchTransformRouteFromReduce2Reduce(
       const FusionItersSignature& source, const FusionItersSignature& target);
   std::optional<ItersTransformRoute> SearchItersTransformRoute(

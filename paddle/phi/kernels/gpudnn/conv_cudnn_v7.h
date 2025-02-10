@@ -268,9 +268,9 @@ struct SearchAlgorithmBase<ConvKind::kForward> {
 
 // cuDNN convolution backward data-algorithm searcher, consisting of three
 // searching modes, namely: deterministic, heuristic, and exhaustive_search
-// mode. Specially, there are 2 pattens of exhaustive search mode, one for
+// mode. Specially, there are 2 patterns of exhaustive search mode, one for
 // HALF precision only, one for the rest.
-// As well as one workspace size acquirsition function with
+// As well as one workspace size acquisition function with
 // respect to the chosen algorithm.
 template <>
 struct SearchAlgorithmBase<ConvKind::kBackwardData> {

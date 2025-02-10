@@ -206,10 +206,10 @@ struct ToTxtStringStruct {
                          tOut<OpArgIndexes<std::optional<Index>>>,
                          tIn<OpArgIndexes<Index>>>& in_msg2out_msg) const {
     std::string ret;
-    const auto& [out_op, out_indexs, in_indexs] = in_msg2out_msg.tuple();
+    const auto& [out_op, out_indices, in_indices] = in_msg2out_msg.tuple();
     const FakeOpPlaceHolder& op = out_op.value();
-    const auto& out_index_tuple = out_indexs.value();
-    const auto& in_index_tuple = in_indexs.value();
+    const auto& out_index_tuple = out_indices.value();
+    const auto& in_index_tuple = in_indices.value();
     const auto& [out_msg_list_in, out_msg_list_out] = out_index_tuple.tuple();
     const auto& [in_msg_list_in, in_msg_list_out] = in_index_tuple.tuple();
     ret += ToTxtString(op) + ", ";

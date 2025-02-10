@@ -172,7 +172,7 @@ int ProfileToGetBestConfig(
         &all_func,
     const GemmEpilogueAllParams &params,
     OpType op_type) {
-  std::cout << "we are tunning for problem: [" << params.m << ", " << params.n
+  std::cout << "we are running for problem: [" << params.m << ", " << params.n
             << ", " << params.k << "]" << std::endl;
 
   constexpr int WARMUP = 10;

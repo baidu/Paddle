@@ -12,10 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PADDLE_WITH_HIP
-// HIP not support cusolver
-
+#ifdef PADDLE_WITH_HIP
+#include "paddle/phi/backends/dynload/rocsolver.h"
+#else
 #include "paddle/phi/backends/dynload/cusolver.h"
+#endif
+
 #include "paddle/phi/backends/gpu/gpu_context.h"
 #include "paddle/phi/common/complex.h"
 #include "paddle/phi/core/enforce.h"
@@ -25,6 +27,47 @@
 
 namespace phi {
 
+#ifdef PADDLE_WITH_HIP
+template <typename T>
+void rocsolver_potrs(const solverHandle_t &handle,
+                     rocblas_fill uplo,
+                     int M,
+                     int N,
+                     T *Adata,
+                     int lda,
+                     T *Bdata,
+                     int ldb);
+
+using phi::dtype::complex;
+#define FUNC_WITH_TYPES(m)                        \
+  m(float, s, float) m(double, d, double)         \
+      m(complex<float>, c, rocblas_float_complex) \
+          m(complex<double>, z, rocblas_double_complex)
+
+#define POTRS_INSTANCE(T, C, CastType)                                     \
+  template <>                                                              \
+  void rocsolver_potrs<T>(const solverHandle_t &handle,                    \
+                          rocblas_fill uplo,                               \
+                          int M,                                           \
+                          int N,                                           \
+                          T *Adata,                                        \
+                          int lda,                                         \
+                          T *Bdata,                                        \
+                          int ldb) {                                       \
+    PADDLE_ENFORCE_GPU_SUCCESS(                                            \
+        dynload::rocsolver_##C##potrs(handle,                              \
+                                      uplo,                                \
+                                      M,                                   \
+                                      N,                                   \
+                                      reinterpret_cast<CastType *>(Adata), \
+                                      lda,                                 \
+                                      reinterpret_cast<CastType *>(Bdata), \
+                                      ldb));                               \
+  }
+
+FUNC_WITH_TYPES(POTRS_INSTANCE);
+
+#else
 template <typename T>
 void cusolver_potrs(const solverHandle_t &handle,
                     cublasFillMode_t uplo,
@@ -110,6 +153,8 @@ void cusolver_potrs<phi::dtype::complex<double>>(
       devInfo));
 }
 
+#endif  // PADDLE_WITH_HIP
+
 template <typename T>
 class CholeskySolveFunctor<T, GPUContext> {
  public:
@@ -121,20 +166,19 @@ class CholeskySolveFunctor<T, GPUContext> {
                   int lda,
                   T *Bdata,
                   int *devInfo) {
+    auto handle = dev_ctx.cusolver_dn_handle();
+#ifdef PADDLE_WITH_HIP
+    rocblas_fill uplo = upper ? rocblas_fill_upper : rocblas_fill_lower;
+    rocsolver_potrs<T>(handle, uplo, M, N, Adata, lda, Bdata, lda);
+#else
     cublasFillMode_t uplo =
         upper ? CUBLAS_FILL_MODE_UPPER : CUBLAS_FILL_MODE_LOWER;
-    auto handle = dev_ctx.cusolver_dn_handle();
     cusolver_potrs<T>(handle, uplo, M, N, Adata, lda, Bdata, lda, devInfo);
+#endif
   }
 };
 
 }  // namespace phi
 
-PD_REGISTER_KERNEL(cholesky_solve,  // cuda_only
-                   GPU,
-                   ALL_LAYOUT,
-                   phi::CholeskySolveKernel,
-                   float,
-                   double) {}
-
-#endif  // not PADDLE_WITH_HIP
+PD_REGISTER_KERNEL(
+    cholesky_solve, GPU, ALL_LAYOUT, phi::CholeskySolveKernel, float, double) {}

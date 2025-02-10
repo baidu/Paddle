@@ -174,13 +174,13 @@ class OpenVINOEngine {
   ov::Model* model() { return model_.get(); }
   ov::CompiledModel compiled_model() { return complied_model_; }
   ov::InferRequest infer_request() { return infer_request_; }
-  ov::Shape GetOuputShape(const std::string& name, int64_t index);
-  phi::DataType GetOuputType(const std::string& name,
-                             int64_t index,
-                             ov::element::Type ov_paddle_type);
-  void CopyOuputDataByName(const std::string& output_name,
-                           int64_t index,
-                           void* pd_data);
+  ov::Shape GetOutputShape(const std::string& name, int64_t index);
+  phi::DataType GetOutputType(const std::string& name,
+                              int64_t index,
+                              ov::element::Type ov_paddle_type);
+  void CopyOutputDataByName(const std::string& output_name,
+                            int64_t index,
+                            void* pd_data);
   void Execute();
 
  private:

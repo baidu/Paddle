@@ -20,16 +20,11 @@ namespace phi {
 // oneDNN's reduction kernel is optimized only for reducing throughout the
 // most outer dims, so in case of another type of reduction, it would be
 // better to fallback to native implementation
-inline bool HasOptimizedOneDNNKernel(const KernelContext* ctx,
-                                     const bool mean_op) {
+inline bool HasOptimizedOneDNNKernel(const KernelContext* ctx) {
   const DenseTensor& x = ctx->InputAt<phi::DenseTensor>(0);
   IntArray dims_array;
-  if (mean_op) {
-    dims_array = ctx->AttrAt<IntArray>(0);
-  } else {
-    const TensorRef& dims_tmp = ctx->AttrAt<TensorRef>(0);
-    dims_array = IntArray(*dims_tmp.Get());
-  }
+  const TensorRef& dims_tmp = ctx->AttrAt<TensorRef>(0);
+  dims_array = IntArray(*dims_tmp.Get());
   int ndims = x.dims().size();
   const bool reduce_all = recompute_reduce_all(x, dims_array);
   auto dims = dims_array.GetData();
@@ -61,15 +56,16 @@ inline bool HasOptimizedOneDNNKernel(const KernelContext* ctx,
 
 bool ReduceCheckIfOneDNNSupport(const KernelContext* ctx) {
   if (ctx->InputAt<phi::DenseTensor>(0).dims().size() > 5 ||
-      !HasOptimizedOneDNNKernel(ctx, false)) {
+      !HasOptimizedOneDNNKernel(ctx)) {
     return false;
   }
   return true;
 }
 
 bool ReduceMeanCheckIfOneDNNSupport(const KernelContext* ctx) {
+  std::cout << "ReduceMeanCheckIfOneDNNSupport" << std::endl;
   if (ctx->InputAt<phi::DenseTensor>(0).dims().size() > 5 ||
-      !HasOptimizedOneDNNKernel(ctx, true)) {
+      !HasOptimizedOneDNNKernel(ctx)) {
     return false;
   }
   return true;

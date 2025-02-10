@@ -313,7 +313,7 @@ static char* GetGpuHintStringPtr(const phi::GPUContext& ctx,
       PADDLE_ENFORCE_EQ(iter != op_var2gpu_str.end(),
                         true,
                         common::errors::PreconditionNotMet(
-                            "op_var=%s should successed insert into "
+                            "op_var=%s should be successfully insert into "
                             "op_var2gpu_str, but now failed",
                             op_var));
 

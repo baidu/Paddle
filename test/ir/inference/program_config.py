@@ -178,6 +178,7 @@ class BlockConfig:
                 elif self.vars_var_type[name] == VarType.STEP_SCOPES:
                     var_desc.set_type(core.VarDesc.VarType.STEP_SCOPES)
                     continue
+
             var_desc.set_dtype(convert_np_dtype_to_proto_type(np.float32))
             if self.vars_dtype is not None and name in self.vars_dtype.keys():
                 var_desc.set_dtype(
@@ -341,10 +342,12 @@ class ProgramConfig:
         return self
 
 
-def convert_to_dynamic_shape(dynamic_shape):
-    min_shape = tuple(next(iter(dynamic_shape.min_input_shape.values())))
-    opt_shape = tuple(next(iter(dynamic_shape.opt_input_shape.values())))
-    max_shape = tuple(next(iter(dynamic_shape.max_input_shape.values())))
+def convert_to_dynamic_shape(dynamic_shape, name):
+    if dynamic_shape.min_input_shape == {}:
+        return tuple(dynamic_shape.min_input_shape)
+    min_shape = tuple(dynamic_shape.min_input_shape[name])
+    opt_shape = tuple(dynamic_shape.opt_input_shape[name])
+    max_shape = tuple(dynamic_shape.max_input_shape[name])
     result_shape = []
     for i in range(len(min_shape)):
         if min_shape[i] == opt_shape[i] == max_shape[i]:
@@ -377,8 +380,10 @@ def create_fake_model(program_config, run_pir=False, dynamic_shape=None):
                 convert_np_dtype_to_proto_type(tensor_config.dtype)
             )
             if dynamic_shape is not None:
-                dynamic_shape = convert_to_dynamic_shape(dynamic_shape)
-                var_desc.set_shape(dynamic_shape)
+                dynamic_shape_copy = convert_to_dynamic_shape(
+                    dynamic_shape, name
+                )
+                var_desc.set_shape(dynamic_shape_copy)
             else:
                 var_desc.set_shape(tensor_config.shape)
             var_desc.set_need_check_feed(True)
@@ -469,9 +474,14 @@ def create_fake_model(program_config, run_pir=False, dynamic_shape=None):
                         ):
                             var_desc.set_type(core.VarDesc.VarType.STEP_SCOPES)
                             continue
-                    var_desc.set_dtype(
-                        convert_np_dtype_to_proto_type(np.float32)
-                    )
+                    if run_pir:
+                        var_desc.set_dtype(
+                            convert_np_dtype_to_proto_type(tensor_config.dtype)
+                        )
+                    else:
+                        var_desc.set_dtype(
+                            convert_np_dtype_to_proto_type(np.float32)
+                        )
                     if (
                         op_config.outputs_dtype is not None
                         and v in op_config.outputs_dtype.keys()

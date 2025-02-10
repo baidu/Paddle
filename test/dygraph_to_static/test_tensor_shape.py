@@ -803,7 +803,7 @@ def dyfunc_with_static_convert_var_shape(x):
     return res
 
 
-class TestFindStatiConvertVarShapeSuffixVar(Dy2StTestBase):
+class TestFindStaticConvertVarShapeSuffixVar(Dy2StTestBase):
     @test_ast_only
     def test(self):
         x_spec = paddle.static.InputSpec(shape=[None, 10])

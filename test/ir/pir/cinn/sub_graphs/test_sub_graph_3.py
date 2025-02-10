@@ -55,7 +55,7 @@ class LayerCase(paddle.nn.Layer):
 
 class TestLayer(TestBase):
     def init(self):
-        # FIXME(Aurelius84): CI timout > 600 s
+        # FIXME(Aurelius84): CI timeout > 600 s
         # self.input_specs = [
         #     InputSpec(
         #         shape=(-1, -1, -1),

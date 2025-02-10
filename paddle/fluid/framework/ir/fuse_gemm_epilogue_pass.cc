@@ -76,7 +76,7 @@ ir::Graph *FuseGemmEpiloguePass::FuseLinearFwd(ir::Graph *graph,
     std::vector<int64_t> matmul_w_shape = matmul_w->Var()->GetShape();
 
     // Note (Ming Huang): We only support matmul_v2 from paddle.nn.Linear
-    // currently. The conditions below are used to verify wether matmul_v2
+    // currently. The conditions below are used to verify whether matmul_v2
     // is created by paddle.nn.Linear
     auto matmul_op_desc = matmul_op->Op();
     if (!IsGemmFromLinear_(matmul_x_shape, matmul_w_shape)) return;
@@ -159,7 +159,7 @@ ir::Graph *FuseGemmEpiloguePass::FuseLinearActFwd(
     std::vector<int64_t> matmul_w_shape = matmul_w->Var()->GetShape();
 
     // Note (Ming Huang): We only support matmul_v2 from paddle.nn.Linear
-    // currently. The conditions below are used to verify wether matmul_v2
+    // currently. The conditions below are used to verify whether matmul_v2
     // is created by paddle.nn.Linear
     auto matmul_op_desc = matmul_op->Op();
     if (!IsGemmFromLinear_(matmul_x_shape, matmul_w_shape)) return;
@@ -284,7 +284,7 @@ ir::Graph *FuseGemmEpiloguePass::FuseLinearBwd(ir::Graph *graph,
     std::vector<int64_t> matmul_grad_w_shape = matmul_grad_w->Var()->GetShape();
 
     // Note (Ming Huang): We only support matmul_v2_grad from paddle.nn.Linear
-    // currently. The conditions below are used to verify wether matmul_v2
+    // currently. The conditions below are used to verify whether matmul_v2
     // is created by paddle.nn.Linear
     auto matmul_grad_op_desc = matmul_grad_op->Op();
     if (!IsGemmFromLinear_(matmul_grad_x_shape, matmul_grad_w_shape)) return;
@@ -423,7 +423,7 @@ ir::Graph *FuseGemmEpiloguePass::FuseLinearActBwd(
     std::vector<int64_t> matmul_grad_w_shape = matmul_grad_w->Var()->GetShape();
 
     // Note (Ming Huang): We only support matmul_v2_grad from paddle.nn.Linear
-    // currently. The conditions below are used to verify wether matmul_v2
+    // currently. The conditions below are used to verify whether matmul_v2
     // is created by paddle.nn.Linear
     auto matmul_grad_op_desc = matmul_grad_op->Op();
     if (!IsGemmFromLinear_(matmul_grad_x_shape, matmul_grad_w_shape)) return;

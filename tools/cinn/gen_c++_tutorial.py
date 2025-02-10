@@ -47,7 +47,7 @@ class Markdown:
         self.add_line('### ' + title)
 
     def code_block(self, lang: str, block: list[str]):
-        # drop the precending and tailing empty lines to make code block more compact
+        # drop the preceding and tailing empty lines to make code block more compact
         pre_valid_offset = 0
         tail_valid_offset = 0
         for x in block:

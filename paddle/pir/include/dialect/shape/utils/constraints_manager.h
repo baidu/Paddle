@@ -42,7 +42,7 @@ class IR_API ConstraintsManager {
   struct Range {
     std::int64_t min;
     std::int64_t max;
-    // TODO(Hongqing-work): Subsitute INT32_MAX with a more meaningful value.
+    // TODO(Hongqing-work): Substitute INT32_MAX with a more meaningful value.
     Range() : min(1), max(INT32_MAX) {}
     Range(int min_val, int max_val) : min(min_val), max(max_val) {}
   };

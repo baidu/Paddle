@@ -151,6 +151,7 @@ def full_like_converter(network, paddle_op, inputs):
 
     fill_value = get_input_constant_value(paddle_op, inputs, 1)
     if fill_value is not None:
+        fill_value = fill_value[0]
         value = network.add_constant(
             (1,),
             np.array(

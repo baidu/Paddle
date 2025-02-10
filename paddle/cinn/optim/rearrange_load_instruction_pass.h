@@ -78,13 +78,13 @@ class RearrangeLoadInstructionPass : public FuncPass {
  * this pass, we force NVCC to use more registers and engage in more aggressive
  * software pipelining.
  *
- * However, there are also random cases where this pass may decrease performace.
- * The reason is unclear yet (perhaps because of suboptimal unrolling and
- * register overflow). We have used some strategies to avoid these cases, such
- * as limiting the maximum number of loads to rearrange and forbidding certain
- * patterns. While we cannot currently guarantee a consistent improvement, our
- * experiments indicate that the performance degradation is within 5% in the
- * worst case.
+ * However, there are also random cases where this pass may decrease
+ * performance. The reason is unclear yet (perhaps because of suboptimal
+ * unrolling and register overflow). We have used some strategies to avoid these
+ * cases, such as limiting the maximum number of loads to rearrange and
+ * forbidding certain patterns. While we cannot currently guarantee a consistent
+ * improvement, our experiments indicate that the performance degradation is
+ * within 5% in the worst case.
  *
  *
  * Limitations:

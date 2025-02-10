@@ -93,7 +93,7 @@ class IR_API FusionOp
 };
 
 // YieldStoreOp represents a store operation for
-// seperate local variable and ouptut
+// separate local variable and output
 class IR_API YieldStoreOp
     : public pir::Op<YieldStoreOp,
                      paddle::dialect::InferSymbolicShapeInterface> {

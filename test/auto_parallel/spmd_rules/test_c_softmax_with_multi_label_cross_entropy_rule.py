@@ -86,7 +86,7 @@ class TestCSoftmaxWithMultiLabelCrossEntropySPMDRule(unittest.TestCase):
         self.label_dist_tensor_spec.set_dims_mapping([-1, -1, -1])
         self.smooth_weight_dist_tensor_spec.set_dims_mapping([-1, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(
+        inferred_dist_attr = self.rule1.infer_forward(
             self.logit_dist_tensor_spec,
             self.label_dist_tensor_spec,
             self.smooth_weight_dist_tensor_spec,
@@ -96,27 +96,27 @@ class TestCSoftmaxWithMultiLabelCrossEntropySPMDRule(unittest.TestCase):
             self.attrs['nranks'],
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 3)
-        self.assertEqual(len(infered_output_dist_attr), 2)
+        self.assertEqual(len(inferred_input_dist_attr), 3)
+        self.assertEqual(len(inferred_output_dist_attr), 2)
 
         self.assertEqual(
-            infered_input_dist_attr[0].dims_mapping, [-1, -1, 1]
+            inferred_input_dist_attr[0].dims_mapping, [-1, -1, 1]
         )  # logit
         self.assertEqual(
-            infered_input_dist_attr[1].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attr[1].dims_mapping, [-1, -1, -1]
         )  # label
         self.assertEqual(
-            infered_input_dist_attr[2].dims_mapping, [-1, -1, -1]
+            inferred_input_dist_attr[2].dims_mapping, [-1, -1, -1]
         )  # smooth_weight
         self.assertEqual(
-            infered_output_dist_attr[0].dims_mapping, [-1, -1, 1]
+            inferred_output_dist_attr[0].dims_mapping, [-1, -1, 1]
         )  # softmax
         self.assertEqual(
-            infered_output_dist_attr[1].dims_mapping, [-1, -1, -1]
+            inferred_output_dist_attr[1].dims_mapping, [-1, -1, -1]
         )  # loss
 
         # llama MP-DP case
@@ -127,7 +127,7 @@ class TestCSoftmaxWithMultiLabelCrossEntropySPMDRule(unittest.TestCase):
         self.label_dist_tensor_spec.set_dims_mapping([0, -1, -1])
         self.smooth_weight_dist_tensor_spec.set_dims_mapping([0, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(
+        inferred_dist_attr = self.rule1.infer_forward(
             self.logit_dist_tensor_spec,
             self.label_dist_tensor_spec,
             self.smooth_weight_dist_tensor_spec,
@@ -137,27 +137,27 @@ class TestCSoftmaxWithMultiLabelCrossEntropySPMDRule(unittest.TestCase):
             self.attrs['nranks'],
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 3)
-        self.assertEqual(len(infered_output_dist_attr), 2)
+        self.assertEqual(len(inferred_input_dist_attr), 3)
+        self.assertEqual(len(inferred_output_dist_attr), 2)
 
         self.assertEqual(
-            infered_input_dist_attr[0].dims_mapping, [0, -1, 1]
+            inferred_input_dist_attr[0].dims_mapping, [0, -1, 1]
         )  # logit
         self.assertEqual(
-            infered_input_dist_attr[1].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[1].dims_mapping, [0, -1, -1]
         )  # label
         self.assertEqual(
-            infered_input_dist_attr[2].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[2].dims_mapping, [0, -1, -1]
         )  # smooth_weight
         self.assertEqual(
-            infered_output_dist_attr[0].dims_mapping, [0, -1, 1]
+            inferred_output_dist_attr[0].dims_mapping, [0, -1, 1]
         )  # softmax
         self.assertEqual(
-            infered_output_dist_attr[1].dims_mapping, [0, -1, -1]
+            inferred_output_dist_attr[1].dims_mapping, [0, -1, -1]
         )  # loss
 
 

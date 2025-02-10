@@ -89,8 +89,8 @@ void Main() {
   PADDLE_ENFORCE_LE(fabs(max_score - 0.99981),
                     1e-4,
                     common::errors::InvalidArgument(
-                        "Required fabs(max_score - 0.99981) shoule "
-                        "be less than or euqal to 1e-4. "));
+                        "Required fabs(max_score - 0.99981) should "
+                        "be less than or equal to 1e-4. "));
 }
 
 }  // namespace demo

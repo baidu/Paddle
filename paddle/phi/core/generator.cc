@@ -163,7 +163,7 @@ std::shared_ptr<std::mt19937_64> GetCPURandomEngine(uint64_t seed) {
   } else {
     // NOTE(zhiqiu): creating an cpu_engine instance everytime instead of using
     // OpDefaultCPUEngine(), this is the legacy behavior of random operators.
-    // The benefit is that when runing PE with fixed-seed in multiple thrads,
+    // The benefit is that when running PE with fixed-seed in multiple threads,
     // each thread has their own cpu_engine, and doesn't affect each other.
     //
     // And we need to measure the determinacy of Generator in PE.

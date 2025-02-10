@@ -1633,7 +1633,7 @@ static PyObject* tensor__getitem_from_offset(TensorObject* self,
           index,
           dims[i],
           common::errors::InvalidArgument(
-              "index %d is out fo bounds for axis %d with size %d",
+              "index %d is out of bounds for axis %d with size %d",
               index,
               i,
               dims[i]));

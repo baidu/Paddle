@@ -1156,7 +1156,7 @@ class TestNormalSampleDygraph(unittest.TestCase):
     ],
     test_pir=True,
 )
-class TestNormalSampleStaic(unittest.TestCase):
+class TestNormalSampleStatic(unittest.TestCase):
     def build_program(self):
         paddle.enable_static()
         startup_program = paddle.static.Program()
@@ -1321,7 +1321,7 @@ class TestNormalRSampleDygraph(unittest.TestCase):
     ],
     test_pir=True,
 )
-class TestNormalRSampleStaic(unittest.TestCase):
+class TestNormalRSampleStatic(unittest.TestCase):
     def build_program(self):
         paddle.enable_static()
         startup_program = paddle.static.Program()

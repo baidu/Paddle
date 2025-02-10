@@ -285,7 +285,11 @@ class SimplePyLayerNetStopGrad(paddle.nn.Layer):
 
 class TestPyLayerBase(unittest.TestCase):
     def setUp(self):
-        self.place = "gpu" if paddle.is_compiled_with_cuda() else "cpu"
+        self.place = "cpu"
+        if paddle.is_compiled_with_cuda():
+            self.place = "gpu"
+        if paddle.is_compiled_with_xpu():
+            self.place = "xpu"
         self.to_static: bool = False
 
     def _run(self, *input_args, **input_kwargs):
@@ -610,7 +614,11 @@ class TestPyLayerInsideNet(TestPyLayerBase):
 
 class PyLayerTrainHelper(unittest.TestCase):
     def setUp(self):
-        self.place = "gpu" if paddle.is_compiled_with_cuda() else "cpu"
+        self.place = "cpu"
+        if paddle.is_compiled_with_cuda():
+            self.place = "gpu"
+        if paddle.is_compiled_with_xpu():
+            self.place = "xpu"
 
     def _run_train(
         self, to_static: bool, layer_builder, build_strategy=None, in_pir=True

@@ -56,6 +56,7 @@ class ProgramDeps:
                 "c_allreduce_sum",
                 "c_sync_comm_stream",
                 "c_calc_comm_stream",
+                'all_reduce',
             ]:
                 continue
             input_vars = op.desc.input_arg_names()

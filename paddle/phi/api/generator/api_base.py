@@ -25,8 +25,8 @@ ORIGIN_PREFIX_TENSOR_NAME = 'origin_input_'
 def parse_plain_list(s: str, sep=",") -> list[str]:
     """Copy from `paddle/fluid/operators/generator/parse_utils.py`"""
     if sep == ",":
-        patten = re.compile(r',(?![^{]*\})')  # support "int[] a={1,2}"
-        items = re.split(patten, s.strip())
+        pattern = re.compile(r',(?![^{]*\})')  # support "int[] a={1,2}"
+        items = re.split(pattern, s.strip())
         items = [x.strip() for x in items]
         return items
     else:
@@ -91,7 +91,12 @@ class BaseAPI:
         }
 
     def get_api_name(self, api_item_yaml):
-        return api_item_yaml['op']
+        if 'op' in api_item_yaml:
+            return api_item_yaml['op']
+        elif 'backward_op' in api_item_yaml:
+            return api_item_yaml['backward_op']
+        else:
+            raise ValueError("op or backward_op are not in api_yaml.")
 
     def get_api_func_name(self):
         return self.api
@@ -172,8 +177,8 @@ class BaseAPI:
             ')'
         ), f"Args declaration should start with '(' and end with ')', please check the args of {api_name} in yaml."
         args_str = args_str[1:-1]
-        patten = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
-        args_list = re.split(patten, args_str.strip())
+        pattern = re.compile(r',(?![^{]*\})')  # support int[] a={1,3}
+        args_list = re.split(pattern, args_str.strip())
         args_list = [x.strip() for x in args_list]
         input_types_map = {
             'Tensor': 'const Tensor&',
@@ -1180,6 +1185,12 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
             )
         )
 
+        infer_meta_params = (
+            self.infer_meta['param']
+            if self.infer_meta['param'] is not None
+            else self.inputs['names'] + self.attrs['names']
+        )
+
         kernel_args = ["*dev_ctx"]
         for param in kernel_param:
             if param in input_names:
@@ -1188,6 +1199,10 @@ PADDLE_API {self.get_return_type(inplace_flag=True)} {api_func_name}({self.get_d
                 else:
                     if self.inputs['input_info'][param] == "const Tensor&":
                         if self.is_inplace_input(param):
+                            if param not in infer_meta_params:
+                                input_tensor_code += f"""
+{code_indent}  auto {ORIGIN_PREFIX_TENSOR_NAME}{param} = *{PREFIX_TENSOR_NAME}{param};
+"""
                             kernel_args.append(
                                 ORIGIN_PREFIX_TENSOR_NAME + param
                             )

@@ -552,14 +552,15 @@ void concat_grad(const std::vector<Tensor>& x,
 
   int x_num = x.size();
   std::vector<Tensor> x_grad_tmp;
-  bool has_dynamic = false;
+
+  int neg_num = 0;
   for (size_t i = 0; i < x.size(); i++) {
-    if (has_dynamic_shape(x[i].shape())) {
-      has_dynamic = true;
-      break;
+    if (x[i].dims()[axis_value] < 0) {
+      neg_num++;
     }
   }
-  if (has_dynamic) {
+
+  if (neg_num > 1) {
     std::vector<Tensor> sections;
     for (int i = 0; i < x_num; i++) {
       sections.push_back(get_slice<T>(shape64<T>(x[i]), int64_t(axis_value)));

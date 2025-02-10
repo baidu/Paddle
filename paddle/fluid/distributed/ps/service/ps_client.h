@@ -353,7 +353,7 @@ class PSClient {
     return fut;
   }
   // add
-  virtual std::shared_ptr<SparseShardValues> TakePassSparseReferedValues(
+  virtual std::shared_ptr<SparseShardValues> TakePassSparseReferredValues(
       const size_t &table_id UNUSED,
       const uint16_t &pass_id UNUSED,
       const uint16_t &dim_id UNUSED) {

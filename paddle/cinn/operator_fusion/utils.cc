@@ -128,7 +128,7 @@ std::pair<std::vector<int64_t>, bool> GetSliceAxis(pir::Operation* slice_op) {
   return std::make_pair(slice_axis, keepdim);
 }
 
-std::optional<std::pair<pir::Value, pir::Value>> GetBroadcastOpInputOuputValue(
+std::optional<std::pair<pir::Value, pir::Value>> GetBroadcastOpInputOutputValue(
     pir::Operation* op) {
   auto* mut_op = const_cast<pir::Operation*>(op);
   if (op->isa<paddle::dialect::ExpandOp>()) {
@@ -149,7 +149,7 @@ std::vector<std::pair<size_t, size_t>> GetNonBroadCastDims(pir::Operation* op) {
   auto* shape_analysis =
       &pir::ShapeAnalysisManager::Instance().Get(op->GetParentProgram());
 
-  const auto& broad_cast_value = GetBroadcastOpInputOuputValue(op);
+  const auto& broad_cast_value = GetBroadcastOpInputOutputValue(op);
   CHECK(broad_cast_value.has_value());
 
   const auto& [input_value, output_value] = broad_cast_value.value();
@@ -158,7 +158,7 @@ std::vector<std::pair<size_t, size_t>> GetNonBroadCastDims(pir::Operation* op) {
   PADDLE_ENFORCE_GE(output_rank,
                     input_rank,
                     ::common::errors::PreconditionNotMet(
-                        "[Error info] The ouput_rank should "
+                        "[Error info] The output_rank should "
                         "be greater or equal to input_rank."));
 
   // Compare axis one by one, from back to front.
@@ -197,7 +197,7 @@ bool ShapeProductEqual(const std::vector<symbol::DimExpr>& in_shape,
          GetShapeProduct(out_shape, out_start, out_end);
 }
 
-std::vector<std::pair<int, int>> PartionReshapeAxes(
+std::vector<std::pair<int, int>> PartitionReshapeAxes(
     const std::vector<symbol::DimExpr>& in_shape,
     const std::vector<symbol::DimExpr>& out_shape) {
   PADDLE_ENFORCE(
@@ -208,28 +208,32 @@ std::vector<std::pair<int, int>> PartionReshapeAxes(
 
   int input_rank = in_shape.size();
   int output_rank = out_shape.size();
-  std::vector<std::pair<int, int>> partion = {{0, 0}};
+  std::vector<std::pair<int, int>> partition = {{0, 0}};
   for (int i = 1, j = 1; i <= in_shape.size() && j <= out_shape.size();) {
-    bool shape_product_equal = ShapeProductEqual(
-        in_shape, out_shape, partion.back().first, i, partion.back().second, j);
+    bool shape_product_equal = ShapeProductEqual(in_shape,
+                                                 out_shape,
+                                                 partition.back().first,
+                                                 i,
+                                                 partition.back().second,
+                                                 j);
     if (shape_product_equal) {
-      partion.emplace_back(i++, j++);
+      partition.emplace_back(i++, j++);
       if (i > input_rank || j > output_rank) {
         // In case of the last few dims are 1
-        partion.back().first = input_rank;
-        partion.back().second = output_rank;
+        partition.back().first = input_rank;
+        partition.back().second = output_rank;
       }
     } else if (j < output_rank) {
       j++;
     } else if (i < input_rank) {
       i++;
-      j = partion.back().second + 1;
+      j = partition.back().second + 1;
     } else {
       PADDLE_THROW(::common::errors::InvalidArgument(
           "Shape product should be equal for reshape operation."));
     }
   }
-  return partion;
+  return partition;
 }
 
 }  // namespace cinn::fusion

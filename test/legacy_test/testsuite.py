@@ -111,7 +111,7 @@ def append_input_output(
             np_value = np_list[name]
             if isinstance(np_value, tuple):
                 dtype = np_value[0].dtype
-                # output shape, lod should be infered from input.
+                # output shape, lod should be inferred from input.
                 if is_input:
                     shape = list(np_value[0].shape)
                     lod_level = len(np_value[1])

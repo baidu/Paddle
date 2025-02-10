@@ -120,7 +120,7 @@ struct SlogDeterminantFunctor<phi::dtype::complex<T>, Context> {
     const phi::dtype::complex<T>* gpu_mat =
         input.data<phi::dtype::complex<T>>();
     // Copy all elements of input matrix A to a temporary memory space to
-    // avoid being overriden by getrf.
+    // avoid being overridden by getrf.
     tmp_gpu_mat_data = phi::memory_utils::Alloc(
         dev_ctx.GetPlace(),
         input.numel() * sizeof(phi::dtype::complex<T>),

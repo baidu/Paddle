@@ -339,7 +339,7 @@ class InferenceEngine:
                 )
                 f.write(line)
         print(
-            f"the {func.__name__} function is sucessfully saved to {self.save_path}.pdmodel"
+            f"the {func.__name__} function is successfully saved to {self.save_path}.pdmodel"
         )
         sys.stdout.flush()
 

@@ -20,6 +20,9 @@ from functools import reduce
 from typing import TYPE_CHECKING, Any
 
 import paddle
+from paddle.jit.sot.opcode_translator.executor.variables.base import (
+    VariableBase,
+)
 
 from ....utils import ConstTypes
 from ....utils.exceptions import FallbackError, InnerError
@@ -34,11 +37,12 @@ from ..tracker import (
     ConstTracker,
     DanglingTracker,
     DummyTracker,
+    GetAttrTracker,
     GetItemTracker,
     GetIterTracker,
     Tracker,
 )
-from .base import VariableBase, VariableFactory
+from .base import VariableFactory
 from .basic import ConstantVariable
 from .callable import BuiltinVariable, UserDefinedFunctionVariable
 
@@ -56,9 +60,6 @@ class ContainerVariable(VariableBase):
     def init_value(self):
         return self.value
 
-    def get_items(self) -> list[VariableBase]:
-        raise FallbackError('ContainerVariable.get_items do not implement')
-
     def get_wrapped_items(self):
         raise FallbackError(
             "ContainerVariable.get_wrapped_items do not implement"
@@ -75,6 +76,12 @@ class ContainerVariable(VariableBase):
 
     def bool(self):
         return ConstantVariable(bool(self), self.graph, DummyTracker([self]))
+
+    def flatten_inner_vars(self) -> list[VariableBase]:
+        items = []
+        for item in self.get_wrapped_items():
+            items.extend(item.flatten_inner_vars())
+        return items
 
     @check_guard
     def make_stringified_guard(self) -> list[StringifiedExpression]:
@@ -167,14 +174,11 @@ class ListVariable(ContainerVariable):
             Dispatcher.call(operator.getitem, self, idx).reconstruct(codegen)
         codegen.gen_build_list(size)
 
-    def get_items(self):
+    def get_wrapped_items(self):
         size = len(self)
         return [
             Dispatcher.call(operator.getitem, self, idx) for idx in range(size)
         ]
-
-    def get_wrapped_items(self):
-        return self.get_items()
 
     def get_iter(self):
         from .iter import SequenceIterVariable
@@ -548,14 +552,11 @@ class TupleVariable(ContainerVariable):
             Dispatcher.call(operator.getitem, self, idx).reconstruct(codegen)
         codegen.gen_build_tuple(size)
 
-    def get_items(self):
-        size = len(self)
-        return [
-            Dispatcher.call(operator.getitem, self, idx) for idx in range(size)
-        ]
-
     def get_wrapped_items(self):
-        return tuple(self.get_items())
+        size = len(self)
+        return tuple(
+            Dispatcher.call(operator.getitem, self, idx) for idx in range(size)
+        )
 
     def get_iter(self):
         from .iter import SequenceIterVariable
@@ -689,32 +690,39 @@ class RangeVariable(ContainerVariable):
 
     def __init__(
         self,
-        val_range: range,
+        start: VariableBase,
+        stop: VariableBase,
+        step: VariableBase,
         graph: FunctionGraph,
         tracker: Tracker,
     ):
         super().__init__(graph, tracker)
-        self.value = val_range
+        self.start = start
+        self.stop = stop
+        self.step = step
 
     def get_py_type(self):
         return range
 
     def get_py_value(self, allow_tensor=False):
-        return self.value
+        return range(
+            self.start.get_py_value(),
+            self.stop.get_py_value(),
+            self.step.get_py_value(),
+        )
 
     def getitem(self, key):
-        self.graph.add_global_guarded_variable(self)
         self.graph.add_global_guarded_variable(key)
         key = key.get_py_value()
-        retval = self.value[key]
-        return ConstantVariable.wrap_literal(retval, self.graph)
+        retval = self.get_py_value()[key]
+        return ConstantVariable(retval, self.graph, GetItemTracker(self, key))
 
     def get_items(self):
-        size = len(self)
-        return [self[idx] for idx in range(size)]
+        return [self.start, self.stop, self.step]
 
     def get_wrapped_items(self):
-        return self.get_items()
+        size = len(self)
+        return [self[idx] for idx in range(size)]
 
     def get_iter(self):
         from .iter import SequenceIterVariable
@@ -722,55 +730,53 @@ class RangeVariable(ContainerVariable):
         return SequenceIterVariable(self, self.graph, GetIterTracker(self))
 
     def __len__(self):
-        return len(self.value)
+        return len(self.get_py_value())
 
     def _reconstruct(self, codegen: PyCodeGen):
         codegen.gen_load_global("range", push_null=True)
-        # The start default value is 0, step is 1
-        # So we can always construct range with 3 args
-        codegen.gen_load_const(self.value.start)
-        codegen.gen_load_const(self.value.stop)
-        codegen.gen_load_const(self.value.step)
+        self.start.reconstruct(codegen)
+        self.stop.reconstruct(codegen)
+        self.step.reconstruct(codegen)
         codegen.gen_call_function(3)
 
     @VariableFactory.register_from_value()
     def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
         if type(value) is range:
-            return RangeVariable(value, graph, tracker)
+            range_variable = RangeVariable(None, None, None, graph, tracker)
+            start = VariableFactory.from_value(
+                value.start, graph, GetAttrTracker(range_variable, "start")
+            )
+            stop = VariableFactory.from_value(
+                value.stop, graph, GetAttrTracker(range_variable, "stop")
+            )
+            step = VariableFactory.from_value(
+                value.step, graph, GetAttrTracker(range_variable, "step")
+            )
+            range_variable.__init__(start, stop, step, graph, tracker)
+            return range_variable
         return None
 
     @check_guard
     def make_stringified_guard(self) -> list[StringifiedExpression]:
         frame_value_tracer = self.tracker.trace_value_from_frame()
-
         return [
             StringifiedExpression(
-                "isinstance({0}, range) and "
-                + f"{{0}}.start == {self.init_value.start} and "
-                + f"{{0}}.stop == {self.init_value.stop} and "
-                + f"{{0}}.step == {self.init_value.step}",
+                "isinstance({0}, range)",
                 [frame_value_tracer],
                 frame_value_tracer.free_vars,
-            )
+            ),
+            *self.start.make_stringified_guard(),
+            *self.stop.make_stringified_guard(),
+            *self.step.make_stringified_guard(),
         ]
 
     @property
-    def debug_name(self) -> str:
-        return ":".join(
-            [
-                str(self.value.start) if self.value.start is not None else "",
-                str(self.value.stop) if self.value.stop is not None else "",
-                str(self.value.step) if self.value.step is not None else "",
-            ]
-        )
-
-    @debug_name.setter
-    def debug_name(self, name):
-        pass
-
-    @property
     def main_info(self) -> dict[str, Any]:
-        return {"value": self.value}
+        return {
+            "start": self.start,
+            "stop": self.stop,
+            "step": self.step,
+        }
 
 
 class DictVariable(ContainerVariable):
@@ -829,19 +835,21 @@ class DictVariable(ContainerVariable):
             value_var.reconstruct(codegen)
         codegen.gen_build_map(size)
 
-    def get_items(self):
-        items = []
-        for key in self.proxy.get_all().keys():
-            if not isinstance(key, ConstTypes):
-                raise InnerError(
-                    f"[{self.__class__.__name__}]: received {key} as key."
+    def flatten_inner_vars(self):
+        items = self.get_wrapped_items()
+        return [
+            inner_var
+            for key in items.keys()
+            for key_var in [
+                VariableFactory.from_value(
+                    key, self.graph, tracker=ConstTracker(key)
                 )
-            key_var = VariableFactory.from_value(
-                key, self.graph, tracker=ConstTracker(key)
+            ]
+            for inner_var in (
+                key_var.flatten_inner_vars()
+                + self[key_var].flatten_inner_vars()
             )
-            value_var = self[key]
-            items.extend([key_var, value_var])
-        return items
+        ]
 
     def get_wrapped_items(self):
         items = {}

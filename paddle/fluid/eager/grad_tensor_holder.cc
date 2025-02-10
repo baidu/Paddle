@@ -147,7 +147,7 @@ void GradTensorHolder::add(size_t slot_id,
           rank));
 
   paddle::Tensor& buffer_tensor = buffer_[slot_id][rank];
-  // TODO(jiabin): Code bellow is ugly to divide which inner var we used,
+  // TODO(jiabin): Code below is ugly to divide which inner var we used,
   // remove framework::Variable
   // related code later.
   // This if statement is trying to test neither phi::Tensor nor

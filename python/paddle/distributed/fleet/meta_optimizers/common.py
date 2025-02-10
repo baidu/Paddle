@@ -217,9 +217,9 @@ class CollectiveHelper:
 
             ring_id = (ring_id + 1) % self.nrings
             block.append_op(
-                type='c_broadcast',
-                inputs={'X': param},
-                outputs={'Out': param},
+                type='broadcast',
+                inputs={'x': param},
+                outputs={'out': param},
                 attrs={
                     'ring_id': ring_id,
                     'root': 0,

@@ -45,7 +45,7 @@ class TestRmsNormFusePattern(PassTest):
         pat = ctx.SourcePattern()
 
         def constraint_function(match_ctx):
-            axis = match_ctx.VectorInt64Attr("axis")
+            axis = match_ctx.VectorInt64Attr("value")
             if len(axis) > 1:
                 return False
             return True
@@ -53,9 +53,13 @@ class TestRmsNormFusePattern(PassTest):
         # Source Pattern
         pow = pat.Op("pd_op.pow")
 
-        mean = pat.Op("pd_op.mean", {"axis": pat.Attr("axis")})
+        mean = pat.Op("pd_op.mean")
 
         full = pat.Op("pd_op.full")
+
+        full_int_array = pat.Op(
+            "pd_op.full_int_array", {"value": pat.Attr("value")}
+        )
 
         scale = pat.Op("pd_op.scale", {"bias": pat.Attr("bias")})
 
@@ -66,7 +70,12 @@ class TestRmsNormFusePattern(PassTest):
         # Operation connections
         pow([pat.Tensor("x")], [pat.Tensor("pow_out")])
 
-        mean([pat.Tensor("pow_out")], [pat.Tensor("mean_out")])
+        full_int_array([], [pat.Tensor("full_int_array_out")])
+
+        mean(
+            [pat.Tensor("pow_out"), pat.Tensor("full_int_array_out")],
+            [pat.Tensor("mean_out")],
+        )
 
         full([], [pat.Tensor("full_out")])
 
@@ -93,7 +102,7 @@ class TestRmsNormFusePattern(PassTest):
         res = pat.ResultPattern()
 
         def compute_begin_norm_axis(match_ctx):
-            axis = match_ctx.VectorInt64Attr("axis")
+            axis = match_ctx.VectorInt64Attr("value")
             pow_out_shape = match_ctx.Tensor("pow_out").shape
             return (
                 len(pow_out_shape) - 1 if axis[0] == -1 else axis[0],

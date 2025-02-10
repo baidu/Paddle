@@ -113,7 +113,7 @@ class ParallelExecutorPassBuilder : public ir::PassBuilder {
   }
 
   void AppendOpFusePasses() {
-    // 1. infernce pass if enabled.
+    // 1. inference pass if enabled.
     AppendPassWithCheck(
         strategy_.enable_inference_pass_ && strategy_.delete_dropout_,
         "delete_dropout_op_x_pass");
@@ -121,7 +121,7 @@ class ParallelExecutorPassBuilder : public ir::PassBuilder {
         strategy_.enable_inference_pass_ && strategy_.use_mkldnn_,
         "onednn_placement_pass");
 
-    // 2. trainning pass
+    // 2. training pass
 #ifdef PADDLE_WITH_CUDNN_FRONTEND
     AppendPassWithCheck(strategy_.fuse_dot_product_attention_,
                         "fuse_dot_product_attention_pass");

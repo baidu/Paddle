@@ -94,13 +94,13 @@ nvinfer1::Dims ElementWisePlugin::getOutputDimensions(
 
 int ElementWisePlugin::initialize() TRT_NOEXCEPT {
   axis_ = (axis_ == -1) ? dims_x_.nbDims - dims_y_.nbDims : axis_;
-  int trimed_nb_dims = dims_y_.nbDims;
-  for (; trimed_nb_dims > 0; --trimed_nb_dims) {
-    if (dims_y_.d[trimed_nb_dims - 1] != 1) {
+  int trimmed_nb_dims = dims_y_.nbDims;
+  for (; trimmed_nb_dims > 0; --trimmed_nb_dims) {
+    if (dims_y_.d[trimmed_nb_dims - 1] != 1) {
       break;
     }
   }
-  dims_y_.nbDims = trimed_nb_dims;
+  dims_y_.nbDims = trimmed_nb_dims;
 
   PADDLE_ENFORCE_GE(dims_x_.nbDims,
                     dims_y_.nbDims + axis_,
@@ -294,14 +294,14 @@ int ElementwisePluginDynamic::enqueue(
     prev_size *= x_dims.d[i];
   }
 
-  int trimed_nb_dims = y_dims.nbDims;
-  for (; trimed_nb_dims > 0; --trimed_nb_dims) {
-    if (y_dims.d[trimed_nb_dims - 1] != 1) {
+  int trimmed_nb_dims = y_dims.nbDims;
+  for (; trimmed_nb_dims > 0; --trimmed_nb_dims) {
+    if (y_dims.d[trimmed_nb_dims - 1] != 1) {
       break;
     }
   }
 
-  for (int i = 0; i < trimed_nb_dims; ++i) {
+  for (int i = 0; i < trimmed_nb_dims; ++i) {
     PADDLE_ENFORCE_EQ(x_dims.d[i + axis],
                       y_dims.d[i],
                       common::errors::InvalidArgument(
@@ -310,7 +310,7 @@ int ElementwisePluginDynamic::enqueue(
     midd_size *= y_dims.d[i];
   }
 
-  for (int i = axis + trimed_nb_dims; i < x_dims.nbDims; ++i) {
+  for (int i = axis + trimmed_nb_dims; i < x_dims.nbDims; ++i) {
     post_size *= x_dims.d[i];
   }
 

@@ -19,7 +19,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "paddle/fluid/distributed/common/afs_warpper.h"
+#include "paddle/fluid/distributed/common/afs_wrapper.h"
 #include "paddle/fluid/distributed/common/registerer.h"
 #include "paddle/fluid/distributed/ps/thirdparty/round_robin.h"
 #include "paddle/fluid/distributed/the_one_ps.pb.h"

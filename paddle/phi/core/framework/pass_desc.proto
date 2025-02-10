@@ -17,7 +17,7 @@ syntax = "proto2";
 import "paddle/phi/core/framework/framework.proto";
 package paddle.framework.proto;
 
-// Describes one subsitute subgraph.
+// Describes one substitute subgraph.
 message PassDesc {
   enum RoleType {
     kVariable = 0;

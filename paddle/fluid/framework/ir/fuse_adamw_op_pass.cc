@@ -176,7 +176,7 @@ bool InitAndCheckAttrs(const size_t &found_adamw_count,
   bool lazy_mode = false;
   int64_t min_row_size_to_use_multithread = 1000;
 
-  // Get skip_update and coeff, these wiil be used to check whether we can
+  // Get skip_update and coeff, these will be used to check whether we can
   // use fuse_adamw.
   for (auto &node : adamw_op->inputs) {
     auto in_name = adamw_op_desc->Input("SkipUpdate");

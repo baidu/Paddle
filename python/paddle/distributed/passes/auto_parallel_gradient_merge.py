@@ -383,7 +383,7 @@ def _pir_append_gradient_merge_backward_op(
         )
         new_gradient_merge_var_add_op.set_bool_attr("grad_merge_add", True)
 
-        # NOTE(zhangweilong): grad may in different device in auto_parallel, so need consider all_gather/all_recdue/split/... op
+        # NOTE(zhangweilong): grad may in different device in auto_parallel, so need consider all_gather/all_reduce/split/... op
         for used_grad_op in grad.all_used_ops():
             _move_used_grad_op(used_grad_op, grad)
 
@@ -693,7 +693,7 @@ def parse_program(
     return grad_to_gradient_merge
 
 
-def _find_trival_optimizer_ops(block):
+def _find_trivial_optimizer_ops(block):
     optimizer_ops = []
     for op in block.ops:
         if "adam" in op.name() or "sgd" in op.name():
@@ -774,7 +774,7 @@ def _append_scale_op_after_comm(block, optimizer_ops, k_steps):
 
 def _pir_append_scale_op(program, new_params_to_grads, k_steps):
     block = program.global_block()
-    optimizer_ops = _find_trival_optimizer_ops(block)
+    optimizer_ops = _find_trivial_optimizer_ops(block)
     if len(optimizer_ops) > 0:
         _append_scale_op_after_comm(block, optimizer_ops, k_steps)
     else:

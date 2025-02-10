@@ -1953,7 +1953,7 @@ class AddQuantDequantPass:
                             (
                                 quant_var_node,
                                 _,
-                            ) = self._inser_quant_dequant_moving_average_abs_max_op(
+                            ) = self._insert_quant_dequant_moving_average_abs_max_op(
                                 graph,
                                 in_node,
                                 self._quant_bits,
@@ -1981,7 +1981,7 @@ class AddQuantDequantPass:
         graph.resolve_hazard()
         return graph
 
-    def _inser_quant_dequant_moving_average_abs_max_op(
+    def _insert_quant_dequant_moving_average_abs_max_op(
         self, graph, var_node, quant_bits, op_role
     ):
         """Insert fake_quantize_dequantize_moving_average_abs_max op."""

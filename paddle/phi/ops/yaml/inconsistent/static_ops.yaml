@@ -212,7 +212,7 @@
   infer_meta :
     func : EmbeddingInferMeta
     param : [x, weight, padding_idx]
-    spmd_rule: EmbeddingInferSpmdUnsupportVocabParallel
+    spmd_rule: EmbeddingInferSpmdUnsupportedVocabParallel
   kernel :
     func : embedding {dense, dense -> dense}
            sparse_weight_embedding {dense, selected_rows -> dense}
@@ -627,7 +627,8 @@
     func : print_kernel
     param: [in, first_n, message, summarize, print_tensor_name, print_tensor_type, print_tensor_shape, print_tensor_layout, print_tensor_lod, print_phase, is_forward]
   interfaces : paddle::dialect::InferSymbolicShapeInterface
-  traits : pir::SideEffectTrait, paddle::dialect::ForwardOnlyTrait
+  traits : pir::SideEffectTrait
+  backward: print_grad
 
 - op : pull_box_sparse
   args : (Tensor w, Tensor[] ids, bool is_sparse = false, bool is_distributed = false, int size = 1)

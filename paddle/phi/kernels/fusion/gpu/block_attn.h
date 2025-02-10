@@ -1495,7 +1495,7 @@ void dispatch_blha_gqa_kernel(const Block_AttN_params<T> &params,
                            store_func)
   } else {
     PADDLE_THROW(common::errors::Unimplemented(
-        "gqa_num_per_partitions = %d is unsupport!",
+        "gqa_num_per_partitions = %d is unsupported!",
         params.gqa_num_per_partitions));
   }
 }
@@ -1580,7 +1580,7 @@ void dispatch_blha_impl_blocksize(const Block_AttN_params<T> &params,
       break;
     default:
       PADDLE_THROW(common::errors::Unimplemented(
-          "block_size = %d is unsupport!", params.block_size));
+          "block_size = %d is unsupported!", params.block_size));
   }
 }
 
@@ -1600,13 +1600,17 @@ void dispatch_blha_impl_headsize(const phi::GPUContext &dev_ctx,
       dispatch_blha_impl_blocksize<T, 64, 64>(
           params, dev_ctx.stream(), load_func, store_func, use_cachekv_int8);
       break;
+    case 96:
+      dispatch_blha_impl_blocksize<T, 96, 128>(
+          params, dev_ctx.stream(), load_func, store_func, use_cachekv_int8);
+      break;
     case 128:
       dispatch_blha_impl_blocksize<T, 128, 128>(
           params, dev_ctx.stream(), load_func, store_func, use_cachekv_int8);
       break;
     default:
-      PADDLE_THROW(common::errors::Unimplemented("Dim_head = %d is unsupport!",
-                                                 dim_head));
+      PADDLE_THROW(common::errors::Unimplemented(
+          "Dim_head = %d is unsupported!", dim_head));
   }
 }
 

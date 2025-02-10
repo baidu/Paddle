@@ -593,7 +593,7 @@ def GenBuildOutputs(
     meta_{name}.push_back(&vec_meta_{name}[i]);
   }}
 """
-    # Prepar input type
+    # Prepare input type
     for idx in range(len(op_input_name_list)):
         # is a vector<Tensor>
         if 'pir::VectorType' in op_input_type_list[idx]:

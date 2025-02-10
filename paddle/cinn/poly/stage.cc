@@ -402,7 +402,7 @@ void Stage::AddForLoopInTransform(std::vector<std::vector<Expr>> &indices) {
  * @param level Change the domain lower than level to be consistent with other's
  * domain. For example, when this->domain_ is "{ [i0, i1] : 0 <= i0 <= 9 and 0
  * <= i1 <= 9 }", other->domain_ is "{ [i0, i1] : 0 <= i0 <= 4 and 0 <= i1 <= 4
- * }" and level = 0. Then this->domain_ whill be changed to "{ [i0, i1] : 0 <=
+ * }" and level = 0. Then this->domain_ will be changed to "{ [i0, i1] : 0 <=
  * i0 <= 4 and 0 <= i1 <= 9 }".
  */
 void Stage::ChangeDomain(Stage *other, int level) {

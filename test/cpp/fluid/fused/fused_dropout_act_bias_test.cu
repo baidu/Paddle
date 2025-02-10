@@ -36,7 +36,7 @@ namespace platform = paddle::platform;
  * 1. random input data
  * 2. add bias, call activation, call paddle dropout, and get the base result
  * 3. call FusedDropoutActBias function get fused result
- * 4. compare ther base result and fused result
+ * 4. compare the base result and fused result
  */
 
 template <typename T, typename Functor, typename GradFunctor>

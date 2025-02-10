@@ -180,13 +180,13 @@ class SimpleDPNet(paddle.nn.Layer):
 
         if g_shard_param_with_color:
             for p in self.linear1.parameters():
-                p.color = "linear1"
+                p.color = {'color': "linear1"}
 
             for p in self.linear2.parameters():
-                p.color = "linear2"
+                p.color = {'color': "linear2"}
 
             for p in self.linear3.parameters():
-                p.color = "linear3"
+                p.color = {'color': "linear3"}
 
     def forward(self, x):
         x = self.embedding(x)

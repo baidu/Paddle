@@ -44,16 +44,16 @@ TEST(FusedRmsNormSPMDRule, test_fused_rms_norm) {
   phi::distributed::DistMetaTensor x(common::make_ddim(x_shape), x_dist_attr);
   phi::distributed::DistMetaTensor scale(common::make_ddim(scale_shape),
                                          scale_dist_attr);
-  auto infered_dist_attrs = phi::distributed::RmsNormInferSpmd(x, scale, 0.5);
+  auto inferred_dist_attrs = phi::distributed::RmsNormInferSpmd(x, scale, 0.5);
 
   size_t input_size = 2;
   size_t output_size = 2;
-  EXPECT_EQ(infered_dist_attrs.first.size(), input_size);
-  EXPECT_EQ(infered_dist_attrs.second.size(), output_size);
-  check_dim_mapping(infered_dist_attrs.first[0], {1, -1, -1});
-  check_dim_mapping(infered_dist_attrs.first[1], {-1});
-  check_dim_mapping(infered_dist_attrs.second[0], {1, -1, -1});
-  check_dim_mapping(infered_dist_attrs.second[1], {1, -1});
+  EXPECT_EQ(inferred_dist_attrs.first.size(), input_size);
+  EXPECT_EQ(inferred_dist_attrs.second.size(), output_size);
+  check_dim_mapping(inferred_dist_attrs.first[0], {1, -1, -1});
+  check_dim_mapping(inferred_dist_attrs.first[1], {-1});
+  check_dim_mapping(inferred_dist_attrs.second[0], {1, -1, -1});
+  check_dim_mapping(inferred_dist_attrs.second[1], {1, -1});
 
   VLOG(4) << "test1 done.";
 
@@ -63,11 +63,11 @@ TEST(FusedRmsNormSPMDRule, test_fused_rms_norm) {
   scale = phi::distributed::DistMetaTensor(common::make_ddim(scale_shape),
                                            scale_dist_attr);
 
-  infered_dist_attrs = phi::distributed::RmsNormInferSpmd(x, scale, 0.5);
-  check_dim_mapping(infered_dist_attrs.first[0], {1, 0, -1});
-  check_dim_mapping(infered_dist_attrs.first[1], {-1});
-  check_dim_mapping(infered_dist_attrs.second[0], {1, 0, -1});
-  check_dim_mapping(infered_dist_attrs.second[1], {1, 0});
+  inferred_dist_attrs = phi::distributed::RmsNormInferSpmd(x, scale, 0.5);
+  check_dim_mapping(inferred_dist_attrs.first[0], {1, 0, -1});
+  check_dim_mapping(inferred_dist_attrs.first[1], {-1});
+  check_dim_mapping(inferred_dist_attrs.second[0], {1, 0, -1});
+  check_dim_mapping(inferred_dist_attrs.second[1], {1, 0});
   VLOG(4) << "test2 done.";
 
   TensorDistAttr out_dist_attr = TensorDistAttr();
@@ -84,26 +84,26 @@ TEST(FusedRmsNormSPMDRule, test_fused_rms_norm) {
   phi::distributed::DistMetaTensor invvar(common::make_ddim(variance_shape),
                                           invvar_dist_attr);
 
-  infered_dist_attrs =
+  inferred_dist_attrs =
       phi::distributed::RmsNormInferSpmdReverse(x, scale, out, invvar, 0.5);
-  check_dim_mapping(infered_dist_attrs.first[0], {0, 1, -1});
-  check_dim_mapping(infered_dist_attrs.first[1], {-1});
-  check_dim_mapping(infered_dist_attrs.second[0], {0, 1, -1});
-  check_dim_mapping(infered_dist_attrs.second[1], {0, 1});
+  check_dim_mapping(inferred_dist_attrs.first[0], {0, 1, -1});
+  check_dim_mapping(inferred_dist_attrs.first[1], {-1});
+  check_dim_mapping(inferred_dist_attrs.second[0], {0, 1, -1});
+  check_dim_mapping(inferred_dist_attrs.second[1], {0, 1});
   VLOG(4) << "test3 done.";
 
   x_dist_attr.set_dims_mapping({0, 1, -1});
   x = phi::distributed::DistMetaTensor(common::make_ddim(x_shape), x_dist_attr);
-  infered_dist_attrs =
+  inferred_dist_attrs =
       phi::distributed::RmsNormGradInferSpmd(x, scale, invvar, out, 0.5);
 
-  check_dim_mapping(infered_dist_attrs.first[0], {0, 1, -1});
-  check_dim_mapping(infered_dist_attrs.first[1], {-1});
-  check_dim_mapping(infered_dist_attrs.first[2], {0, 1});
-  check_dim_mapping(infered_dist_attrs.first[3], {0, 1, -1});
-  check_dim_mapping(infered_dist_attrs.second[0], {0, 1, -1});
-  check_dim_mapping(infered_dist_attrs.second[1], {-1});
-  check_partial_dims(infered_dist_attrs.second[1], {0, 1});
+  check_dim_mapping(inferred_dist_attrs.first[0], {0, 1, -1});
+  check_dim_mapping(inferred_dist_attrs.first[1], {-1});
+  check_dim_mapping(inferred_dist_attrs.first[2], {0, 1});
+  check_dim_mapping(inferred_dist_attrs.first[3], {0, 1, -1});
+  check_dim_mapping(inferred_dist_attrs.second[0], {0, 1, -1});
+  check_dim_mapping(inferred_dist_attrs.second[1], {-1});
+  check_partial_dims(inferred_dist_attrs.second[1], {0, 1});
 }
 }  // namespace auto_parallel
 }  // namespace distributed

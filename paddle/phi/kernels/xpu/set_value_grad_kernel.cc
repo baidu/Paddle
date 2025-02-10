@@ -427,6 +427,7 @@ PD_REGISTER_KERNEL(set_value_grad,
                    phi::SetValueGradKernel,
                    float,
                    phi::dtype::float16,
+                   phi::dtype::bfloat16,
                    int,
                    int64_t) {}
 
@@ -436,5 +437,6 @@ PD_REGISTER_KERNEL(set_value_with_scalar_grad,
                    phi::SetValueWithScalarGradKernel,
                    float,
                    phi::dtype::float16,
+                   phi::dtype::bfloat16,
                    int,
                    int64_t) {}

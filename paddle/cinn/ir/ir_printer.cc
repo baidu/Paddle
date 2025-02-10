@@ -14,7 +14,7 @@
 
 #include "paddle/cinn/ir/ir_printer.h"
 #include <algorithm>
-#include <cfenv>
+#include <cmath>
 #include <iomanip>
 #include <limits>
 #include <vector>
@@ -175,7 +175,7 @@ void IrPrinter::Visit(const FloatImm *x) {
       }
     } else {
       float v = TruncateInfinity<float>(x->value);
-      if (IsCloseEqualBoundValue<float>(v)) std::fesetround(FE_TOWARDZERO);
+      if (IsCloseEqualBoundValue<float>(v)) v = std::trunc(v);
       ss << std::setprecision(std::numeric_limits<float>::max_digits10);
       ss << std::showpoint;
       ss << v;
@@ -522,7 +522,16 @@ void IrPrinter::Visit(const _LoweredFunc_ *f) {
   str_ += utils::Join(arg_names, ", ");
   str_ += ")\n";
 
-  Visit(f->body);
+  if (f->body.defined()) {
+    Visit(f->body);
+  } else {
+    PADDLE_ENFORCE_EQ(
+        f->body_block.defined(),
+        true,
+        ::common::errors::InvalidArgument(
+            "Please ensure that `f->body` or `f->body_block` is defined."));
+    VisitBlock(f->body_block);
+  }
 }
 void IrPrinter::Visit(const Let *f) {
   PADDLE_ENFORCE_EQ(

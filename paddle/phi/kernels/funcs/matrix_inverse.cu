@@ -34,7 +34,7 @@ void MatrixInverseFunctor<Context, T>::operator()(const Context& dev_ctx,
   const T* gpu_mat = a.data<T>();
   if (n >= 32) {
     // Copy all elements of input matrix A to a temporary memory space to
-    // avoid being overriden by getrf.
+    // avoid being overridden by getrf.
     tmp_gpu_mat_data = phi::memory_utils::Alloc(
         dev_ctx.GetPlace(),
         a.numel() * sizeof(T),

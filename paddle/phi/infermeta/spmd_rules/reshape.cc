@@ -60,7 +60,7 @@ std::vector<int64_t> InferTargetShape(const std::vector<int64_t>& shape,
         0,
         common::errors::InvalidArgument(
             "The total element number of the src tensor (%lld) is not "
-            "divisible by the infered size (%lld) of the -1 dimension.",
+            "divisible by the inferred size (%lld) of the -1 dimension.",
             len,
             infer_size));
     new_shape[infer_idx] = infer_size;

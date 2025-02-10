@@ -878,11 +878,11 @@ class OperatorWithKernel : public OperatorBase {
    * Transfer data from scope to a transferred scope. If there is no data need
    * to be transferred, it returns nullptr.
    *
-   * transfered_inplace_vars is a output vector.
+   * transferred_inplace_vars is a output vector.
    */
   Scope* PrepareData(const Scope& scope,
                      const phi::KernelKey& expected_kernel_key,
-                     std::vector<std::string>* transfered_inplace_vars,
+                     std::vector<std::string>* transferred_inplace_vars,
                      RuntimeContext* ctx,
                      const phi::Place& place) const;
 

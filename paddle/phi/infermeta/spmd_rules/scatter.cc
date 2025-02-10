@@ -57,7 +57,7 @@ SpmdInfo ScatterBaseInferSpmd(const DistMetaTensor& x,
   std::string out_axes = GetBroadcastAxes(x_ndim, x_ndim, alphabet);
   out_axes[0] = '1';
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge input shardings
   std::unordered_map<std::string, int64_t> axis_to_dim_map =
       ShardingMergeForTensors({{index_axes, index_dims_mapping_src},
@@ -139,7 +139,7 @@ SpmdInfo ScatterBaseInferSpmdReverse(const DistMetaTensor& x,
       GetBroadcastAxes(updates_ndim, updates_ndim, alphabet);
   std::string out_axes = GetBroadcastAxes(out_ndim, out_ndim, alphabet);
 
-  // Step2: Sharding Propogation
+  // Step2: Sharding Propagation
   // Step2.1: Merge output shardings
   // the batch axis of output must be replicated
   // TODO(zhangyichen): consider the case when the output is partial

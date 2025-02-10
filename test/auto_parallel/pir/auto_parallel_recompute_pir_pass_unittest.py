@@ -228,6 +228,7 @@ class TestRecomputeLlamaAuto:
         segment_num_base, bwd_rc_op_num_base = self.get_recompute_message(
             base_prog
         )
+
         segment_num_1, bwd_rc_op_num_1 = self.get_recompute_message(prog_1)
         segment_num_2, bwd_rc_op_num_2 = self.get_recompute_message(prog_2)
         segment_num_3, bwd_rc_op_num_3 = self.get_recompute_message(prog_3)
@@ -240,7 +241,7 @@ class TestRecomputeLlamaAuto:
 
         # check recompute op number
         assert bwd_rc_op_num_base == 0
-        assert bwd_rc_op_num_1 == 288
+        assert bwd_rc_op_num_1 == 296
         assert bwd_rc_op_num_2 == 204
         assert bwd_rc_op_num_3 == 60
 

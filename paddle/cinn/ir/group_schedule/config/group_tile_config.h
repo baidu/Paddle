@@ -40,6 +40,11 @@ struct ScheduleConfig {
     bool has_dynamic_spatial{false};
     bool has_dynamic_reduce{false};
     bool can_apply_grid_reduce{false};
+    bool can_apply_vectorize{false};
+    bool has_if_else_op{false};
+    bool has_select_op{false};
+    int continuous_arg_nums{0};
+    int fusion_group_arg_nums{0};
     IterSpaceType iter_space_type;
   };
 
@@ -48,11 +53,23 @@ struct ScheduleConfig {
     int64_t tree_reduce_num{1};
     int64_t grid_reduce_num{1};
     int64_t spatial_inner_num{1};
+    int64_t vectorize_factor{1};
     ReduceMethod reduce_method{NoneReduceMethod()};
   };
 
   std::shared_ptr<BaseInfo> base_info;
   TileConfig tile_config;
+};
+
+struct SMConfig {
+  const int max_threads_per_sm;
+  const int max_blocks_per_sm;
+  const int sm_count;
+
+  SMConfig(int max_threads, int max_blocks, int sm_count)
+      : max_threads_per_sm(max_threads),
+        max_blocks_per_sm(max_blocks),
+        sm_count(sm_count) {}
 };
 
 struct BucketInfo {

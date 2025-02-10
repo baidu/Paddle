@@ -56,7 +56,7 @@ class TrtConvertDepthwiseConv2dTest(TrtLayerAutoScanTest):
         strides_options = [[1, 2]]
         paddings_options = [[0, 3]]
         groups_options = [1]
-        padding_algorithm_options = ['EXPLICIT', 'SAME', 'VAILD']
+        padding_algorithm_options = ['EXPLICIT', 'SAME', 'VALID']
         dilations_options = [[1, 1]]
         data_format_options = ['NCHW']
 

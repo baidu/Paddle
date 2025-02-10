@@ -68,6 +68,30 @@ void LoopAssignReduce(
     const std::unordered_map<::pir::Value, ir::Tensor>& tensor_map,
     const std::unordered_map<std::string, ir::Tensor>& tmp_tensor_info);
 
+/**
+ * Unify the temp_space args (inserted by grid reduce) so that all functions in
+ * this group have the same number of arguments.
+ *
+ * For example, if there are 3 functions in this group, whose args are:
+ *   fn_kernel_1(var_0, var_1, S0, S1)
+ *   fn_kernel_2(var_0, var_1, var_1_tmp, semaphore, S0, S1)
+ *   fn_kernel_3(var_0, var_1, var_0_tmp, var_1_tmp, semaphore, S0, S1)
+ *
+ * This method will insert placeholders after the last tensor argument to align
+ * all functions with the longest argument list:
+ *   fn_kernel_1(var_0, var_1, _plchdr_0, _plchdr_1, _plchdr_2, S0, S1)
+ *   fn_kernel_2(var_0, var_1, var_1_tmp, semaphore, _plchdr_0, S0, S1)
+ *   fn_kernel_3(var_0, var_1, var_0_tmp, var_1_tmp, semaphore, S0, S1)
+ */
+void UnifyTempSpaceArgs(std::vector<ir::LoweredFunc>* funcs);
+
+/**
+ * Get a composed list of the temp_space sizes of all functions in this group.
+ * The position with dynamic shape or with multiple shapes is set to -1.
+ */
+std::vector<int64_t> CollectTempSpaceSizes(
+    const std::vector<ir::LoweredFunc>& funcs);
+
 }  // namespace pir
 }  // namespace framework
 }  // namespace hlir

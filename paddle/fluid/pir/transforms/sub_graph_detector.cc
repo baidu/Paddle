@@ -40,12 +40,15 @@
 #include "paddle/pir/include/pass/pass_registry.h"
 
 #include "paddle/common/flags.h"
+#include "paddle/common/macros.h"
 
 #ifdef PADDLE_WITH_DNNL
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/op_onednn_dialect.h"
 #include "paddle/fluid/pir/dialect/operator/trait/onednn.h"
 #endif
+
+REGISTER_FILE_SYMBOLS(sub_graph_detector);
 namespace pir {
 std::vector<pir::Operation*> InverselyTopologicalSort(pir::Block* block) {
   std::vector<pir::Operation*> sort_ops;
@@ -422,6 +425,9 @@ void SubgraphDetector::MergeSource2Target(const SubGraphPtr& source,
   VLOG(6) << "Merge source: " << source->DebugStr();
   VLOG(6) << "Merge target: " << target->DebugStr();
   target->Merge(source);
+  for (const auto& op : source->ops) {
+    op2subgraph_[op] = target;
+  }
   int max_index = std::max(source->topo_index, target->topo_index);
   int min_index = std::min(source->topo_index, target->topo_index);
   auto merged = target;
@@ -515,9 +521,6 @@ void SubgraphDetector::SubgraphFusion() {
       if (upstream == downstream || !upstream->substitute) continue;
       if (CanFuseUpstream2Downstream(upstream, downstream)) {
         MergeSource2Target(upstream, downstream);
-        for (auto upstream_op : upstream->ops) {
-          op2subgraph_[upstream_op] = downstream;
-        }
         VLOG(6) << "Merged subgraph: " << downstream->DebugStr();
       }
     }
@@ -534,9 +537,6 @@ void SubgraphDetector::SubgraphFusion() {
         if (brother == subgraph || !brother->substitute) continue;
         if (!HasRoute(subgraph, brother) && !HasRoute(brother, subgraph)) {
           MergeSource2Target(brother, subgraph);
-          for (auto brother_op : brother->ops) {
-            op2subgraph_[brother_op] = subgraph;
-          }
           VLOG(6) << "Merged subgraph: " << subgraph->DebugStr();
         }
       }

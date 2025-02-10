@@ -162,7 +162,7 @@ int32_t CoordinatorClient::StartClientService() {
   }
   uint32_t port_ = std::stol(port);
   int32_t rank_ = std::stoi(rank);
-  _env->RegisteCoordinatorClient(ip, port_, rank_);
+  _env->RegisterCoordinatorClient(ip, port_, rank_);
   VLOG(0) << "fl-ps > coordinator service addr: " << ip << ", " << port << ", "
           << _coordinator_id;
   return 0;

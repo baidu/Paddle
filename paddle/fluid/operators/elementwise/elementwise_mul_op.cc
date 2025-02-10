@@ -152,7 +152,7 @@ class ElementwiseMulCompositeDoubleGradOpMaker
     paddle::Tensor* x_grad = this->GetOutputPtr(&x_grad_t);
     paddle::Tensor* y_grad = this->GetOutputPtr(&y_grad_t);
     paddle::Tensor* grad_out_grad = this->GetOutputPtr(&grad_out_grad_t);
-    // get output orginal name
+    // get output original name
     std::string x_grad_name = this->GetOutputName(x_grad_t);
     std::string y_grad_name = this->GetOutputName(y_grad_t);
     std::string grad_out_grad_name = this->GetOutputName(grad_out_grad_t);

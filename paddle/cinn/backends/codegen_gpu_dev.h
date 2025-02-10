@@ -79,17 +79,21 @@ class CodeGenGpuDev : public CodeGenC {
  protected:
   void Visit(const ir::_Var_* op) override;
   void Visit(const ir::_LoweredFunc_* op) override;
-  void Visit(const ir::Free* op) override;
   void Visit(const ir::Min* op) override;
   void Visit(const ir::Max* op) override;
-  void Visit(const ir::Alloc* op) override;
   void Visit(const ir::Call* op) override;
   void Visit(const ir::Load* op) override;
-  void Visit(const ir::Store* op) override;
-  void Visit(const ir::Let* op) override;
+  void VisitStmt(const ir::stmt::Free& stmt) override;
+  void VisitStmt(const ir::stmt::Alloc& stmt) override;
+  void VisitStmt(const ir::stmt::Store& op) override;
+  void VisitStmt(const ir::stmt::Let& stmt) override;
 
   // Print element access at a cuda/hip built-in vector on a load/store node
   bool PrintBuiltinVectorAccess(const ir::LoadStoreAddrMnger* op,
+                                ir::Expr index,
+                                bool is_store);
+  // Print element access at a cuda/hip built-in vector on a store node
+  bool PrintBuiltinVectorAccess(const ir::stmt::Store& stmt,
                                 ir::Expr index,
                                 bool is_store);
 
@@ -101,7 +105,7 @@ class CodeGenGpuDev : public CodeGenC {
 
   void PrintTempBufferAliasDefinition(const ir::Buffer& buffer);
 
-  std::vector<Expr> GenerateBufferAliasExprs(
+  std::vector<ir::stmt::StmtRef> GenerateBufferAliasStmts(
       const ir::_LoweredFunc_* op, const std::vector<ir::Buffer>& temp_buffers);
 
   /**

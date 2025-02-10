@@ -30,7 +30,7 @@ TypeAdtTypeId GetTypeAdtTypeId(const pir::Type& type) {
   }
 #define RETURN_TYPE_TYPE_ID_IF_MATCH(cls) \
   if (type.isa<cls>()) return ::common::AdtTypeId<cls>{};
-  FOR_EACH_PIR_ALTERNATIVE_TYPLE(RETURN_TYPE_TYPE_ID_IF_MATCH)
+  FOR_EACH_PIR_ALTERNATIVE_TYPE(RETURN_TYPE_TYPE_ID_IF_MATCH)
 #undef RETURN_TYPE_TYPE_ID_IF_MATCH
   return ::common::AdtTypeId<UnclassifiedType>{};
 }

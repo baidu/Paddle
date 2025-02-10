@@ -49,9 +49,9 @@ enum MatmulFusedType {
   kMatmulRelu = 4,
   kMatmulBiasRelu = 5,
   kMatmulBiasGelu = 6,
-  kMatmulBiasReluWithReservedData = 7,  // unsupport on rocm
+  kMatmulBiasReluWithReservedData = 7,  // unsupported on rocm
   kMatmulBiasGeluWithReservedData = 8,
-  kMatmulReluGrad = 9,  // unsupport on rocm
+  kMatmulReluGrad = 9,  // unsupported on rocm
   kMatmulGeluGrad = 10,
   kMatmulBiasGradToA = 11,
   kMatmulBiasGradToB = 12

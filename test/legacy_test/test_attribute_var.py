@@ -138,7 +138,7 @@ class TestTileTensor(UnittestBase):
             self.assertEqual(infer_out.shape, (6, 6, 10))
 
 
-class TestRegiterSupportTensorInOpMaker(unittest.TestCase):
+class TestRegisterSupportTensorInOpMaker(unittest.TestCase):
     def setUp(self):
         self.all_protos = OpProtoHolder.instance()
         self.support_tensor_attrs = {

@@ -143,7 +143,7 @@ class ReshapeOp : public framework::OperatorWithKernel {
 
     for (size_t i = 0; i < shape.size(); ++i) {
       if (shape[i] == -1) {
-        // only one dimension can be set to -1, whose size will be infered.
+        // only one dimension can be set to -1, whose size will be inferred.
         PADDLE_ENFORCE_EQ(
             unk_dim_idx,
             -1,
@@ -331,7 +331,7 @@ to be copied from the corresponding dimension of Input(X).
 Note:
 
 1. One and only one dimension in Attr(shape) can be set -1. In this case,
-the actual dimension value will be infered from the total element number of
+the actual dimension value will be inferred from the total element number of
 Input(X) and remaining dimensions.
 
 2. More than one dimensions in Attr(shape) can be set to 0, which means the real

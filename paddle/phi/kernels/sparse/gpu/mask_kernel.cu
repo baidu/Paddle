@@ -360,19 +360,19 @@ void MaskAsCsrKernel(const Context& dev_ctx,
 }
 
 template <typename IntT>
-__global__ void MaskTable(const IntT* x_indexs,
+__global__ void MaskTable(const IntT* x_indices,
                           const int n,
                           int* index_flags,
                           int* table) {
   CUDA_KERNEL_LOOP_TYPE(i, n, int64_t) {
-    int index = x_indexs[i];
+    int index = x_indices[i];
     phi::funcs::sparse::SetBits(index, index_flags);
     table[index] = i;
   }
 }
 
 template <typename T, typename IntT, int VecSize>
-__global__ void MaskCopy(const IntT* mask_indexs,
+__global__ void MaskCopy(const IntT* mask_indices,
                          const int* index_flags,
                          const int* table,
                          const int n,
@@ -382,7 +382,7 @@ __global__ void MaskCopy(const IntT* mask_indexs,
   using LoadT = phi::AlignedVector<T, VecSize>;
   using StoreT = phi::AlignedVector<T, VecSize>;
   CUDA_KERNEL_LOOP_TYPE(i, n, int64_t) {
-    const int mask_index = mask_indexs[i];
+    const int mask_index = mask_indices[i];
     const bool flag = phi::funcs::sparse::TestBits(mask_index, index_flags);
     if (flag) {
       int j = table[mask_index];
@@ -410,22 +410,22 @@ void MaskHelperCooGPUKernel(const GPUContext& dev_ctx,
 
   std::vector<IntT> sparse_offsets(sparse_dim);
 
-  DenseTensorMeta x_indexs_meta(indices_dtype, {x.nnz()}, DataLayout::NCHW);
-  DenseTensorMeta mask_indexs_meta(
+  DenseTensorMeta x_indices_meta(indices_dtype, {x.nnz()}, DataLayout::NCHW);
+  DenseTensorMeta mask_indices_meta(
       indices_dtype, {mask_indices.dims()[1]}, DataLayout::NCHW);
   DenseTensorMeta sparse_offset_meta(
       indices_dtype, {sparse_dim}, DataLayout::NCHW);
 
-  DenseTensor x_indexs =
-      phi::Empty<GPUContext>(dev_ctx, std::move(x_indexs_meta));
-  DenseTensor mask_indexs =
-      phi::Empty<GPUContext>(dev_ctx, std::move(mask_indexs_meta));
+  DenseTensor x_indices =
+      phi::Empty<GPUContext>(dev_ctx, std::move(x_indices_meta));
+  DenseTensor mask_meta_indices =
+      phi::Empty<GPUContext>(dev_ctx, std::move(mask_indices_meta));
   DenseTensor bound_out =
-      phi::Empty<GPUContext>(dev_ctx, std::move(mask_indexs_meta));
+      phi::Empty<GPUContext>(dev_ctx, std::move(mask_indices_meta));
   DenseTensor d_sparse_offsets =
       phi::Empty<GPUContext>(dev_ctx, std::move(sparse_offset_meta));
-  IntT* x_indexs_ptr = x_indexs.data<IntT>();
-  IntT* mask_indexs_ptr = mask_indexs.data<IntT>();
+  IntT* x_indices_ptr = x_indices.data<IntT>();
+  IntT* mask_indices_ptr = mask_meta_indices.data<IntT>();
   IntT* bound_out_ptr = bound_out.data<IntT>();
 
   // 1. calc the offsets of per dim
@@ -440,28 +440,28 @@ void MaskHelperCooGPUKernel(const GPUContext& dev_ctx,
 
   // 3. flatten x indices and mask indices
   auto config =
-      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, x_indexs.numel(), 1);
+      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, x_indices.numel(), 1);
   phi::funcs::sparse::FlattenIndicesKernel<<<config.block_per_grid,
                                              config.thread_per_block,
                                              0,
                                              dev_ctx.stream()>>>(
       x.indices().data<IntT>(),
       d_sparse_offsets.data<IntT>(),
-      x_indexs.numel(),
+      x_indices.numel(),
       sparse_dim,
-      x_indexs_ptr);
+      x_indices_ptr);
 
-  config =
-      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, mask_indexs.numel(), 1);
+  config = phi::backends::gpu::GetGpuLaunchConfig1D(
+      dev_ctx, mask_meta_indices.numel(), 1);
   phi::funcs::sparse::FlattenIndicesKernel<<<config.block_per_grid,
                                              config.thread_per_block,
                                              0,
                                              dev_ctx.stream()>>>(
       mask_indices.data<IntT>(),
       d_sparse_offsets.data<IntT>(),
-      mask_indexs.numel(),
+      mask_meta_indices.numel(),
       sparse_dim,
-      mask_indexs_ptr);
+      mask_indices_ptr);
 
   int table_size = 1;
   auto x_dims = x.dims();
@@ -481,16 +481,16 @@ void MaskHelperCooGPUKernel(const GPUContext& dev_ctx,
   set_zero(dev_ctx, out, static_cast<T>(0));
   T* out_ptr = out->data<T>();
   config =
-      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, x_indexs.numel(), 1);
+      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, x_indices.numel(), 1);
   MaskTable<<<config.block_per_grid,
               config.thread_per_block,
               0,
-              dev_ctx.stream()>>>(x_indexs_ptr,
-                                  x_indexs.numel(),
+              dev_ctx.stream()>>>(x_indices_ptr,
+                                  x_indices.numel(),
                                   index_flags.data<int>(),
                                   table.data<int>());
-  config =
-      phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, mask_indexs.numel(), 1);
+  config = phi::backends::gpu::GetGpuLaunchConfig1D(
+      dev_ctx, mask_meta_indices.numel(), 1);
 
   const int VecBytes = 16;
   const int VecSize = VecBytes / sizeof(T);
@@ -498,10 +498,10 @@ void MaskHelperCooGPUKernel(const GPUContext& dev_ctx,
     MaskCopy<T, IntT, VecSize><<<config.block_per_grid,
                                  config.thread_per_block,
                                  0,
-                                 dev_ctx.stream()>>>(mask_indexs_ptr,
+                                 dev_ctx.stream()>>>(mask_indices_ptr,
                                                      index_flags.data<int>(),
                                                      table.data<int>(),
-                                                     mask_indexs.numel(),
+                                                     mask_meta_indices.numel(),
                                                      stride,
                                                      x.values().data<T>(),
                                                      out_ptr);
@@ -509,10 +509,10 @@ void MaskHelperCooGPUKernel(const GPUContext& dev_ctx,
     MaskCopy<T, IntT, 1><<<config.block_per_grid,
                            config.thread_per_block,
                            0,
-                           dev_ctx.stream()>>>(mask_indexs_ptr,
+                           dev_ctx.stream()>>>(mask_indices_ptr,
                                                index_flags.data<int>(),
                                                table.data<int>(),
-                                               mask_indexs.numel(),
+                                               mask_meta_indices.numel(),
                                                stride,
                                                x.values().data<T>(),
                                                out_ptr);

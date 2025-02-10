@@ -174,7 +174,7 @@ std::shared_ptr<DimTrans> make_split(const std::shared_ptr<DimTrans> dim,
 }
 
 // Given a `dim_trans` of an output axis, get the input axis
-// whose dim mapping should be propogated to it.
+// whose dim mapping should be propagated to it.
 // If the returned input axis is none, the output axis's
 // dim mapping should be set to -1 (replicated). For an axis
 // that is flattened from input axes, return the leftmost

@@ -587,7 +587,7 @@ std::vector<pir::Value> GetMinimalInputs(
     const std::vector<pir::Value>& input_tensors) {
   std::unordered_set<symbol::DimExpr> handled_dim_exprs;
   std::unordered_set<pir::Value> first_occurred_input_tensors;
-  auto TryCollectFirstOcurredInput_tensor =
+  auto TryCollectFirstOccurredInput_tensor =
       [&](pir::Value input_tensor,
           const std::vector<symbol::DimExpr>& dim_exprs) {
         for (const auto& dim_expr : dim_exprs) {
@@ -601,11 +601,11 @@ std::vector<pir::Value> GetMinimalInputs(
     const auto& shape_or_data_dim_exprs =
         ShapeOrDataDimExprs4Value(input_tensor);
     if (shape_or_data_dim_exprs.data().has_value()) {
-      TryCollectFirstOcurredInput_tensor(
+      TryCollectFirstOccurredInput_tensor(
           input_tensor, shape_or_data_dim_exprs.data().value());
     }
-    TryCollectFirstOcurredInput_tensor(input_tensor,
-                                       shape_or_data_dim_exprs.shape());
+    TryCollectFirstOccurredInput_tensor(input_tensor,
+                                        shape_or_data_dim_exprs.shape());
   }
   std::vector<pir::Value> ret{};
   ret.reserve(input_tensors.size());

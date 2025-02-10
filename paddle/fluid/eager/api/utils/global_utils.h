@@ -126,15 +126,23 @@ class Controller {
 
   void ClearFinalBackwardHooks() { final_backward_hooks_.clear(); }
 
-  void ClearForceSequentialNodes() {
-    while (!force_sequential_nodes_.empty()) {
-      force_sequential_nodes_.pop();
+  void ClearForceSequentialNodes() { force_sequential_nodes_.clear(); }
+  void PushBackForceSequentialNodes(GradNodeBase* node) {
+    force_sequential_nodes_.push_back(node);
+  }
+
+  void EraseForceSequentialNodes(GradNodeBase* node) {
+    for (auto iter = force_sequential_nodes_.begin();
+         iter != force_sequential_nodes_.end();
+         ++iter) {
+      if (*iter == node) {
+        force_sequential_nodes_.erase(iter);
+        return;
+      }
     }
   }
-  void PushBackForceSequentialNodes(GradNodeBase* node) {
-    force_sequential_nodes_.push(node);
-  }
-  std::queue<GradNodeBase*> GetForceSequentialNodes() {
+
+  std::list<GradNodeBase*> GetForceSequentialNodes() {
     return force_sequential_nodes_;
   }
 
@@ -153,7 +161,7 @@ class Controller {
                      std::vector<std::vector<std::unordered_map<int, int>>>>
       custom_edges_slot_map_;
   std::vector<std::shared_ptr<VoidHook>> final_backward_hooks_;
-  std::queue<GradNodeBase*> force_sequential_nodes_;
+  std::list<GradNodeBase*> force_sequential_nodes_;
   bool is_in_backward_{false};
   DISABLE_COPY_AND_ASSIGN(Controller);
 };

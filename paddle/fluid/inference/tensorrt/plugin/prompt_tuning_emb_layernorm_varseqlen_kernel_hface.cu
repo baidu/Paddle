@@ -98,7 +98,7 @@ __global__ void prompt_tuning_embKernel(int32_t B,
     }
     __syncthreads();
 
-    // 2. load pos/tok/word embeddings and add them toghether
+    // 2. load pos/tok/word embeddings and add them together
     // offset into embeddings is given by wordId * hidden_size
     int32_t const poffset = blockIdx.x * ld;
     int32_t const outoffset = out_seqPos * ld;

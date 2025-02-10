@@ -16,6 +16,7 @@
 
 #include "paddle/cinn/ir/ir.h"
 #include "paddle/cinn/ir/ir_base.h"
+#include "paddle/cinn/ir/stmt.h"
 #include "paddle/cinn/ir/tensor.h"
 
 namespace cinn {
@@ -23,7 +24,8 @@ namespace ast_gen_ius {
 
 class AstGen {
  public:
-  static ir::Expr Build(const ir::Tensor& tensor, TensorGroup* tensor_group);
+  static ir::stmt::StmtRef Build(const ir::Tensor& tensor,
+                                 TensorGroup* tensor_group);
 };
 
 }  // namespace ast_gen_ius

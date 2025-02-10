@@ -49,7 +49,7 @@ def all_reduce(
             should be float16, float32, float64, int32, int64, int8, uint8 or bool.
         op (ReduceOp.SUM|ReduceOp.MAX|ReduceOp.MIN|ReduceOp.PROD|ReduceOp.AVG, optional): The operation used. Default value is ReduceOp.SUM.
         group (Group|None, optional): The group instance return by new_group or None for global default group.
-        sync_op (bool, optional): Wether this op is a sync op. Default value is True.
+        sync_op (bool, optional): Whether this op is a sync op. Default value is True.
 
     Returns:
         Return a task object.

@@ -63,7 +63,7 @@ Developers only need to define `SourcePattern`, `Constraints` and `ResultPattern
 		<td> <pre> virtual void operator()(
         paddle::drr::DrrPatternContext* ctx) const </pre></td>
 		<td> Implement the entry function of DRR PASS </td>
-		<td> ctx: Context parameters required to create Patten</td>
+		<td> ctx: Context parameters required to create Pattern</td>
 	</tr>
 	<tr>
 		<td rowspan="6"> SourcePattern</td>

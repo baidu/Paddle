@@ -781,43 +781,43 @@ class TestFlashAttnPatternOutscaleNoCastNoMask(PassTest):
 )
 class TestTransposeSliceFlashAttnPattern(PassTest):
     r"""
-                 transpose
-                     |
-          -----------+----------
-          |          |           |
-        slice       slice      slice
-          |          |           |
-          Q          K           V
-          |          |           |
-          |       transpose      |
-          |          |           |
-          -- matmul--            |
-               |                 |
-             scale               |
-               |                 |
-     mask --- add                |
-               |                 |
-            softmax              |
-               |                 |
-               ------matmul------
-                       |
                    transpose
                        |
-                      out
+            -----------+----------
+            |          |           |
+          slice       slice      slice
+            |          |           |
+            Q          K           V
+            |          |           |
+            |       transpose      |
+            |          |           |
+            -- matmul--            |
+                 |                 |
+               scale               |
+                 |                 |
+       mask --- add                |
+                 |                 |
+              softmax              |
+                 |                 |
+                 ------matmul------
+                         |
+                     transpose
+                         |
+                        out
 
-            transpose
-                |
-          ------+------
-          |     |     |
-        slice slice slice
-          |     |     |
-          Q     K     V              mask
-          |     |     |               |
-    tranpose tranpose tranpose        |
-          |     |     |               |
-          -------flash_attn------------
-                    |
-                   out
+              transpose
+                  |
+            ------+------
+            |     |     |
+          slice slice slice
+            |     |     |
+            Q     K     V              mask
+            |     |     |               |
+    transpose transpose transpose       |
+            |     |     |               |
+            -------flash_attn------------
+                      |
+                     out
     """
 
     def is_program_valid(self, program=None):

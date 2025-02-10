@@ -903,7 +903,10 @@ class TestScatterInplaceAPI(TestScatterAPI):
         self.scatter = paddle.scatter_
 
 
-@unittest.skipIf(core.is_compiled_with_cuda(), "CUDA will not throw exception")
+@unittest.skipIf(
+    core.is_compiled_with_cuda() or core.is_compiled_with_xpu(),
+    "CUDA and XPU will not throw exception",
+)
 class TestScatterError(unittest.TestCase):
     def test_scatter_index(self):
         paddle.disable_static()

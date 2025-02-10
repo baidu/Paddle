@@ -20,7 +20,7 @@
 class FatalClass {
  public:
   FatalClass() {}
-  ~FatalClass() { PADDLE_FATAL("fatal occured in deconstructor!"); }
+  ~FatalClass() { PADDLE_FATAL("fatal occurred in deconstructor!"); }
 };
 
 void throw_exception_in_func() {
@@ -32,7 +32,7 @@ void terminate_in_func() { FatalClass test_case; }
 
 TEST(paddle_fatal_test, base) {
   EXPECT_FALSE(::common::enforce::IsPaddleFatalSkip());
-  EXPECT_DEATH(terminate_in_func(), "fatal occured in deconstructor!.*");
+  EXPECT_DEATH(terminate_in_func(), "fatal occurred in deconstructor!.*");
   EXPECT_THROW(throw_exception_in_func(), common::enforce::EnforceNotMet);
   EXPECT_FALSE(::common::enforce::IsPaddleFatalSkip());
   ::common::enforce::SkipPaddleFatal(true);

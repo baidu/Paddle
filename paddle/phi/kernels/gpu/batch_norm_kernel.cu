@@ -130,7 +130,7 @@ static __global__ LAUNCH_BOUNDS(BlockDim) void BNForwardTraining(
   int inner_size = N * HxW;
   typedef cub::BlockReduce<BatchNormParamType<T>, BlockDim> BlockReduce;
   __shared__ typename BlockReduce::TempStorage mean_storage;
-  __shared__ typename BlockReduce::TempStorage variance_storeage;
+  __shared__ typename BlockReduce::TempStorage variance_storage;
   __shared__ BatchNormParamType<T> mean_val;
   __shared__ BatchNormParamType<T> variance_val;
   __shared__ BatchNormParamType<T> inv_var_val;
@@ -149,7 +149,7 @@ static __global__ LAUNCH_BOUNDS(BlockDim) void BNForwardTraining(
     }
     x_sum = BlockReduce(mean_storage).Reduce(x_sum, cub::Sum());
     x_square_sum =
-        BlockReduce(variance_storeage).Reduce(x_square_sum, cub::Sum());
+        BlockReduce(variance_storage).Reduce(x_square_sum, cub::Sum());
     if (threadIdx.x == 0) {
       mean_val = x_sum / inner_size;
       variance_val = x_square_sum / inner_size - mean_val * mean_val;
@@ -247,12 +247,12 @@ static __global__ void BNForwardTraining2DChannelLastCompStat(
     }
 
     // vertical block sum
-    funcs::BlockReduceByVetical<T, BatchNormParamType<T>>(x_sum,
-                                                          x_square_sum,
-                                                          &smem_sum[0],
-                                                          &smem_square_sum[0],
-                                                          &x_sum,
-                                                          &x_square_sum);
+    funcs::BlockReduceByVertical<T, BatchNormParamType<T>>(x_sum,
+                                                           x_square_sum,
+                                                           &smem_sum[0],
+                                                           &smem_square_sum[0],
+                                                           &x_sum,
+                                                           &x_square_sum);
 
     if (gridDim.y > 1) {
       __shared__ bool is_last_block_done;

@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import itertools
-import os
 import unittest
 
 import numpy as np
 from op_test import OpTest
+from utils import dygraph_guard, static_guard
 
 import paddle
 from paddle import base, static
@@ -26,14 +26,14 @@ from paddle.base import core
 
 class TestQrOp(OpTest):
     def setUp(self):
-        paddle.enable_static()
-        self.python_api = paddle.linalg.qr
-        np.random.seed(7)
-        self.op_type = "qr"
-        a, q, r = self.get_input_and_output()
-        self.inputs = {"X": a}
-        self.attrs = {"mode": self.get_mode()}
-        self.outputs = {"Q": q, "R": r}
+        with static_guard():
+            self.python_api = paddle.linalg.qr
+            np.random.seed(7)
+            self.op_type = "qr"
+            a, q, r = self.get_input_and_output()
+            self.inputs = {"X": a}
+            self.attrs = {"mode": self.get_mode()}
+            self.outputs = {"Q": q, "R": r}
 
     def get_dtype(self):
         return "float64"
@@ -44,31 +44,20 @@ class TestQrOp(OpTest):
     def get_shape(self):
         return (11, 11)
 
+    def _get_places(self):
+        places = []
+        places.append(base.CPUPlace())
+        if core.is_compiled_with_cuda():
+            places.append(base.CUDAPlace(0))
+        return places
+
     def get_input_and_output(self):
         dtype = self.get_dtype()
         shape = self.get_shape()
         mode = self.get_mode()
         assert mode != "r", "Cannot be backward in r mode."
         a = np.random.rand(*shape).astype(dtype)
-        m = a.shape[-2]
-        n = a.shape[-1]
-        min_mn = min(m, n)
-        if mode == "reduced":
-            k = min_mn
-        else:
-            k = m
-        q_shape = list(a.shape[:-2])
-        q_shape.extend([m, k])
-        r_shape = list(a.shape[:-2])
-        r_shape.extend([k, n])
-        q = np.zeros(q_shape).astype(dtype)
-        r = np.zeros(r_shape).astype(dtype)
-        batch_size = a.size // (a.shape[-1] * a.shape[-2])
-        for i in range(batch_size):
-            coord = np.unravel_index(i, a.shape[:-2])
-            tmp_q, tmp_r = np.linalg.qr(a[coord], mode=mode)
-            q[coord] = tmp_q
-            r[coord] = tmp_r
+        q, r = np.linalg.qr(a, mode=mode)
         return a, q, r
 
     def test_check_output(self):
@@ -120,52 +109,88 @@ class TestQrOpCase6(TestQrOp):
         return (2, 10, 12)
 
 
+@unittest.skipIf(
+    core.is_compiled_with_xpu(),
+    "Skip XPU for complex dtype is not fully supported",
+)
+class TestQrOpcomplex(TestQrOp):
+    def get_input_and_output(self):
+        dtype = self.get_dtype()
+        shape = self.get_shape()
+        mode = self.get_mode()
+        assert mode != "r", "Cannot be backward in r mode."
+        a_real = np.random.rand(*shape).astype(dtype)
+        a_imag = np.random.rand(*shape).astype(dtype)
+        a = a_real + 1j * a_imag
+        q, r = np.linalg.qr(a, mode=mode)
+        return a, q, r
+
+
+@unittest.skipIf(
+    core.is_compiled_with_xpu(),
+    "Skip XPU for complex dtype is not fully supported",
+)
+class TestQrOpcomplexCase1(TestQrOpcomplex):
+    def get_shape(self):
+        return (16, 15)
+
+
+@unittest.skipIf(
+    core.is_compiled_with_xpu(),
+    "Skip XPU for complex dtype is not fully supported",
+)
+class TestQrOpcomplexCase2(TestQrOpcomplex):
+    def get_shape(self):
+        return (3, 16, 15)
+
+
+@unittest.skipIf(
+    core.is_compiled_with_xpu(),
+    "Skip XPU for complex dtype is not fully supported",
+)
+class TestQrOpcomplexCase3(TestQrOpcomplex):
+    def get_shape(self):
+        return (12, 15)
+
+
+@unittest.skipIf(
+    core.is_compiled_with_xpu(),
+    "Skip XPU for complex dtype is not fully supported",
+)
+class TestQrOpcomplexCase4(TestQrOpcomplex):
+    def get_shape(self):
+        return (3, 12, 15)
+
+
 class TestQrAPI(unittest.TestCase):
     def test_dygraph(self):
-        paddle.disable_static()
-        np.random.seed(7)
-
         def run_qr_dygraph(shape, mode, dtype):
             if dtype == "float32":
                 np_dtype = np.float32
             elif dtype == "float64":
                 np_dtype = np.float64
-            a = np.random.rand(*shape).astype(np_dtype)
-            m = a.shape[-2]
-            n = a.shape[-1]
-            min_mn = min(m, n)
-            if mode == "reduced" or mode == "r":
-                k = min_mn
+            elif dtype == "complex64":
+                np_dtype = np.complex64
+            elif dtype == "complex128":
+                np_dtype = np.complex128
+            if np.issubdtype(np_dtype, np.complexfloating):
+                a_dtype = np.float32 if np_dtype == np.complex64 else np.float64
+                a_real = np.random.rand(*shape).astype(a_dtype)
+                a_imag = np.random.rand(*shape).astype(a_dtype)
+                a = a_real + 1j * a_imag
             else:
-                k = m
-            np_q_shape = list(a.shape[:-2])
-            np_q_shape.extend([m, k])
-            np_r_shape = list(a.shape[:-2])
-            np_r_shape.extend([k, n])
-            np_q = np.zeros(np_q_shape).astype(np_dtype)
-            np_r = np.zeros(np_r_shape).astype(np_dtype)
+                a = np.random.rand(*shape).astype(np_dtype)
             places = []
-            if (
-                os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-                in ['1', 'true', 'on']
-                or not core.is_compiled_with_cuda()
-            ):
-                places.append(base.CPUPlace())
+            places.append('cpu')
             if core.is_compiled_with_cuda():
-                places.append(base.CUDAPlace(0))
+                places.append('gpu')
             for place in places:
-                batch_size = a.size // (a.shape[-1] * a.shape[-2])
-                for i in range(batch_size):
-                    coord = np.unravel_index(i, a.shape[:-2])
-                    if mode == "r":
-                        tmp_r = np.linalg.qr(a[coord], mode=mode)
-                        np_r[coord] = tmp_r
-                    else:
-                        tmp_q, tmp_r = np.linalg.qr(a[coord], mode=mode)
-                        np_q[coord] = tmp_q
-                        np_r[coord] = tmp_r
+                if mode == "r":
+                    np_r = np.linalg.qr(a, mode=mode)
+                else:
+                    np_q, np_r = np.linalg.qr(a, mode=mode)
 
-                x = paddle.to_tensor(a, dtype=dtype)
+                x = paddle.to_tensor(a, dtype=dtype, place=place)
                 if mode == "r":
                     r = paddle.linalg.qr(x, mode=mode)
                     np.testing.assert_allclose(r, np_r, rtol=1e-05, atol=1e-05)
@@ -174,74 +199,64 @@ class TestQrAPI(unittest.TestCase):
                     np.testing.assert_allclose(q, np_q, rtol=1e-05, atol=1e-05)
                     np.testing.assert_allclose(r, np_r, rtol=1e-05, atol=1e-05)
 
-        tensor_shapes = [
-            (3, 5),
-            (5, 5),
-            (5, 3),  # 2-dim Tensors
-            (2, 3, 5),
-            (3, 5, 5),
-            (4, 5, 3),  # 3-dim Tensors
-            (2, 5, 3, 5),
-            (3, 5, 5, 5),
-            (4, 5, 5, 3),  # 4-dim Tensors
-        ]
-        modes = ["reduced", "complete", "r"]
-        dtypes = ["float32", "float64"]
-        for tensor_shape, mode, dtype in itertools.product(
-            tensor_shapes, modes, dtypes
-        ):
-            run_qr_dygraph(tensor_shape, mode, dtype)
+        with dygraph_guard():
+            np.random.seed(7)
+            tensor_shapes = [
+                (0, 3),
+                (3, 5),
+                (5, 5),
+                (5, 3),  # 2-dim Tensors
+                (0, 3, 5),
+                (4, 0, 5),
+                (5, 4, 0),
+                (2, 3, 5),
+                (3, 5, 5),
+                (4, 5, 3),  # 3-dim Tensors
+                (0, 5, 3, 5),
+                (2, 5, 3, 5),
+                (3, 5, 5, 5),
+                (4, 5, 5, 3),  # 4-dim Tensors
+            ]
+            modes = ["reduced", "complete", "r"]
+            dtypes = ["float32", "float64", 'complex64', 'complex128']
+            for tensor_shape, mode, dtype in itertools.product(
+                tensor_shapes, modes, dtypes
+            ):
+                run_qr_dygraph(tensor_shape, mode, dtype)
 
     def test_static(self):
-        paddle.enable_static()
-        np.random.seed(7)
-
         def run_qr_static(shape, mode, dtype):
             if dtype == "float32":
                 np_dtype = np.float32
             elif dtype == "float64":
                 np_dtype = np.float64
-            a = np.random.rand(*shape).astype(np_dtype)
-            m = a.shape[-2]
-            n = a.shape[-1]
-            min_mn = min(m, n)
-            if mode == "reduced" or mode == "r":
-                k = min_mn
+            elif dtype == "complex64":
+                np_dtype = np.complex64
+            elif dtype == "complex128":
+                np_dtype = np.complex128
+            if np.issubdtype(np_dtype, np.complexfloating):
+                a_dtype = np.float32 if np_dtype == np.complex64 else np.float64
+                a_real = np.random.rand(*shape).astype(a_dtype)
+                a_imag = np.random.rand(*shape).astype(a_dtype)
+                a = a_real + 1j * a_imag
             else:
-                k = m
-            np_q_shape = list(a.shape[:-2])
-            np_q_shape.extend([m, k])
-            np_r_shape = list(a.shape[:-2])
-            np_r_shape.extend([k, n])
-            np_q = np.zeros(np_q_shape).astype(np_dtype)
-            np_r = np.zeros(np_r_shape).astype(np_dtype)
+                a = np.random.rand(*shape).astype(np_dtype)
             places = []
-            if (
-                os.environ.get('FLAGS_CI_both_cpu_and_gpu', 'False').lower()
-                in ['1', 'true', 'on']
-                or not core.is_compiled_with_cuda()
-            ):
-                places.append(base.CPUPlace())
+            places.append(paddle.CPUPlace())
             if core.is_compiled_with_cuda():
-                places.append(base.CUDAPlace(0))
+                places.append(paddle.CUDAPlace(0))
             for place in places:
                 with static.program_guard(static.Program(), static.Program()):
-                    batch_size = a.size // (a.shape[-1] * a.shape[-2])
-                    for i in range(batch_size):
-                        coord = np.unravel_index(i, a.shape[:-2])
-                        if mode == "r":
-                            tmp_r = np.linalg.qr(a[coord], mode=mode)
-                            np_r[coord] = tmp_r
-                        else:
-                            tmp_q, tmp_r = np.linalg.qr(a[coord], mode=mode)
-                            np_q[coord] = tmp_q
-                            np_r[coord] = tmp_r
+                    if mode == "r":
+                        np_r = np.linalg.qr(a, mode=mode)
+                    else:
+                        np_q, np_r = np.linalg.qr(a, mode=mode)
                     x = paddle.static.data(
                         name="input", shape=shape, dtype=dtype
                     )
                     if mode == "r":
                         r = paddle.linalg.qr(x, mode=mode)
-                        exe = base.Executor(place)
+                        exe = base.Executor(place=place)
                         fetches = exe.run(
                             feed={"input": a},
                             fetch_list=[r],
@@ -251,7 +266,7 @@ class TestQrAPI(unittest.TestCase):
                         )
                     else:
                         q, r = paddle.linalg.qr(x, mode=mode)
-                        exe = base.Executor(place)
+                        exe = base.Executor(place=place)
                         fetches = exe.run(
                             feed={"input": a},
                             fetch_list=[q, r],
@@ -263,23 +278,28 @@ class TestQrAPI(unittest.TestCase):
                             fetches[1], np_r, rtol=1e-05, atol=1e-05
                         )
 
-        tensor_shapes = [
-            (3, 5),
-            (5, 5),
-            (5, 3),  # 2-dim Tensors
-            (2, 3, 5),
-            (3, 5, 5),
-            (4, 5, 3),  # 3-dim Tensors
-            (2, 5, 3, 5),
-            (3, 5, 5, 5),
-            (4, 5, 5, 3),  # 4-dim Tensors
-        ]
-        modes = ["reduced", "complete", "r"]
-        dtypes = ["float32", "float64"]
-        for tensor_shape, mode, dtype in itertools.product(
-            tensor_shapes, modes, dtypes
-        ):
-            run_qr_static(tensor_shape, mode, dtype)
+        with static_guard():
+            np.random.seed(7)
+            tensor_shapes = [
+                (0, 3),
+                (3, 5),
+                (5, 5),
+                (5, 3),  # 2-dim Tensors
+                (0, 3, 5),
+                (4, 0, 5),
+                (5, 4, 0),
+                (4, 5, 3),  # 3-dim Tensors
+                (0, 5, 3, 5),
+                (2, 5, 3, 5),
+                (3, 5, 5, 5),
+                (4, 5, 5, 3),  # 4-dim Tensors
+            ]
+            modes = ["reduced", "complete", "r"]
+            dtypes = ["float32", "float64", 'complex64', 'complex128']
+            for tensor_shape, mode, dtype in itertools.product(
+                tensor_shapes, modes, dtypes
+            ):
+                run_qr_static(tensor_shape, mode, dtype)
 
 
 if __name__ == "__main__":

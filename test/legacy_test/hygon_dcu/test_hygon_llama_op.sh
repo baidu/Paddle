@@ -81,7 +81,7 @@ c_tests=(
     "test_squeeze2_op"
     # stack
     "test_stack_op"
-    # substract
+    # subtract
     "test_subtract_op"
     # transpose, transpose_grad
     "test_transpose_op"

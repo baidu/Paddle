@@ -33,6 +33,11 @@
 #include "paddle/cinn/optim/transform_polyfor_to_for.h"
 #include "paddle/cinn/poly/stage.h"
 
+using cinn::ir::stmt::BlockRef;
+using cinn::ir::stmt::Schedule;
+using cinn::ir::stmt::StmtRef;
+using cinn::ir::stmt::Store;
+
 namespace cinn {
 namespace lang {
 namespace detail {
@@ -56,12 +61,8 @@ std::vector<ir::LoweredFunc> LowerTensorGroup::operator()() {
   int num_func = 0;
 
   // 1. Generate function body
-  std::vector<ir::Expr> func_bodies = GenerateFunctionBody(tensor_group_);
-  for (ir::Expr& func_body : func_bodies) {
-    func_body = ir::ScheduleBlockRealize::Make(
-        {},
-        ir::ScheduleBlock::Make(
-            {}, {}, {}, cinn::common::UniqName("root"), func_body));
+  std::vector<BlockRef> func_bodies = GenerateFunctionBody(tensor_group_);
+  for (const BlockRef& func_body : func_bodies) {
     // 2. Assign buffer to tensors
     auto tensor_map = tensor_group_->AllocateBuffers();
     // copy the tensor(with buffer assigned) back to func's args.
@@ -93,26 +94,30 @@ std::vector<ir::LoweredFunc> LowerTensorGroup::operator()() {
     }
 
     // Some store tensors are also temp tensors;
-    auto store_exprs = ir::ir_utils::CollectIRNodes(
-        func_body, [](const Expr* x) { return x->As<ir::Store>(); });
-    for (auto& expr : store_exprs) {
-      auto* store_node = expr.As<ir::Store>();
-      PADDLE_ENFORCE_NOT_NULL(
-          store_node,
-          ::common::errors::InvalidArgument("store_node is nullptr"));
-      auto* tensor = store_node->tensor.As<ir::_Tensor_>();
-      PADDLE_ENFORCE_NOT_NULL(
-          tensor,
-          ::common::errors::InvalidArgument("Sorry,but store_node is nullptr"));
-      VLOG(3) << "In store_exprs, its name is : " << tensor->name;
-      PADDLE_ENFORCE_EQ(
-          tensor->buffer.defined(),
-          true,
-          ::common::errors::InvalidArgument("tensor->buffer is nullptr"));
-      if (tensor->buffer->memory_type != ir::MemoryType::Heap) {
-        temp_tensor_names.insert(store_node->tensor.as_tensor_ref()->name);
+    const auto& CollectTempTensorsInStore = [&](const StmtRef& stmt) {
+      if (stmt.isa<Store>()) {
+        const auto& store_stmt = stmt.as<Store>();
+        PADDLE_ENFORCE_EQ(store_stmt.defined(),
+                          true,
+                          ::common::errors::InvalidArgument(
+                              "store stmt should not be nullptr"));
+        auto* tensor = store_stmt->tensor().As<ir::_Tensor_>();
+        PADDLE_ENFORCE_NOT_NULL(
+            tensor,
+            ::common::errors::InvalidArgument(
+                "tensor of store stmt should not be nullptr"));
+        VLOG(3) << "In store stmt, its name is : " << tensor->name;
+        PADDLE_ENFORCE_EQ(
+            tensor->buffer.defined(),
+            true,
+            ::common::errors::InvalidArgument("tensor->buffer is nullptr"));
+        if (tensor->buffer->memory_type != ir::MemoryType::Heap) {
+          temp_tensor_names.insert(store_stmt->tensor().as_tensor_ref()->name);
+        }
       }
-    }
+    };
+    ir::stmt::Visit(
+        func_body, CollectTempTensorsInStore, [](const StmtRef& stmt) {});
 
     std::vector<ir::Buffer> temp_buffers;
     std::unordered_set<std::string> buffer_name_set;
@@ -143,22 +148,24 @@ std::vector<ir::LoweredFunc> LowerTensorGroup::operator()() {
     for (auto& i : temp_buffers) {
       VLOG(3) << "temp_buffers is : " << i->name;
     }
-    ir::LoweredFunc func = ir::_LoweredFunc_::Make(
-        actual_fn_name, func_args, func_body, temp_buffers);
 
-    // 6. Final clean up
-    optim::SimplifyBlocks(&func->body);
-    func->body = ir::Block::Make({func->body});
-    result.push_back(ir::LoweredFunc(func.get()));
+    // 6. Final wrap with schedule root
+    ir::LoweredFunc func = ir::_LoweredFunc_::Make(
+        actual_fn_name,
+        func_args,
+        BlockRef(std::vector<StmtRef>{Schedule(
+            {}, {}, {}, {}, cinn::common::UniqName("root"), func_body)}),
+        temp_buffers);
+    result.push_back(func);
     num_func++;
   }
   return result;
 }
 
 std::vector<ir::Argument> LowerTensorGroup::GenerateFunctionArgumentList(
-    Expr fn_body) {
+    const BlockRef& fn_body) {
   std::vector<ir::Argument> args;
-  auto teller = ir::ir_utils::CollectTensorNeedsWrite(&fn_body);
+  auto teller = ir::ir_utils::CollectTensorNeedsWrite(fn_body);
 
   std::set<std::string> arg_names;
 
@@ -216,13 +223,13 @@ std::vector<ir::Argument> LowerTensorGroup::GenerateFunctionArgumentList(
   return args;
 }
 
-std::vector<ir::Expr> LowerTensorGroup::GenerateFunctionBody(
+std::vector<BlockRef> LowerTensorGroup::GenerateFunctionBody(
     ast_gen_ius::TensorGroup* tensor_group) {
   // TODO(zhhsplendid): GetGenFuncTopoOrder() may remove args
   std::vector<ir::Tensor> ordered_tensors = tensor_group->GetGenFuncTopoOrder();
 
-  std::vector<ir::Expr> result;
-  std::vector<ir::Expr> bodies;
+  std::vector<BlockRef> result;
+  std::vector<StmtRef> bodies;
   for (const ir::Tensor& tensor : ordered_tensors) {
     VLOG(6) << "tensor_name = " << tensor->name;
     if (!tensor->is_placeholder_node() && tensor->has_expression()) {
@@ -236,15 +243,13 @@ std::vector<ir::Expr> LowerTensorGroup::GenerateFunctionBody(
       target_.arch.Match(
           [&](common::NVGPUArch) {
             if (!gpu_local) {
-              result.push_back(bodies.size() == 1 ? bodies[0]
-                                                  : ir::Block::Make(bodies));
+              result.push_back(BlockRef(bodies));
               bodies.clear();
             }
           },
           [&](std::variant<common::HygonDCUArchHIP, common::HygonDCUArchSYCL>) {
             if (!gpu_local) {
-              result.push_back(bodies.size() == 1 ? bodies[0]
-                                                  : ir::Block::Make(bodies));
+              result.push_back(BlockRef(bodies));
               bodies.clear();
             }
           },
@@ -255,7 +260,7 @@ std::vector<ir::Expr> LowerTensorGroup::GenerateFunctionBody(
   }
 
   if (!bodies.empty()) {
-    result.push_back(bodies.size() == 1 ? bodies[0] : ir::Block::Make(bodies));
+    result.push_back(BlockRef(bodies));
     bodies.clear();
   }
   return result;

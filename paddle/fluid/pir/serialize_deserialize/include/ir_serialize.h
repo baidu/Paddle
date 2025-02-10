@@ -48,7 +48,7 @@ class ProgramWriter {
   Json program_json;
 
   /** value_id_map is used to record the serialize id of pir::Value.
-   * which is used to serilize op's operands. */
+   * which is used to serialize op's operands. */
   std::map<pir::Value, int64_t> value_id_map;
 
   /** xxx_id_ is used to record current id of IR structure

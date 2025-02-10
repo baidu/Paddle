@@ -266,14 +266,13 @@ class XPUTestSigmoidCrossEntropyWithLogitsOp(XPUOpTestWrapper):
         def set_output(self):
             # Fw Pass is implemented as elementwise sigmoid followed by
             # elementwise logistic loss
-            # Label * -log(sigmoid(X)) + (1 - label) * -log(1 - sigmoid(X))
-            term1 = np.maximum(self.inputs['X'], 0)
-            term2 = self.inputs['X'] * self.inputs['Label']
-            term3 = (
-                np.log(1 + np.exp(-1 * np.abs(self.inputs['X'])))
-                * self.inputs['pos_weight']
+            max_val = np.clip(-self.inputs['X'], 0, np.finfo(np.float64).max)
+            term1 = (1 - self.inputs['Label']) * self.inputs['X']
+            term2 = np.log(
+                np.exp(-max_val) + np.exp(-self.inputs['X'] - max_val)
             )
-            self.outputs = {'Out': term1 - term2 + term3}
+            out = term1 + self.inputs['pos_weight'] * (term2 + max_val)
+            self.outputs = {'Out': out}
 
     class TestSigmoidCrossEntropyWithLogitsNorm(
         TestSigmoidCrossEntropyWithLogitsOp

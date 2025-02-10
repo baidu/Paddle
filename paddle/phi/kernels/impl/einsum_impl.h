@@ -45,16 +45,16 @@ inline static void ValidationCheck(const std::string& equation) {
                     common::errors::InvalidArgument(
                         "Required at least one `->` in equation of EinsumOp."));
   size_t pos;
-  auto trimed_equ = equation;
-  if ((pos = trimed_equ.find("->", 0)) != std::string::npos) {
-    trimed_equ.replace(pos, 2, "");
+  auto trimmed_equ = equation;
+  if ((pos = trimmed_equ.find("->", 0)) != std::string::npos) {
+    trimmed_equ.replace(pos, 2, "");
   }
   auto is_valid_char = [](char c) {
     if (c >= 'a' && c <= 'z') return true;
     if (c == ',') return true;
     return false;
   };
-  for (auto c : trimed_equ) {
+  for (auto c : trimmed_equ) {
     if (!is_valid_char(c))
       PADDLE_THROW(common::errors::InvalidArgument(
           "Found invalid char in equation. Einsum only accept `a`-`z` and `...`"

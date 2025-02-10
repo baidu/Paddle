@@ -55,25 +55,25 @@ TEST(CustomOp, Ctor) {
   std::vector<CustomSpmdInferTensorArg> infer_inputs = {inputs};
   std::vector<CustomSpmdInferAttrArg> attrs = {axis};
 
-  auto infered_dist_attrs = forward_spmd_func(infer_inputs, attrs);
+  auto inferred_dist_attrs = forward_spmd_func(infer_inputs, attrs);
   // list of tensor => single tensor
-  EXPECT_EQ(infered_dist_attrs.first.size(), static_cast<size_t>(1));
-  EXPECT_EQ(infered_dist_attrs.second.size(), static_cast<size_t>(1));
+  EXPECT_EQ(inferred_dist_attrs.first.size(), static_cast<size_t>(1));
+  EXPECT_EQ(inferred_dist_attrs.second.size(), static_cast<size_t>(1));
   EXPECT_TRUE(
       paddle::holds_alternative<std::vector<phi::distributed::TensorDistAttr>>(
-          infered_dist_attrs.first[0]));
+          inferred_dist_attrs.first[0]));
   EXPECT_TRUE(paddle::holds_alternative<phi::distributed::TensorDistAttr>(
-      infered_dist_attrs.second[0]));
+      inferred_dist_attrs.second[0]));
   auto& inputs_infer1 =
       PADDLE_GET_CONST(std::vector<phi::distributed::TensorDistAttr>,
-                       infered_dist_attrs.first[0]);
+                       inferred_dist_attrs.first[0]);
 
   for (auto e : inputs_infer1) {
     check_dim_mapping(e, {-1, 1, 0});
     check_partial_dims(e, {});
   }
-  check_dim_mapping(infered_dist_attrs.second[0], {-1, 1, 0});
-  check_partial_dims(infered_dist_attrs.second[0], {});
+  check_dim_mapping(inferred_dist_attrs.second[0], {-1, 1, 0});
+  check_partial_dims(inferred_dist_attrs.second[0], {});
 }
 
 TEST(CustomOp, Register) {

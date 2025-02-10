@@ -55,25 +55,25 @@ class TestAddNSPMDRule(unittest.TestCase):
         )
         self.y_dist_tensor_spec.set_dims_mapping([0, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(
+        inferred_dist_attr = self.rule1.infer_forward(
             [self.x_dist_tensor_spec, self.y_dist_tensor_spec]
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_input_dist_attr[0]), 2)
-        self.assertEqual(len(infered_output_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr[0]), 2)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
         self.assertEqual(
-            infered_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
         )
         self.assertEqual(
-            infered_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
         )
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [0, -1, -1])
 
         # [0, -1, -1], [-1, -1, -1] (x, y) partial_dim=[1] -->
         # [0, -1, -1], [0, -1, -1]  (x, y) partial_dim=[1]
@@ -89,33 +89,33 @@ class TestAddNSPMDRule(unittest.TestCase):
         )
         self.y_dist_tensor_spec.set_dims_mapping([-1, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(
+        inferred_dist_attr = self.rule1.infer_forward(
             [self.x_dist_tensor_spec, self.y_dist_tensor_spec]
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_input_dist_attr[0]), 2)
-        self.assertEqual(len(infered_output_dist_attr), 1)
-
-        self.assertEqual(
-            infered_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
-        )
-        self.assertEqual(infered_input_dist_attr[0][0]._is_partial(), True)
-        self.assertEqual(infered_input_dist_attr[0][0]._partial_dims(), {1})
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr[0]), 2)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
         self.assertEqual(
-            infered_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
         )
-        self.assertEqual(infered_input_dist_attr[0][1]._is_partial(), True)
-        self.assertEqual(infered_input_dist_attr[0][1]._partial_dims(), {1})
+        self.assertEqual(inferred_input_dist_attr[0][0]._is_partial(), True)
+        self.assertEqual(inferred_input_dist_attr[0][0]._partial_dims(), {1})
 
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0]._is_partial(), True)
-        self.assertEqual(infered_output_dist_attr[0]._partial_dims(), {1})
+        self.assertEqual(
+            inferred_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(inferred_input_dist_attr[0][1]._is_partial(), True)
+        self.assertEqual(inferred_input_dist_attr[0][1]._partial_dims(), {1})
+
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0]._is_partial(), True)
+        self.assertEqual(inferred_output_dist_attr[0]._partial_dims(), {1})
 
         # [0, -1, -1] partial_dim=[0], [-1, -1, -1]partial_dim=[1] (x,y)  -->
         # [0, -1, -1], [0, -1, -1] (x, y)
@@ -134,30 +134,30 @@ class TestAddNSPMDRule(unittest.TestCase):
         )
         self.y_dist_tensor_spec.set_dims_mapping([-1, -1, -1])
 
-        infered_dist_attr = self.rule1.infer_forward(
+        inferred_dist_attr = self.rule1.infer_forward(
             [self.x_dist_tensor_spec, self.y_dist_tensor_spec]
         )
 
-        self.assertEqual(len(infered_dist_attr), 2)
-        infered_input_dist_attr = infered_dist_attr[0]
-        infered_output_dist_attr = infered_dist_attr[1]
+        self.assertEqual(len(inferred_dist_attr), 2)
+        inferred_input_dist_attr = inferred_dist_attr[0]
+        inferred_output_dist_attr = inferred_dist_attr[1]
 
-        self.assertEqual(len(infered_input_dist_attr), 1)
-        self.assertEqual(len(infered_input_dist_attr[0]), 2)
-        self.assertEqual(len(infered_output_dist_attr), 1)
-
-        self.assertEqual(
-            infered_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
-        )
-        self.assertEqual(infered_input_dist_attr[0][0]._is_partial(), False)
+        self.assertEqual(len(inferred_input_dist_attr), 1)
+        self.assertEqual(len(inferred_input_dist_attr[0]), 2)
+        self.assertEqual(len(inferred_output_dist_attr), 1)
 
         self.assertEqual(
-            infered_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
+            inferred_input_dist_attr[0][0].dims_mapping, [0, -1, -1]
         )
-        self.assertEqual(infered_input_dist_attr[0][1]._is_partial(), False)
+        self.assertEqual(inferred_input_dist_attr[0][0]._is_partial(), False)
 
-        self.assertEqual(infered_output_dist_attr[0].dims_mapping, [0, -1, -1])
-        self.assertEqual(infered_output_dist_attr[0]._is_partial(), False)
+        self.assertEqual(
+            inferred_input_dist_attr[0][1].dims_mapping, [0, -1, -1]
+        )
+        self.assertEqual(inferred_input_dist_attr[0][1]._is_partial(), False)
+
+        self.assertEqual(inferred_output_dist_attr[0].dims_mapping, [0, -1, -1])
+        self.assertEqual(inferred_output_dist_attr[0]._is_partial(), False)
 
 
 if __name__ == "__main__":

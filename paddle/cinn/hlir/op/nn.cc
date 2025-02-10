@@ -1152,7 +1152,7 @@ std::shared_ptr<OpStrategy> StrategyForPool2d(
         args.empty(),
         false,
         ::common::errors::NotFound(
-            "The input argument of pool1d scheule is empty! Please check."));
+            "The input argument of pool1d schedule is empty! Please check."));
     CINNValuePack arg_pack = args[0];
     std::vector<Expr> vec_ast;
     std::vector<Expr> vec_tensor;

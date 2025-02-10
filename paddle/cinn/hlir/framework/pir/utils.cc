@@ -233,6 +233,26 @@ bool HaveUnkDim(const ::pir::Operation& op) {
   return false;
 }
 
+bool HasDynamicRank(const ::pir::Operation& op) {
+  for (size_t i = 0; i < op.num_operands(); i++) {
+    ::pir::Value value = op.operand_source(i);
+    if (value.type().isa<::pir::DenseTensorType>()) {
+      if (value.type().dyn_cast<::pir::DenseTensorType>().dims().size() == -1) {
+        return true;
+      }
+    }
+  }
+  for (size_t i = 0; i < op.num_results(); i++) {
+    ::pir::Value value = op.result(i);
+    if (value.type().isa<::pir::DenseTensorType>()) {
+      if (value.type().dyn_cast<::pir::DenseTensorType>().dims().size() == -1) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 bool AllInputDenseTensor(const ::pir::Operation& op) {
   for (size_t i = 0; i < op.num_operands(); ++i) {
     auto value = op.operand_source(i);
@@ -294,6 +314,12 @@ bool IsDeniedInCinn(const ::pir::Operation& op) {
   if (!AllInputDenseTensor(op) || UnimplementOps(op)) {
     VLOG(5) << "Found " << op.name()
             << " UnimplementOps or NotAllInputDenseTensor. "
+            << "So mark IsDeniedForCinn: " << true;
+    return true;
+  }
+  if (HasDynamicRank(op)) {
+    VLOG(5) << "Found " << op.name()
+            << " has dynamic rank in operand or result value. "
             << "So mark IsDeniedForCinn: " << true;
     return true;
   }

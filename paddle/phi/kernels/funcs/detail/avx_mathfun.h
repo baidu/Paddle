@@ -279,7 +279,7 @@ v8sf exp256_ps(v8sf x) {
 
   tmp = _mm256_floor_ps(fx);
 
-  /* if greater, substract 1 */
+  /* if greater, subtract 1 */
   // v8sf mask = _mm256_cmpgt_ps(tmp, fx);
   v8sf mask = _mm256_cmp_ps(tmp, fx, _CMP_GT_OS);
   mask = _mm256_and_ps(mask, one);
@@ -331,7 +331,7 @@ _PS256_CONST(coscof_p1, -1.388731625493765E-003);
 _PS256_CONST(coscof_p2, 4.166664568298827E-002);
 _PS256_CONST(cephes_FOPI, 1.27323954473516);  // 4 / M_PI
 
-/* evaluation of 8 sines at onces using AVX intrisics
+/* evaluation of 8 sines at once using AVX intrinsics
 
    The code is the exact rewriting of the cephes sinf function.
    Precision is excellent as long as x < 8192 (I did not bother to

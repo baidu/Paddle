@@ -1315,37 +1315,37 @@ std::vector<size_t> DependencyBuilderSimplify::get_new_executor_order() {
   std::vector<size_t> adam_vector;
   std::priority_queue<std::pair<size_t, size_t>> adam_pq;
   const std::string push_op = "push";
-  std::vector<bool> usefull_op(op_num_, false);
+  std::vector<bool> useful_op(op_num_, false);
   for (size_t i = start_index_; i < op_num_; i++) {
     int op_role = _ops_ptr->at(i)->Attr<int>("op_role");
     std::string op_name = _ops_ptr->at(i)->Type();
     if (op_role == static_cast<int>(OpRole::kOptimize) ||
         op_name.find(push_op) != std::string::npos) {
       adam_vector.push_back(i);
-      usefull_op[i] = true;
+      useful_op[i] = true;
       adam_pq.push(std::make_pair(-op_before_num[i], i));
     }
   }
   for (size_t i = start_index_; i < op_num_; i++) {
     for (auto j : adam_vector)
       if (op_happens_before_[i][j]) {
-        usefull_op[i] = true;
+        useful_op[i] = true;
         break;
       }
   }
-  std::set<size_t> not_usefull_op;
+  std::set<size_t> not_useful_op;
   for (size_t i = start_index_; i < op_num_; i++) {
-    if (usefull_op[i] == false) {
-      not_usefull_op.insert(i);
+    if (useful_op[i] == false) {
+      not_useful_op.insert(i);
       if (FLAGS_enable_dependency_builder_debug_info) {
-        VLOG(0) << "not usefull op " << _ops_ptr->at(i)->Type() << "_" << i;
+        VLOG(0) << "not useful op " << _ops_ptr->at(i)->Type() << "_" << i;
       }
     }
   }
   for (auto del_op : del_c_sync_comm_list) {
-    if (not_usefull_op.count(del_op) == 0) {
+    if (not_useful_op.count(del_op) == 0) {
       if (FLAGS_enable_dependency_builder_debug_info) {
-        VLOG(0) << " error " << del_op << " not in usefull_op";
+        VLOG(0) << " error " << del_op << " not in useful_op";
       }
     }
   }
@@ -1379,14 +1379,14 @@ std::vector<size_t> DependencyBuilderSimplify::get_new_executor_order() {
     auto current = s.top();
     s.pop();
     if (is_visit[current] == false) {
-      if (!not_usefull_op.count(current)) {
+      if (!not_useful_op.count(current)) {
         new_order.push_back(current);
       }
       is_visit[current] = true;
       for (auto it = op_downstream_map_[current].rbegin();
            it != op_downstream_map_[current].rend();
            it++) {
-        if (--dependency_count[*it] == 0 && !not_usefull_op.count(current)) {
+        if (--dependency_count[*it] == 0 && !not_useful_op.count(current)) {
           pq.push(std::make_pair(op_behind_num[*it], *it));
           // s.push(*it);
         }
@@ -1401,7 +1401,7 @@ std::vector<size_t> DependencyBuilderSimplify::get_new_executor_order() {
 
   PADDLE_ENFORCE_EQ(
       new_order.size(),
-      op_num_ - not_usefull_op.size(),
+      op_num_ - not_useful_op.size(),
       common::errors::AlreadyExists("new_order size not equal op num"));
   if (FLAGS_enable_dependency_builder_debug_info) {
     std::stringstream ss;

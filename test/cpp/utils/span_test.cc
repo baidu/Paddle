@@ -996,7 +996,7 @@ TEST(iterator, span) {
     PADDLE_ENFORCE_EQ(
         std::is_sorted(vec.cbegin(), vec.cend()),
         true,
-        common::errors::Fatal("Varible `vec` should be sorted, please check"));
+        common::errors::Fatal("Variable `vec` should be sorted, please check"));
   }
 
   {
@@ -1006,7 +1006,7 @@ TEST(iterator, span) {
         std::equal(s.rbegin(), s.rend(), vec.crbegin()),
         true,
         common::errors::Fatal(
-            "Varible `s` is not equal to its self by using rbegin(), rend() "
+            "Variable `s` is not equal to its self by using rbegin(), rend() "
             "and crbegin() with std::equal, please check related function"));
   }
 }

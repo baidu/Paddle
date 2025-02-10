@@ -119,7 +119,7 @@
   infer_meta :
     func : EmbeddingInferMeta
     param : [x, weight, padding_idx]
-    spmd_rule: EmbeddingInferSpmdUnsupportVocabParallel
+    spmd_rule: EmbeddingInferSpmdUnsupportedVocabParallel
   kernel :
     func : embedding {dense, dense -> dense}
            sparse_weight_embedding {dense, selected_rows -> dense}

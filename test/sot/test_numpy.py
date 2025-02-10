@@ -31,6 +31,10 @@ def tensor_add_numpy(x, y):
     return ret
 
 
+def large_numpy_array_to_tensor(x):
+    return paddle.to_tensor(x)
+
+
 class TestNumpy(TestCaseBase):
     @strict_mode_guard(False)
     def test_numpy_add(self):
@@ -50,6 +54,12 @@ class TestNumpy(TestCaseBase):
         y = np.array(2.0)
         self.assert_results(tensor_add_numpy, x, y)
         self.assert_results(tensor_add_numpy, y, x)
+
+    def test_large_numpy_array_to_tensor(self):
+        # size should be larger than 1024*1024, because we throw an exception
+        # when the size is larger than 1024*1024 in assign API (to_tensor static branch)
+        x = np.random.rand(1024, 1024, 2).astype(np.float32)
+        self.assert_results(large_numpy_array_to_tensor, x)
 
 
 if __name__ == "__main__":

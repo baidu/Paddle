@@ -45,8 +45,8 @@ if __name__ == '__main__':
     if not os.path.exists('./train_data'):
         os.system('sh download_data.sh')
         os.system('rm -rf ctr_data.tar.gz')
-        os.sysyem('rm -rf train_data_full')
-        os.sysyem('rm -rf test_data_full')
+        os.system('rm -rf train_data_full')
+        os.system('rm -rf test_data_full')
     unittest.main()
     if os.path.exists('./train_data'):
         os.system('rm -rf train_data')

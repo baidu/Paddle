@@ -5,8 +5,16 @@ on:
     branches: [ "develop" ]
 
 jobs:
+  check-bypass:
+    uses: ./.github/workflows/check-bypass.yml
+    with:
+      workflow-name: 'codestyle'
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
   pre-commit:
-    if: github.repository_owner == 'PaddlePaddle'
+    needs: check-bypass
+    if: ${{ github.repository_owner == 'PaddlePaddle' && needs.check-bypass.outputs.can-skip != 'true' }}
     runs-on: ubuntu-latest
     env:
       PR_ID: ${{ github.event.pull_request.number }}
@@ -19,7 +27,7 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 1000
 
-      - name: Merge pr
+      - name: Merge PR to test branch
         run: |
           git fetch origin pull/${PR_ID}/merge
           git checkout -b test FETCH_HEAD
@@ -33,7 +41,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pre-commit==2.17.0 cpplint==1.6.0  clang-format==13.0.0
-
 
       - name: Check pre-commit
         env:

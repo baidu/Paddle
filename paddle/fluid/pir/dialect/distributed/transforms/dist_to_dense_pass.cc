@@ -165,8 +165,14 @@ void ProcessDistBlock(pir::Block* block) {
 
     int64_t chunk_id = -1;
     if (op_item->HasAttribute(kAttrOpDistAttr)) {
-      chunk_id = op_item->attribute<OperationDistAttribute>(kAttrOpDistAttr)
-                     .chunk_id();
+      if (op_item->HasAttribute("chunk_id")) {
+        chunk_id = op_item->attribute("chunk_id")
+                       .dyn_cast<pir::Int32Attribute>()
+                       .data();
+      } else {
+        chunk_id = op_item->attribute<OperationDistAttribute>(kAttrOpDistAttr)
+                       .chunk_id();
+      }
       op_item->erase_attribute(kAttrOpDistAttr);
     }
     op_item->set_attribute("chunk_id", pir::Int32Attribute::get(ctx, chunk_id));

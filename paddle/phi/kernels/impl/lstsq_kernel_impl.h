@@ -26,6 +26,13 @@
 
 #if defined(PADDLE_WITH_CUDA)
 #include "paddle/phi/backends/dynload/cusolver.h"
+#endif
+
+#if defined(PADDLE_WITH_HIP)
+#include "paddle/phi/backends/dynload/rocsolver.h"
+#endif
+
+#if defined(PADDLE_WITH_CUDA) || defined(PADDLE_WITH_HIP)
 #include "paddle/phi/backends/gpu/gpu_context.h"
 #endif
 
@@ -82,6 +89,64 @@ inline void GetResidualsTensor(const DeviceContext& dev_ctx,
   }
 }
 
+#ifdef PADDLE_WITH_HIP
+template <typename DeviceContext, typename T>
+inline void BatchedOrmqr(const DeviceContext& dev_ctx,
+                         bool left,
+                         bool transpose,
+                         int batch_size,
+                         int m,
+                         int n,
+                         int k,
+                         T* a,
+                         int a_stride,
+                         T* tau,
+                         int tau_stride,
+                         T* other,
+                         int other_stride);
+
+#define FUNC_WITH_TYPES(m) m(float, s) m(double, d)
+#define ORMQR_BATCH_INSTANCE(T, C)                                        \
+  template <>                                                             \
+  inline void BatchedOrmqr<GPUContext, T>(const GPUContext& dev_ctx,      \
+                                          bool left,                      \
+                                          bool transpose,                 \
+                                          int batch_size,                 \
+                                          int m,                          \
+                                          int n,                          \
+                                          int k,                          \
+                                          T* a,                           \
+                                          int a_stride,                   \
+                                          T* tau,                         \
+                                          int tau_stride,                 \
+                                          T* other,                       \
+                                          int other_stride) {             \
+    auto side = left ? rocblas_side_left : rocblas_side_right;            \
+    auto trans =                                                          \
+        transpose ? rocblas_operation_transpose : rocblas_operation_none; \
+    int lda = std::max<int>(1, left ? m : n);                             \
+    int ldc = std::max<int>(1, m);                                        \
+    auto handle = dev_ctx.cusolver_dn_handle();                           \
+    for (int i = 0; i < batch_size; ++i) {                                \
+      T* a_working_ptr = &a[i * a_stride];                                \
+      T* tau_working_ptr = &tau[i * tau_stride];                          \
+      T* other_working_ptr = &other[i * other_stride];                    \
+      PADDLE_ENFORCE_GPU_SUCCESS(                                         \
+          phi::dynload::rocsolver_##C##ormqr(handle,                      \
+                                             side,                        \
+                                             trans,                       \
+                                             m,                           \
+                                             n,                           \
+                                             k,                           \
+                                             a_working_ptr,               \
+                                             lda,                         \
+                                             tau_working_ptr,             \
+                                             other_working_ptr,           \
+                                             ldc));                       \
+    }                                                                     \
+  }
+FUNC_WITH_TYPES(ORMQR_BATCH_INSTANCE);
+#endif
 #if defined(PADDLE_WITH_CUDA)
 template <typename DeviceContext, typename T>
 inline void BatchedOrmqr(const DeviceContext& dev_ctx,
