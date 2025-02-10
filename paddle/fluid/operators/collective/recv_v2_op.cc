@@ -110,13 +110,3 @@ Reference: https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/p2p.h
 namespace ops = paddle::operators;
 
 REGISTER_OP_WITHOUT_GRADIENT(recv_v2, ops::RecvOpV2, ops::RecvOpV2Maker);
-
-PD_REGISTER_STRUCT_KERNEL(recv_v2,
-                          CPU,
-                          ALL_LAYOUT,
-                          ops::RecvOpV2CPUKernel,
-                          float,
-                          double,
-                          int,
-                          int64_t,
-                          phi::dtype::float16) {}
