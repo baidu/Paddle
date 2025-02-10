@@ -775,7 +775,9 @@ void GraphToProgram(const Graph &graph,
       } else {
         block = program_pb.add_blocks();
         block->set_idx(idx);  // NOLINT
-        block->set_parent_idx(kRootBlockIndex);
+        block->set_parent_idx(graph.OriginProgram()
+                                  .Block(graph.GetSubGraph(idx)->GetBlockId())
+                                  .Parent());
       }
 
       GraphToBlock(*graph.GetSubGraph(idx),
