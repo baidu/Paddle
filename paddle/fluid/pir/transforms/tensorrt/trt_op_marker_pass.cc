@@ -968,6 +968,7 @@ class FlattenOpPattern
     return true;
   }
 };
+
 class CastOpPattern : public pir::OpRewritePattern<paddle::dialect::CastOp> {
  public:
   using pir::OpRewritePattern<paddle::dialect::CastOp>::OpRewritePattern;
@@ -989,6 +990,59 @@ class CastOpPattern : public pir::OpRewritePattern<paddle::dialect::CastOp> {
           << "the cast op supports inputs and outputs of BOOL by trt8.4 above ";
       return false;
 #endif
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
+
+class PadOpPattern : public pir::OpRewritePattern<paddle::dialect::PadOp> {
+ public:
+  using pir::OpRewritePattern<paddle::dialect::PadOp>::OpRewritePattern;
+
+  bool MatchAndRewrite(paddle::dialect::PadOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op->attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+    pir::Value pad_value_tensor = op.operand_source(1);
+    if (!op->HasAttribute("paddings") || !pad_value_tensor) {
+      VLOG(3) << "PadOp must has 'paddings' and 'pad_value'.";
+      return false;
+    }
+    if (pir::GetDefiningOpForInput(op, 1)->isa<paddle::dialect::FullOp>()) {
+      paddle::dialect::FullOp full_op =
+          pir::GetDefiningOpForInput(op, 1)
+              ->dyn_cast<paddle::dialect::FullOp>();
+      auto pad_value =
+          full_op->attribute<paddle::dialect::ScalarAttribute>("value")
+              .data()
+              .to<float>();
+      if (pad_value != 0.0f) {
+        VLOG(3) << "The pad layer of TRT only support zero.";
+        return false;
+      }
+    }
+    auto paddings_attr = op->attribute<pir::ArrayAttribute>("paddings");
+    std::vector<int> paddings;
+    for (const auto &attr : paddings_attr.AsVector()) {
+      paddings.push_back(attr.dyn_cast<pir::Int32Attribute>().data());
+    }
+    int pad_size = paddings.size();
+    pir::Value x = op.operand_source(0);
+    auto x_type = x.type().dyn_cast<paddle::dialect::DenseTensorType>();
+    auto input_shape = x_type.dims();
+    int nbDims = input_shape.size();
+    if (nbDims < 2 || nbDims * 2 != pad_size) {
+      VLOG(3) << "The paddings size is invalid for the input dimensions.";
+      return false;
+    }
+    for (int i = 0; i < pad_size - 4; i++) {
+      if (paddings[i] != 0) {
+        VLOG(3) << "Only the last two dimensions can have non-zero paddings.";
+        return false;
+      }
     }
     op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
     return true;
@@ -2603,6 +2657,7 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<TanhOpPattern>(context));
     ps.Add(std::make_unique<CeluOpPattern>(context));
     ps.Add(std::make_unique<OneHotOpPattern>(context));
+    ps.Add(std::make_unique<PadOpPattern>(context));
     ps.Add(std::make_unique<TemporalShiftOpPattern>(context));
     ps.Add(std::make_unique<InstanceNormOpPattern>(context));
     ps.Add(std::make_unique<EinsumOpPattern>(context));
