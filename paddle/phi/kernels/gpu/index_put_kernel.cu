@@ -95,6 +95,8 @@ void LaunchIndexPutCudaKernel(const Context& dev_ctx,
       funcs::GetDevicePointerArray<int64_t, Context>(dev_ctx, indices, &holder);
 
   auto config = phi::backends::gpu::GetGpuLaunchConfig1D(dev_ctx, numel);
+  PADDLE_ENFORCE_GPU_SUCCESS(cudaGetLastError());
+  std::cout << "before launch kernel" << std::endl;
   IndexPutCudaKernel<T>
       <<<config.block_per_grid, config.thread_per_block, 0, dev_ctx.stream()>>>(
           x_data,
@@ -107,6 +109,9 @@ void LaunchIndexPutCudaKernel(const Context& dev_ctx,
           is_single_val_tensor,
           accumulate,
           out_data);
+  std::cout << "after launch kernel" << std::endl;
+  PADDLE_ENFORCE_GPU_SUCCESS(cudaGetLastError());   // invalid configuration argument
+  std::cout << "cudaGetLastError" << std::endl;
 }
 
 template <typename T, typename Context>
@@ -116,6 +121,15 @@ void IndexPutKernel(const Context& dev_ctx,
                     const DenseTensor& value,
                     bool accumulate,
                     DenseTensor* out) {
+  std::cout << "IndexPutKernel" << std::endl;
+  std::cout << "x.dims() = " << x.dims() << std::endl;
+  std::cout << "value.dims() = " << value.dims() << std::endl;
+  std::cout << "out.dims() = " << out->dims() << std::endl;
+  for (auto t : indices) {
+    if (t) {
+      std::cout << "t.dims() = " << t->dims() << std::endl;
+    }
+  }
   PADDLE_ENFORCE_EQ(
       x.dtype(),
       value.dtype(),
