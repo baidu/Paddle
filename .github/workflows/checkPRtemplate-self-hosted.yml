@@ -1,0 +1,28 @@
+name: Clone
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+
+permissions:
+  contents: read
+
+jobs:
+  Clone:
+    # Don't run on forked repos.
+    if: github.repository_owner == 'PaddlePaddle'
+    runs-on: ubuntu-latest
+    env:
+      PR_ID: ${{ github.event.pull_request.number }}
+      COMMIT_ID: ${{ github.event.pull_request.head.sha }}
+      BRANCH: develop
+    steps:
+    - name: Push paddle-action.tar.gz to bos
+      env:
+        AK: ${{ secrets.AK }}
+        SK: ${{ secrets.SK }}
+        gh_token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        pwd
+        echo $gh_token
+        echo "hh"
