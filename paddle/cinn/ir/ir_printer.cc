@@ -66,8 +66,8 @@ void IrPrinter::Print(const ir::LoweredFunc &fn) {
 
 void IrPrinter::Visit(const IntImm *x) {
   if (x->type().is_int(64)) {
+    str_ += "(int64_t)";
     str_ += std::to_string(x->value);
-    str_ += "ll";
   } else if (x->type().is_int(32)) {
     // The min int32_t constant(-2147483648) will be recognized as long
     // and max(long, int32_t) is illegal, so we need to add cast here.

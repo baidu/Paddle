@@ -80,7 +80,7 @@ TEST(Convert, MaxExpr) {
 
   std::ostringstream stream;
   stream << src_expr;
-  ASSERT_EQ(stream.str(), "cinn_max(cinn_max(4ll, 5ll), sym_0)");
+  ASSERT_EQ(stream.str(), "cinn_max(cinn_max((int64_t)4, (int64_t)5), sym_0)");
 }
 
 TEST(Convert, MinExpr) {
@@ -90,7 +90,7 @@ TEST(Convert, MinExpr) {
 
   std::ostringstream stream;
   stream << src_expr;
-  ASSERT_EQ(stream.str(), "cinn_min(cinn_min(4ll, 5ll), sym_0)");
+  ASSERT_EQ(stream.str(), "cinn_min(cinn_min((int64_t)4, (int64_t)5), sym_0)");
 }
 
 }  // namespace cinn::common::test

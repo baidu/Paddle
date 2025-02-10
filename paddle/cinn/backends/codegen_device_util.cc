@@ -135,6 +135,28 @@ struct PredicatePrinter : public ir::IrPrinter {
   void Visit(const ir::Max *x) { PrintBinaryOp("MAX", x); }
   void Visit(const ir::Min *x) { PrintBinaryOp("MIN", x); }
 
+  void Visit(const ir::IntImm *x) {
+    if (x->type().is_int(64)) {
+      str_ += std::to_string(x->value);
+    } else if (x->type().is_int(32)) {
+      // The min int32_t constant(-2147483648) will be recognized as long
+      // and max(long, int32_t) is illegal, so we need to add cast here.
+      if (x->value == std::numeric_limits<std::int32_t>::min()) {
+        str_ += "(int32_t)";
+      }
+      str_ += std::to_string(x->value);
+    } else if (x->type().is_int(16)) {
+      str_ += "(int16_t)";
+      str_ += std::to_string(x->value);
+    } else if (x->type().is_int(8)) {
+      str_ += "(int8_t)";
+      str_ += std::to_string(x->value);
+    } else {
+      std::stringstream ss;
+      PADDLE_THROW(::common::errors::InvalidArgument(ss.str()));
+    }
+  }
+
   template <typename IRN>
   void PrintBinaryOp(const std::string &op, const ir::BinaryOpNode<IRN> *x) {
     str_ += "_FPA_";
