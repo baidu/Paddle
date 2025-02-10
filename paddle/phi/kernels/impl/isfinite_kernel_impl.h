@@ -39,6 +39,14 @@ struct is_other_float
                              std::is_floating_point<T>::value &&
                                  !is_float_or_double<T>::value> {};
 
+// check if complex type
+template <typename T>
+struct is_complex64_or_complex128
+    : std::integral_constant<
+          bool,
+          std::is_same<T, phi::dtype::complex<float>>::value ||
+              std::is_same<T, phi::dtype::complex<double>>::value> {};
+
 namespace phi {
 using Tensor = DenseTensor;
 
@@ -49,6 +57,7 @@ Codes for isfinite/isinf/isnan as constructed as below:
 3. partial specialization for special floating-point numbers(float16/bfloat16
 and other special float),
 4. partial specialization for non-floating-point (integer) types.
+5. partial specialization for complex types.
 */
 
 /* IsfiniteFunctor */
@@ -63,7 +72,8 @@ template <typename T>
 struct IsfiniteFunctor<
     phi::CPUContext,
     T,
-    typename std::enable_if<!std::is_floating_point<T>::value>::type> {
+    typename std::enable_if<!std::is_floating_point<T>::value &&
+                            !is_complex64_or_complex128<T>::value>::type> {
   void operator()(const phi::CPUContext& ctx,
                   const DenseTensor& in,
                   DenseTensor* output) {
@@ -111,6 +121,24 @@ struct IsfiniteFunctor<
   }
 };
 
+template <typename T>
+struct IsfiniteFunctor<
+    phi::CPUContext,
+    T,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type> {
+  void operator()(const phi::CPUContext& ctx,
+                  const DenseTensor& in,
+                  DenseTensor* output) {
+    auto* in_a = in.data<T>();
+    auto* out_data = ctx.template Alloc<bool>(output);
+    auto num = in.numel();
+    for (int i = 0; i < num; i++) {
+      const T& a = in_a[i];
+      out_data[i] = std::isfinite(a.real) && std::isfinite(a.imag);
+    }
+  }
+};
+
 /* IsnanFunctor */
 template <typename DeviceContext, typename T, typename Enable = void>
 struct IsnanFunctor {
@@ -123,7 +151,8 @@ template <typename T>
 struct IsnanFunctor<
     phi::CPUContext,
     T,
-    typename std::enable_if<!std::is_floating_point<T>::value>::type> {
+    typename std::enable_if<!std::is_floating_point<T>::value &&
+                            !is_complex64_or_complex128<T>::value>::type> {
   void operator()(const phi::CPUContext& ctx,
                   const DenseTensor& in,
                   DenseTensor* output) {
@@ -170,6 +199,24 @@ struct IsnanFunctor<phi::CPUContext,
   }
 };
 
+template <typename T>
+struct IsnanFunctor<
+    phi::CPUContext,
+    T,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type> {
+  void operator()(const phi::CPUContext& ctx,
+                  const DenseTensor& in,
+                  DenseTensor* output) {
+    auto* in_a = in.data<T>();
+    auto* out_data = ctx.template Alloc<bool>(output);
+    auto num = in.numel();
+    for (int i = 0; i < num; i++) {
+      const T& a = in_a[i];
+      out_data[i] = std::isnan(a.real) || std::isnan(a.imag);
+    }
+  }
+};
+
 /* IsinfFunctor */
 template <typename DeviceContext, typename T, typename Enable = void>
 struct IsinfFunctor {
@@ -182,7 +229,8 @@ template <typename T>
 struct IsinfFunctor<
     phi::CPUContext,
     T,
-    typename std::enable_if<!std::is_floating_point<T>::value>::type> {
+    typename std::enable_if<!std::is_floating_point<T>::value &&
+                            !is_complex64_or_complex128<T>::value>::type> {
   void operator()(const phi::CPUContext& ctx,
                   const DenseTensor& in,
                   DenseTensor* output) {
@@ -229,6 +277,24 @@ struct IsinfFunctor<phi::CPUContext,
   }
 };
 
+template <typename T>
+struct IsinfFunctor<
+    phi::CPUContext,
+    T,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type> {
+  void operator()(const phi::CPUContext& ctx,
+                  const DenseTensor& in,
+                  DenseTensor* output) {
+    auto* in_a = in.data<T>();
+    auto* out_data = ctx.template Alloc<bool>(output);
+    auto num = in.numel();
+    for (int i = 0; i < num; i++) {
+      const T& a = in_a[i];
+      out_data[i] = std::isinf(a.real) || std::isinf(a.imag);
+    }
+  }
+};
+
 #if defined(__NVCC__) || defined(__HIPCC__)
 /* IsfiniteFunctor */
 template <typename T>
@@ -253,6 +319,19 @@ __global__ void IsfiniteCUDAKernel(
   unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
   for (int i = idx; i < num; i += blockDim.x * gridDim.x) {
     out_data[i] = true;
+  }
+}
+
+template <typename T>
+__global__ void IsfiniteCUDAKernel(
+    const T* in_data,
+    int num,
+    bool* out_data,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type* = 0) {
+  unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  for (int i = idx; i < num; i += blockDim.x * gridDim.x) {
+    const T& a = in_data[i];
+    out_data[i] = isfinite(a.real) && isfinite(a.imag);
   }
 }
 
@@ -282,6 +361,19 @@ __global__ void IsnanCUDAKernel(
   }
 }
 
+template <typename T>
+__global__ void IsnanCUDAKernel(
+    const T* in_data,
+    int num,
+    bool* out_data,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type* = 0) {
+  unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  for (int i = idx; i < num; i += blockDim.x * gridDim.x) {
+    const T& a = in_data[i];
+    out_data[i] = isnan(a.real) || isnan(a.imag);
+  }
+}
+
 /* IsinfFunctor */
 template <typename T>
 __global__ void IsinfCUDAKernel(
@@ -305,6 +397,19 @@ __global__ void IsinfCUDAKernel(
   unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
   for (int i = idx; i < num; i += blockDim.x * gridDim.x) {
     out_data[i] = false;
+  }
+}
+
+template <typename T>
+__global__ void IsinfCUDAKernel(
+    const T* in_data,
+    int num,
+    bool* out_data,
+    typename std::enable_if<is_complex64_or_complex128<T>::value>::type* = 0) {
+  unsigned int idx = threadIdx.x + blockIdx.x * blockDim.x;
+  for (int i = idx; i < num; i += blockDim.x * gridDim.x) {
+    const T& a = in_data[i];
+    out_data[i] = isinf(a.real) || isinf(a.imag);
   }
 }
 

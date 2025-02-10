@@ -15,6 +15,7 @@
 #include "paddle/phi/kernels/isfinite_kernel.h"
 
 #include "paddle/phi/backends/gpu/gpu_context.h"
+#include "paddle/phi/common/complex.h"
 #include "paddle/phi/core/kernel_registry.h"
 #include "paddle/phi/kernels/impl/isfinite_kernel_impl.h"
 
@@ -30,7 +31,9 @@ PD_REGISTER_KERNEL(isinf,
                    int64_t,
                    int16_t,
                    int8_t,
-                   uint8_t) {
+                   uint8_t,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {
   kernel->OutputAt(0).SetDataType(phi::DataType::BOOL);
 }
 
@@ -43,7 +46,9 @@ PD_REGISTER_KERNEL(isnan,
                    phi::dtype::float16,
                    phi::dtype::bfloat16,
                    int,
-                   int64_t) {
+                   int64_t,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {
   kernel->OutputAt(0).SetDataType(phi::DataType::BOOL);
 }
 
@@ -56,6 +61,8 @@ PD_REGISTER_KERNEL(isfinite,
                    phi::dtype::float16,
                    phi::dtype::bfloat16,
                    int,
-                   int64_t) {
+                   int64_t,
+                   phi::dtype::complex<float>,
+                   phi::dtype::complex<double>) {
   kernel->OutputAt(0).SetDataType(phi::DataType::BOOL);
 }
