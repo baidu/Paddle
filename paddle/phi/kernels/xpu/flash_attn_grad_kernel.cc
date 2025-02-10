@@ -40,6 +40,7 @@ void FlashAttnGradKernelBase(const Context& ctx,
                              const int num_heads,
                              const int num_heads_k,
                              const int head_size,
+                             const int head_size_v,
                              float scale,
                              float dropout,
                              bool causal,
@@ -164,7 +165,7 @@ void FlashAttnGradKernelBase(const Context& ctx,
       {},                                         // alibi_slopes_shape
       -1,                                         // window_size_left
       -1,                                         // window_size_right
-      -1                                          // v_head_dim
+      head_size_v                                 // v_head_dim
   );
   PADDLE_ENFORCE_XDNN_SUCCESS(r, "mha_varlen_bwd");
 }
@@ -199,6 +200,7 @@ void FlashAttnUnpaddedGradKernel(const Context& ctx,
   const int64_t batch_size = cu_seqlens_q.numel() - 1;
   const int64_t num_heads = dims[1];
   const int64_t head_size = dims[2];
+  const int64_t head_size_v = v.dims()[2];
   const int64_t num_heads_k = k.dims()[1];
 
   api::VectorParam<int> qlod{cu_seqlens_q.data<int>(),
@@ -225,6 +227,7 @@ void FlashAttnUnpaddedGradKernel(const Context& ctx,
                              num_heads,
                              num_heads_k,
                              head_size,
+                             head_size_v,
                              scale,
                              dropout,
                              causal,
@@ -265,14 +268,15 @@ void FlashAttnGradKernel(const Context& ctx,
   const int64_t num_heads = dims[2];
   const int64_t head_size_og = dout.dims()[3];
   const int64_t head_size = dims[3];
+  const int64_t head_size_v = v.dims()[3];
   const int64_t seqlen_k = k.dims()[1];
   const int64_t num_heads_k = k.dims()[2];
 
   PADDLE_ENFORCE_EQ(
       head_size_og,
-      head_size,
+      head_size_v,
       common::errors::InvalidArgument(
-          "flash_attn_bwd receive input with head_size_og == head_size"));
+          "flash_attn_bwd receive input with head_size_og == head_size_v"));
 
   // lod info
   std::vector<int> qlod_vec = {0};
@@ -303,6 +307,7 @@ void FlashAttnGradKernel(const Context& ctx,
                              num_heads,
                              num_heads_k,
                              head_size,
+                             head_size_v,
                              0.0,
                              dropout,
                              causal,

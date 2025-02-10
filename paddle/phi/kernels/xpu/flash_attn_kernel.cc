@@ -36,6 +36,7 @@ void FlashAttnKernelBase(const Context& ctx,
                          const int num_heads,
                          const int num_heads_k,
                          const int head_size,
+                         const int head_size_v,
                          float scale,
                          float dropout,
                          bool causal,
@@ -137,27 +138,27 @@ void FlashAttnKernelBase(const Context& ctx,
                              real_scale,        // softmax_scale
                              real_dropout,      // p_dropout
                              static_cast<int32_t>(seed_offset_data[0]),  // seed
-                             causal,     // is_causal
-                             nullptr,    // attn_mask
-                             bias_data,  // bias
-                             nullptr,    // q_maxptr
-                             nullptr,    // k_maxptr
-                             nullptr,    // v_maxptr
-                             nullptr,    // o_maxptr
-                             false,      // is_qkv_fusion
-                             fa_layout,  // qkv_layout
-                             nullptr,    // alibi_slopes
-                             {},         // alibi_slopes_shape
-                             -1,         // window_size_left
-                             -1,         // window_size_right
-                             -1,         // v_head_dim
-                             nullptr,    // downstart_row_indices_data
-                             nullptr,    // downend_row_indices_data
-                             nullptr,    // upstart_row_indices_data
-                             nullptr,    // upend_row_indices_data
-                             0,          // flash_mask_head_num
-                             nullptr,    // flashmask_maxmin
-                             nullptr     // side_stream
+                             causal,       // is_causal
+                             nullptr,      // attn_mask
+                             bias_data,    // bias
+                             nullptr,      // q_maxptr
+                             nullptr,      // k_maxptr
+                             nullptr,      // v_maxptr
+                             nullptr,      // o_maxptr
+                             false,        // is_qkv_fusion
+                             fa_layout,    // qkv_layout
+                             nullptr,      // alibi_slopes
+                             {},           // alibi_slopes_shape
+                             -1,           // window_size_left
+                             -1,           // window_size_right
+                             head_size_v,  // v_head_dim
+                             nullptr,      // downstart_row_indices_data
+                             nullptr,      // downend_row_indices_data
+                             nullptr,      // upstart_row_indices_data
+                             nullptr,      // upend_row_indices_data
+                             0,            // flash_mask_head_num
+                             nullptr,      // flashmask_maxmin
+                             nullptr       // side_stream
       );
   PADDLE_ENFORCE_XDNN_SUCCESS(r, "mha_varlen_fwd");
 }
@@ -211,6 +212,7 @@ void FlashAttnUnpaddedKernel(
   const int num_heads = dims[1];
   const int head_size = dims[2];
   const int num_heads_k = k.dims()[1];
+  const int head_size_v = v.dims()[2];
 #ifndef PADDLE_WITH_XPU_XRE5
   // lod info, only support qlod == klod
   std::vector<int> qlod_vec(batch_size + 1, 0);
@@ -355,6 +357,7 @@ void FlashAttnUnpaddedKernel(
                          num_heads,
                          num_heads_k,
                          head_size,
+                         head_size_v,
                          scale,
                          dropout,
                          causal,
@@ -404,7 +407,7 @@ void FlashAttnKernel(const Context& ctx,
   const int64_t head_size = dims[3];
   const int64_t seqlen_k = k.dims()[1];
   const int64_t num_heads_k = k.dims()[2];
-
+  const int64_t head_size_v = v.dims()[3];
   // lod info
   std::vector<int> qlod_vec = {0};
   std::vector<int> kvlod_vec = {0};
@@ -431,6 +434,7 @@ void FlashAttnKernel(const Context& ctx,
                          num_heads,
                          num_heads_k,
                          head_size,
+                         head_size_v,
                          0.0,  // scale
                          dropout,
                          causal,
