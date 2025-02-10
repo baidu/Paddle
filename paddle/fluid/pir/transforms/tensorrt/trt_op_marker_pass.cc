@@ -463,6 +463,59 @@ class Conv2dTransposeOpPattern
   }
 };
 
+class RoiAlignOpPattern
+    : public pir::OpRewritePattern<paddle::dialect::RoiAlignOp> {
+ public:
+  using pir::OpRewritePattern<paddle::dialect::RoiAlignOp>::OpRewritePattern;
+  bool MatchAndRewrite(paddle::dialect::RoiAlignOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op->attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+
+    if (!op->HasAttribute("pooled_height")) {
+      VLOG(3) << "In RoiAlignOp, pooled_height attribute does not exist";
+      return false;
+    } else {
+      auto pooled_height_attr =
+          op->attribute<pir::Int32Attribute>("pooled_height").data();
+      if (pooled_height_attr <= 0) {
+        VLOG(3) << "In RoiAlignOp, pooled_height attribute must be greater "
+                   "than 0.";
+        return false;
+      }
+    }
+
+    if (!op->HasAttribute("pooled_width")) {
+      VLOG(3) << "In RoiAlignOp, pooled_width attribute does not exist.";
+      return false;
+    } else {
+      auto pooled_width_attr =
+          op->attribute<pir::Int32Attribute>("pooled_width").data();
+      if (pooled_width_attr <= 0) {
+        VLOG(3) << "In RoiAlignOp, pooled_width attribute must be greater than "
+                   "0.";
+        return false;
+      }
+    }
+
+    if (!op->HasAttribute("spatial_scale")) {
+      VLOG(3) << "In RoiAlignOp, spatial_scale attribute does not exist";
+      return false;
+    } else {
+      auto spatial_scale_attr =
+          op->attribute<pir::FloatAttribute>("spatial_scale").data();
+      if (spatial_scale_attr <= 0.f) {
+        VLOG(3) << "In RoiAlignOp, spatial_scale_attr attribute must be "
+                   "greater than 0.";
+        return false;
+      }
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
 class DepthwiseConv2dTransposeOpPattern
     : public pir::OpRewritePattern<
           paddle::dialect::DepthwiseConv2dTransposeOp> {
@@ -2533,6 +2586,7 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<DeformableConvOpPattern>(context));
     ps.Add(std::make_unique<ArangeOpPattern>(context));
     ps.Add(std::make_unique<LogicalNotOpPattern>(context));
+    ps.Add(std::make_unique<RoiAlignOpPattern>(context));
     ps.Add(std::make_unique<BitwiseAndOpPattern>(context));
     ps.Add(std::make_unique<BitwiseOrOpPattern>(context));
     ps.Add(std::make_unique<BitwiseNotOpPattern>(context));

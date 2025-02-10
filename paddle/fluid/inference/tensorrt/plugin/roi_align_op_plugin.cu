@@ -447,6 +447,346 @@ nvinfer1::IPluginV2Ext* RoiAlignPluginDynamicCreator::deserializePlugin(
 }
 #endif
 
+PIRRoiAlignPluginDynamic::PIRRoiAlignPluginDynamic(
+    const nvinfer1::DataType data_type,
+    const int pooled_height,
+    const int pooled_width,
+    float spatial_scale,
+    int sampling_ratio,
+    bool aligned)
+    : data_type_(data_type),
+      pooled_height_(pooled_height),
+      pooled_width_(pooled_width),
+      spatial_scale_(spatial_scale),
+      sampling_ratio_(sampling_ratio),
+      aligned_(aligned) {
+  bool data_type_is_valid = data_type_ == nvinfer1::DataType::kFLOAT ||
+                            data_type_ == nvinfer1::DataType::kHALF;
+  PADDLE_ENFORCE_EQ(data_type_is_valid,
+                    true,
+                    common::errors::InvalidArgument(
+                        "TRT RoiAlign plugin only accepts kFLOAT(%d) or "
+                        "kHALF(%d) data type, but the received data type = %d",
+                        static_cast<int>(nvinfer1::DataType::kFLOAT),
+                        static_cast<int>(nvinfer1::DataType::kHALF),
+                        static_cast<int>(data_type_)));
+
+  PADDLE_ENFORCE_GT(pooled_height_,
+                    0,
+                    common::errors::InvalidArgument(
+                        "TRT RoiAlign plugin only accepts pooled_height "
+                        "greater than %d, but the received pooled_height = %d",
+                        0,
+                        pooled_height_));
+
+  PADDLE_ENFORCE_GT(pooled_width_,
+                    0,
+                    common::errors::InvalidArgument(
+                        "TRT RoiAlign plugin only accepts pooled_width greater "
+                        "than %d, but the received pooled_width = %d",
+                        0,
+                        pooled_height_));
+
+  PADDLE_ENFORCE_GT(spatial_scale_,
+                    0.f,
+                    common::errors::InvalidArgument(
+                        "TRT RoiAlign plugin only accepts spatial_scale "
+                        "greater than %f, but the received spatial_scale = %f",
+                        0,
+                        spatial_scale_));
+
+  int smem_per_block = -1;
+  int device = -1;
+  cudaGetDevice(&device);
+
+  PADDLE_ENFORCE_GE(
+      device,
+      0,
+      common::errors::InvalidArgument(
+          "The cuda device ID should be greater than %d, but device ID is %d",
+          0,
+          device));
+
+  cudaDeviceGetAttribute(
+      &smem_per_block, cudaDevAttrMaxSharedMemoryPerBlock, device);
+  smem_per_block_ = smem_per_block;
+}
+
+PIRRoiAlignPluginDynamic::PIRRoiAlignPluginDynamic(void const* data,
+                                                   size_t length) {
+  DeserializeValue(&data, &length, &data_type_);
+  DeserializeValue(&data, &length, &pooled_height_);
+  DeserializeValue(&data, &length, &pooled_width_);
+  DeserializeValue(&data, &length, &spatial_scale_);
+  DeserializeValue(&data, &length, &sampling_ratio_);
+  DeserializeValue(&data, &length, &aligned_);
+  int smem_per_block = -1;
+  int device = -1;
+  cudaGetDevice(&device);
+  PADDLE_ENFORCE_GE(
+      device,
+      0,
+      common::errors::InvalidArgument(
+          "The cuda device ID should be greater than %d, but device ID is %d",
+          0,
+          device));
+  cudaDeviceGetAttribute(
+      &smem_per_block, cudaDevAttrMaxSharedMemoryPerBlock, device);
+  smem_per_block_ = smem_per_block;
+}
+
+nvinfer1::IPluginV2DynamicExt* PIRRoiAlignPluginDynamic::clone() const
+    TRT_NOEXCEPT {
+  auto* plugin = new PIRRoiAlignPluginDynamic(data_type_,
+                                              pooled_height_,
+                                              pooled_width_,
+                                              spatial_scale_,
+                                              sampling_ratio_,
+                                              aligned_);
+  plugin->setPluginNamespace(namespace_.c_str());
+  return plugin;
+}
+
+nvinfer1::DimsExprs PIRRoiAlignPluginDynamic::getOutputDimensions(
+    int outputIndex,
+    const nvinfer1::DimsExprs* inputs,
+    int nbInputs,
+    nvinfer1::IExprBuilder& exprBuilder) TRT_NOEXCEPT {
+  nvinfer1::DimsExprs ret{};
+  ret.nbDims = 4;
+  ret.d[0] = inputs[1].d[0];  // roi
+  ret.d[1] = inputs[0].d[1];  // X
+  ret.d[2] = exprBuilder.constant(pooled_height_);
+  ret.d[3] = exprBuilder.constant(pooled_width_);
+  return ret;
+}
+
+bool PIRRoiAlignPluginDynamic::supportsFormatCombination(
+    int pos,
+    const nvinfer1::PluginTensorDesc* inOut,
+    int nbInputs,
+    int nbOutputs) TRT_NOEXCEPT {
+  if (inOut[pos].format != nvinfer1::TensorFormat::kLINEAR) {
+    return false;
+  }
+  if (pos < 2) {  // input
+    return inOut[pos].type == nvinfer1::DataType::kFLOAT;
+  }
+  return inOut[pos].type == data_type_;
+}
+
+void PIRRoiAlignPluginDynamic::configurePlugin(
+    const nvinfer1::DynamicPluginTensorDesc* in,
+    int nbInputs,
+    const nvinfer1::DynamicPluginTensorDesc* out,
+    int nbOutputs) TRT_NOEXCEPT {}
+
+size_t PIRRoiAlignPluginDynamic::getWorkspaceSize(
+    const nvinfer1::PluginTensorDesc* inputs,
+    int nbInputs,
+    const nvinfer1::PluginTensorDesc* outputs,
+    int nbOutputs) const TRT_NOEXCEPT {
+  return 0;
+}
+
+template <typename T, typename OutT>
+int PIRRoiAlignPluginDynamic::enqueue_impl(
+    const nvinfer1::PluginTensorDesc* inputDesc,
+    const nvinfer1::PluginTensorDesc* outputDesc,
+    const void* const* inputs,
+    void* const* outputs,
+    void* workspace,
+    cudaStream_t stream) {
+  auto in_dims = inputDesc[0].dims;
+  auto rois_dims = inputDesc[1].dims;
+  auto out_dims = outputDesc[0].dims;
+  int rois_num = rois_dims.d[0];
+  if (rois_num == 0) return cudaGetLastError() != cudaSuccess;
+
+  int batch = in_dims.d[0];
+  int channels = in_dims.d[1];
+  int height = in_dims.d[2];
+  int width = in_dims.d[3];
+  int output_size =
+      out_dims.d[0] * out_dims.d[1] * out_dims.d[2] * out_dims.d[3];
+
+  const dim3 blocks(batch, channels);
+  const int threads = 512;
+
+  if (smem_per_block_ < width * height * sizeof(T)) {
+    GPUROIAlignOpt<T, OutT, false>
+        <<<blocks, threads, 0, stream>>>(output_size,
+                                         static_cast<const T*>(inputs[0]),
+                                         static_cast<const T*>(inputs[1]),
+                                         spatial_scale_,
+                                         channels,
+                                         height,
+                                         width,
+                                         pooled_height_,
+                                         pooled_width_,
+                                         sampling_ratio_,
+                                         rois_num / batch,
+                                         aligned_,
+                                         static_cast<OutT*>(outputs[0]));
+  } else {
+    GPUROIAlignOpt<T, OutT, false>
+        <<<blocks, threads, width * height * sizeof(T), stream>>>(
+            output_size,
+            static_cast<const T*>(inputs[0]),
+            static_cast<const T*>(inputs[1]),
+            spatial_scale_,
+            channels,
+            height,
+            width,
+            pooled_height_,
+            pooled_width_,
+            sampling_ratio_,
+            rois_num / batch,
+            aligned_,
+            static_cast<OutT*>(outputs[0]));
+  }
+
+  return cudaGetLastError() != cudaSuccess;
+}
+
+int PIRRoiAlignPluginDynamic::enqueue(
+    const nvinfer1::PluginTensorDesc* inputDesc,
+    const nvinfer1::PluginTensorDesc* outputDesc,
+    const void* const* inputs,
+    void* const* outputs,
+    void* workspace,
+    cudaStream_t stream) TRT_NOEXCEPT {
+  PADDLE_ENFORCE_EQ(
+      outputDesc[0].type,
+      data_type_,
+      common::errors::InvalidArgument(
+          "TRT PIRRoiAlignPluginDynamic expects outputDesc[0].type "
+          "equal to data_type_"));
+
+  if (data_type_ == nvinfer1::DataType::kHALF) {
+    return enqueue_impl<float, half>(
+        inputDesc, outputDesc, inputs, outputs, workspace, stream);
+  }
+  return enqueue_impl<float, float>(
+      inputDesc, outputDesc, inputs, outputs, workspace, stream);
+}
+
+nvinfer1::DataType PIRRoiAlignPluginDynamic::getOutputDataType(
+    int index,
+    const nvinfer1::DataType* inputTypes,
+    int nbInputs) const TRT_NOEXCEPT {
+  return inputTypes[0];
+}
+
+const char* PIRRoiAlignPluginDynamic::getPluginType() const TRT_NOEXCEPT {
+  return "pir_roi_align_plugin_dynamic";
+}
+
+const char* PIRRoiAlignPluginDynamic::getPluginVersion() const TRT_NOEXCEPT {
+  return "2";
+}
+
+int PIRRoiAlignPluginDynamic::getNbOutputs() const TRT_NOEXCEPT { return 1; }
+
+int PIRRoiAlignPluginDynamic::initialize() TRT_NOEXCEPT { return 0; }
+
+void PIRRoiAlignPluginDynamic::terminate() TRT_NOEXCEPT {}
+
+size_t PIRRoiAlignPluginDynamic::getSerializationSize() const TRT_NOEXCEPT {
+  size_t serialize_size = 0;
+  serialize_size += SerializedSize(data_type_);
+  serialize_size += SerializedSize(pooled_height_);
+  serialize_size += SerializedSize(pooled_width_);
+  serialize_size += SerializedSize(spatial_scale_);
+  serialize_size += SerializedSize(sampling_ratio_);
+  serialize_size += SerializedSize(aligned_);
+  return serialize_size;
+}
+
+void PIRRoiAlignPluginDynamic::serialize(void* buffer) const TRT_NOEXCEPT {
+  SerializeValue(&buffer, data_type_);
+  SerializeValue(&buffer, pooled_height_);
+  SerializeValue(&buffer, pooled_width_);
+  SerializeValue(&buffer, spatial_scale_);
+  SerializeValue(&buffer, sampling_ratio_);
+  SerializeValue(&buffer, aligned_);
+}
+
+void PIRRoiAlignPluginDynamic::destroy() TRT_NOEXCEPT {}
+
+PIRRoiAlignPluginDynamicCreator::PIRRoiAlignPluginDynamicCreator() = default;
+
+void PIRRoiAlignPluginDynamicCreator::setPluginNamespace(
+    const char* lib_namespace) TRT_NOEXCEPT {
+  namespace_ = std::string(lib_namespace);
+}
+
+const char* PIRRoiAlignPluginDynamicCreator::getPluginNamespace() const
+    TRT_NOEXCEPT {
+  return namespace_.c_str();
+}
+
+const char* PIRRoiAlignPluginDynamicCreator::getPluginName() const
+    TRT_NOEXCEPT {
+  return "pir_roi_align_plugin_dynamic";
+}
+
+const char* PIRRoiAlignPluginDynamicCreator::getPluginVersion() const
+    TRT_NOEXCEPT {
+  return "2";
+}
+
+const nvinfer1::PluginFieldCollection*
+PIRRoiAlignPluginDynamicCreator::getFieldNames() TRT_NOEXCEPT {
+  return &field_collection_;
+}
+
+nvinfer1::IPluginV2Ext* PIRRoiAlignPluginDynamicCreator::createPlugin(
+    const char* name, const nvinfer1::PluginFieldCollection* fc) TRT_NOEXCEPT {
+  const nvinfer1::PluginField* fields = fc->fields;
+  int type_id = -1;
+  int pooled_height = 1;
+  int pooled_width = 1;
+  float spatial_scale = 1.0;
+  int sampling_ratio = -1;
+  bool aligned = false;
+
+  for (int i = 0; i < fc->nbFields; ++i) {
+    const std::string field_name(fc->fields[i].name);
+    if (field_name.compare("type_id") == 0) {
+      type_id = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("pooled_height") == 0) {
+      pooled_height = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("pooled_width") == 0) {
+      pooled_width = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("spatial_scale") == 0) {
+      spatial_scale = *static_cast<const float*>(fc->fields[i].data);
+    } else if (field_name.compare("sampling_ratio") == 0) {
+      sampling_ratio = *static_cast<const int*>(fc->fields[i].data);
+    } else if (field_name.compare("aligned") == 0) {
+      aligned = *static_cast<const bool*>(fc->fields[i].data);
+    } else {
+      assert(false && "unknown plugin field name.");
+    }
+  }
+  return new PIRRoiAlignPluginDynamic(
+      type_id ? nvinfer1::DataType::kHALF : nvinfer1::DataType::kFLOAT,
+      pooled_height,
+      pooled_width,
+      spatial_scale,
+      sampling_ratio,
+      aligned);
+}
+
+nvinfer1::IPluginV2Ext* PIRRoiAlignPluginDynamicCreator::deserializePlugin(
+    const char* name,
+    const void* serial_data,
+    size_t serial_length) TRT_NOEXCEPT {
+  auto plugin = new PIRRoiAlignPluginDynamic(serial_data, serial_length);
+  plugin->setPluginNamespace(namespace_.c_str());
+  return plugin;
+}
+
 }  // namespace plugin
 }  // namespace tensorrt
 }  // namespace inference
