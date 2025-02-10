@@ -39,6 +39,7 @@
 
 // msvc conflict logging with windows.h
 #define GLOG_NO_ABBREVIATED_SEVERITIES
+#include "paddle/common/type_traits.h"
 #include "paddle/utils/string/printf.h"
 #include "paddle/utils/string/to_string.h"
 #include "paddle/utils/variant.h"
@@ -238,7 +239,7 @@ inline constexpr bool IsArithmetic() {
 
 template <typename T1, typename T2, bool kIsArithmetic /* = true */>
 struct TypeConverterImpl {
-  using Type1 = typename std::common_type<T1, T2>::type;
+  using Type1 = typename paddle::common_type<T1, T2>::type;
   using Type2 = Type1;
 };
 
