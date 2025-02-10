@@ -160,13 +160,6 @@ struct CachedDimExprToValueConverter {
         "ConvertToValueImpl(symbol::Add<symbol::DimExpr>)"));
   }
 
-  pir::Value ConvertToValueImpl(
-      const symbol::Reciprocal<symbol::DimExpr>& dim_expr) {
-    PADDLE_THROW(::common::errors::Fatal(
-        "Dead code. This logical should handled by "
-        "ConvertToValueImpl(symbol::Mul<symbol::DimExpr>)"));
-  }
-
   pir::Value ConvertToValueImpl(const symbol::Add<symbol::DimExpr>& dim_expr) {
     const auto& [operands] = dim_expr;
     PADDLE_ENFORCE_GT(operands->size(),
@@ -201,21 +194,20 @@ struct CachedDimExprToValueConverter {
                           operands->size()));
     pir::Value prod = ConvertToValue(operands->at(0));
     for (int i = 1; i < operands->size(); ++i) {
-      if (operands->at(i).isa<symbol::Reciprocal<symbol::DimExpr>>()) {
-        const auto& operand =
-            operands->at(i)
-                .dyn_cast<symbol::Reciprocal<symbol::DimExpr>>()
-                ->data;
-        pir::Value operand_value = ConvertToValue(operand);
-        prod = rewriter->Build<paddle::dialect::DivideOp>(prod, operand_value)
-                   .out();
-      } else {
-        pir::Value operand_value = ConvertToValue(operands->at(i));
-        prod = rewriter->Build<paddle::dialect::MultiplyOp>(prod, operand_value)
-                   .out();
-      }
+      pir::Value operand_value = ConvertToValue(operands->at(i));
+      prod = rewriter->Build<paddle::dialect::MultiplyOp>(prod, operand_value)
+                 .out();
     }
     return prod;
+  }
+
+  pir::Value ConvertToValueImpl(const symbol::Div<symbol::DimExpr>& dim_expr) {
+    const auto& lhs = dim_expr->lhs;
+    const auto& rhs = dim_expr->rhs;
+    pir::Value lhs_value = ConvertToValue(lhs);
+    pir::Value rhs_value = ConvertToValue(rhs);
+    return rewriter->Build<paddle::dialect::DivideOp>(lhs_value, rhs_value)
+        .out();
   }
 
   pir::Value ConvertToValueImpl(const symbol::Max<symbol::DimExpr>& dim_expr) {
