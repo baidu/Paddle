@@ -23,8 +23,10 @@
 #include <utility>
 #include <vector>
 
+#include "paddle/cinn/common/cas.h"
 #include "paddle/cinn/common/context.h"
 #include "paddle/cinn/common/integer_set.h"
+#include "paddle/cinn/common/ir_util.h"
 #include "paddle/cinn/ir/ir_mutator.h"
 #include "paddle/cinn/ir/ir_printer.h"
 #include "paddle/cinn/ir/ir_visitor.h"
@@ -34,6 +36,7 @@
 #include "paddle/cinn/ir/schedule/schedule_desc.h"
 #include "paddle/cinn/ir/tensor.h"
 #include "paddle/cinn/ir/utils/ir_nodes_collector.h"
+#include "paddle/cinn/ir/utils/ir_replace.h"
 #include "paddle/cinn/utils/random_engine.h"
 #include "paddle/common/enforce.h"
 #include "paddle/fluid/platform/enforce.h"
@@ -663,6 +666,347 @@ std::string GetBlockName(const ir::Expr block) {
       block_node,
       ::common::errors::InvalidArgument("The block is not a ScheduleBlock"));
   return block_node->name;
+}
+
+class TensorVectorizeTeller : public ir::IRMutator<const Expr*> {
+ public:
+  TensorVectorizeTeller(
+      const Var& iter_var,
+      const int factor,
+      const absl::flat_hash_map<std::string, cinn::common::CasInterval>*
+          var_intervals)
+      : iter_var_(iter_var), factor_(factor), var_intervals_(var_intervals) {}
+
+  void Collect(const Expr* op) { IRMutator::Visit(op, op); }
+
+  // return true if input tensor can be vectorized
+  bool CanBeVectorized(const std::string& tensor_name) const {
+    auto it = tensor2flag_.find(tensor_name);
+    return it != tensor2flag_.end() && it->second;
+  }
+
+ private:
+  const Var
+      iter_var_;  // loop var of new for-loop split from the vectorized loop
+  const int factor_;
+  const absl::flat_hash_map<std::string, cinn::common::CasInterval>*
+      var_intervals_;
+  // save (tensor name) -> (bool flag) to identify whether tensors can be
+  // vectorized or not
+  std::unordered_map<std::string, bool> tensor2flag_;
+
+  void Visit(const ir::Store* expr, const Expr* op) override {
+    auto* node = op->As<ir::Store>();
+    PADDLE_ENFORCE_NOT_NULL(node,
+                            ::common::errors::InvalidArgument(
+                                "Expected Store node, but received nullptr."));
+    IRMutator::Visit(&node->value, &node->value);
+    auto* tensor = node->tensor.As<ir::_Tensor_>();
+    PADDLE_ENFORCE_NOT_NULL(
+        tensor,
+        ::common::errors::InvalidArgument(
+            "Expected _Tensor_ node in Store, but received nullptr."));
+
+    // a tensor should pass all check of pre-conditions in every time it appears
+    if (!tensor2flag_.count(tensor->name) || tensor2flag_.at(tensor->name)) {
+      bool flag = MeetConditions(node->tensor, node->indices);
+      tensor2flag_[tensor->name] = flag;
+    }
+  }
+
+  void Visit(const ir::Load* expr, const Expr* op) override {
+    auto* node = op->As<ir::Load>();
+    PADDLE_ENFORCE_NOT_NULL(node,
+                            ::common::errors::InvalidArgument(
+                                "Expected Load node, but received nullptr."));
+    auto* tensor = node->tensor.As<ir::_Tensor_>();
+    PADDLE_ENFORCE_NOT_NULL(
+        tensor,
+        ::common::errors::InvalidArgument(
+            "Expected _Tensor_ node in Load, but received nullptr."));
+
+    // a tensor should pass all check of pre-conditions in every time it appears
+    if (!tensor2flag_.count(tensor->name) || tensor2flag_.at(tensor->name)) {
+      bool flag = MeetConditions(node->tensor, node->indices);
+      tensor2flag_[tensor->name] = flag;
+    }
+  }
+
+  // return true if the tensor meets all conditions of vectorizing
+  bool MeetConditions(const Expr& expr, const std::vector<Expr>& indices) {
+    const ir::_Tensor_* tensor = expr.As<ir::_Tensor_>();
+    auto find_matched_var_fn = [&](const Expr* x) {
+      return x->As<_Var_>() && x->As<_Var_>()->name == iter_var_->name;
+    };
+
+    // the size of the last dim should be divisible by factor
+    Expr last_size = tensor->shape.back();
+    if (tensor->shape.empty() || !tensor->shape.back().As<IntImm>()) {
+      VLOG(5) << "Size of the last dim of tensor:" << tensor->name
+              << " can't be converted to IntImm or is empty, shape:"
+              << utils::Join(tensor->shape, ",");
+      return false;
+    }
+
+    int64_t last_dim_size;
+    if (tensor->shape.back().type() == type_of<int32_t>()) {
+      last_dim_size = tensor->shape.back().as_int32();
+    } else if (tensor->shape.back().type() == type_of<int64_t>()) {
+      last_dim_size = tensor->shape.back().as_int64();
+    } else {
+      VLOG(5) << "Size of the last dim of tensor:" << tensor->name
+              << " can't be converted to either int32 or int64, shape:"
+              << utils::Join(tensor->shape, ",");
+      return false;
+    }
+
+    if (last_dim_size % factor_ != 0) {
+      VLOG(5) << "Size of the last dim of tensor:" << tensor->name
+              << " can't be divisible by factor:" << factor_
+              << ", shape:" << utils::Join(tensor->shape, ",");
+      return false;
+    }
+
+    // the iter val must appear in the last index
+    if (indices.empty() ||
+        ir::ir_utils::CollectIRNodes(indices.back(), find_matched_var_fn)
+            .empty()) {
+      VLOG(5) << "Loop var:" << iter_var_->name
+              << " is not used in the last index";
+      return false;
+    }
+
+    // the iter val can't appear in multiple indices
+    for (int i = 0; i < indices.size() - 1; ++i) {
+      auto repeat_found =
+          ir::ir_utils::CollectIRNodes(indices[i], find_matched_var_fn);
+      if (!repeat_found.empty()) {
+        VLOG(5) << "Loop var:" << iter_var_->name
+                << " is used at more than last index, current:" << i;
+        return false;
+      }
+    }
+
+    // check tensor accessed sequentially by comparing index one by one
+    Expr first_idx = ir::ir_utils::IRCopy(indices.back());
+    cinn::ir::ir_utils::IrReplaceVarBroadcast(
+        &first_idx, Expr(iter_var_), Expr(0));
+    const auto& interval = var_intervals_->at(iter_var_->name);
+    for (int i = 1; i < interval.r; ++i) {
+      Expr next_idx = ir::ir_utils::IRCopy(indices.back());
+      cinn::ir::ir_utils::IrReplaceVarBroadcast(
+          &next_idx, Expr(iter_var_), Expr(i));
+      auto gap = cinn::common::AutoSimplify(Expr(next_idx - first_idx));
+      if (!gap.As<IntImm>() || gap.as_int32() != i) {
+        VLOG(5) << "Tensor:" << tensor->name
+                << " is not accessed sequentially, next:" << next_idx
+                << ", first:" << first_idx << ", gap:" << gap;
+        return false;
+      }
+      VLOG(5) << "Tensor:" << tensor->name
+              << " is accessed sequentially, next:" << next_idx
+              << ", first:" << first_idx << ", gap:" << gap;
+    }
+
+    auto dtype = expr->type().ElementOf();
+    bool type_supported = dtype.is_float(32) || dtype.is_int(32) ||
+                          dtype.is_uint(32) || dtype.is_float16() ||
+                          dtype.is_bfloat16();
+    if (!type_supported) {
+      VLOG(5)
+          << "Only support vectorizing int,uint,float,float16,bloat16, but got "
+          << dtype;
+      return false;
+    }
+    return true;
+  }
+};
+
+using BoundVariableMap =
+    std::unordered_map<std::string, std::vector<std::pair<std::string, Var>>>;
+
+BoundVariableMap GetBoundVariables(const Expr& expr, const Expr& loop_var) {
+  BoundVariableMap bound_variable_map;
+  auto loop_var_name = loop_var.as_var()->name;
+
+  ir::ir_utils::CollectIRNodes(
+      expr,
+      [&loop_var_name, &bound_variable_map](const Expr* x) {
+        if (const auto block_realize = x->As<ir::ScheduleBlockRealize>()) {
+          auto* schedule_block =
+              block_realize->schedule_block.As<ScheduleBlock>();
+          auto iter_values = block_realize->iter_values;
+          auto iter_vars = schedule_block->iter_vars;
+
+          for (std::size_t i = 0; i < iter_values.size(); ++i) {
+            const auto& iter_value = iter_values[i];
+            if (iter_value.is_var() &&
+                iter_value.as_var()->name.find(loop_var_name) !=
+                    std::string::npos) {
+              bound_variable_map[loop_var_name].emplace_back(iter_vars[i]->name,
+                                                             iter_vars[i]);
+            } else if (iter_value.is_index()) {
+              ir::ir_utils::CollectIRNodes(
+                  iter_value,
+                  [&loop_var_name, &bound_variable_map, &iter_vars, i](
+                      const Expr* x) {
+                    if (const auto* var = x->As<ir::_Var_>()) {
+                      if (var->name == loop_var_name) {
+                        bound_variable_map[loop_var_name].emplace_back(
+                            iter_vars[i]->name, iter_vars[i]);
+                      }
+                    }
+                    return false;
+                  });
+            }
+          }
+        }
+        return false;
+      },
+      true);
+
+  return bound_variable_map;
+}
+
+std::set<std::string> TraverseExpression(
+    const Expr& vectorize_expr, const BoundVariableMap& bound_variable_map) {
+  std::set<std::string> tensors_to_check;
+
+  auto process_indices = [&](const std::vector<Expr>& indices,
+                             const ir::Expr& tensor_expr) {
+    for (const auto& index : indices) {
+      if (index.is_var()) {
+        auto var_name = index.as_var()->name;
+        for (const auto& [loop_var_name, iter_var_pairs] : bound_variable_map) {
+          // Check if var_name exists in any of the iter_var_pairs
+          if (std::any_of(iter_var_pairs.begin(),
+                          iter_var_pairs.end(),
+                          [&](const std::pair<std::string, Var>& pair) {
+                            return pair.first == var_name;
+                          })) {
+            auto* tensor = tensor_expr.As<ir::_Tensor_>();
+            tensors_to_check.insert(tensor->name);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  ir::ir_utils::CollectIRNodes(vectorize_expr, [&](const Expr* x) {
+    if (const auto* load = x->As<ir::Load>()) {
+      if (process_indices(load->indices, load->tensor)) {
+        return false;
+      }
+    }
+
+    if (const auto* store = x->As<ir::Store>()) {
+      if (process_indices(store->indices, store->tensor)) {
+        return false;
+      }
+    }
+
+    return false;
+  });
+
+  return tensors_to_check;
+}
+
+bool CheckTensorVectorization(
+    const Expr& vectorize_expr,
+    int vectorize_factor,
+    const std::set<std::string>& tensors_to_check,
+    const cinn::common::cas_intervals_t& var_intervals,
+    const std::unordered_map<std::string,
+                             std::vector<std::pair<std::string, Var>>>&
+        bound_variable_map) {
+  for (const auto& [key, iter_var_pairs] : bound_variable_map) {
+    for (const auto& iter_var_pair : iter_var_pairs) {
+      const std::string& var_name = iter_var_pair.first;
+      const Var& iter_var = iter_var_pair.second;
+
+      TensorVectorizeTeller checker(iter_var, vectorize_factor, &var_intervals);
+      checker.Collect(&vectorize_expr);
+      for (const auto& tensor : tensors_to_check) {
+        if (!checker.CanBeVectorized(tensor)) {
+          VLOG(5) << "Tensor " << tensor
+                  << " cannot be vectorized with variable " << var_name << ".";
+          return false;
+        } else {
+          VLOG(5) << "Tensor " << tensor << " can be vectorized with variable "
+                  << var_name << ".";
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+bool IsVectorizable(const std::vector<ir::Expr>& loops,
+                    int vectorize_factor,
+                    int current_reduce_axis,
+                    int sp_thread,
+                    int rd_thread,
+                    bool is_reduce_axis) {
+  int vectorize_axis = 0;
+  int loop_extent_per_thread = 0;
+
+  if (is_reduce_axis) {
+    vectorize_axis = current_reduce_axis;
+    loop_extent_per_thread =
+        ir::GetLoopExtent(loops[vectorize_axis]) / rd_thread;
+  } else {
+    loop_extent_per_thread =
+        ir::GetLoopExtent(loops[vectorize_axis]) / sp_thread;
+  }
+
+  if (loop_extent_per_thread == 0) {
+    VLOG(5) << "CheckVectorization failed: loop extent is not sufficient "
+               "for vectorization.";
+    return false;
+  }
+
+  bool is_loop_extent_multiple_of_vectorization =
+      (loop_extent_per_thread % vectorize_factor == 0);
+
+  if (!is_loop_extent_multiple_of_vectorization) {
+    VLOG(5) << "CheckVectorization failed: loop extent is not a multiple "
+               "of vectorization.";
+    return false;
+  }
+
+  auto vectorize_expr = loops[vectorize_axis];
+  auto bound_variable_map =
+      GetBoundVariables(vectorize_expr, vectorize_expr.As<ir::For>()->loop_var);
+
+  if (bound_variable_map.empty()) {
+    VLOG(5) << "CheckVectorization failed: the vectorization axis is not "
+               "present in load "
+               "and store operations.";
+    return false;
+  }
+
+  std::set<std::string> tensors_to_check =
+      TraverseExpression(vectorize_expr, bound_variable_map);
+
+  cinn::common::cas_intervals_t var_intervals =
+      CollectVarIntervalsOfExprs(loops, true);
+  bool vectorization_result = CheckTensorVectorization(vectorize_expr,
+                                                       vectorize_factor,
+                                                       tensors_to_check,
+                                                       var_intervals,
+                                                       bound_variable_map);
+
+  if (vectorization_result) {
+    VLOG(5) << "CheckVectorization succeeded: Vectorization is possible.";
+  } else {
+    VLOG(5) << "CheckVectorization failed: Non-contiguous memory access "
+               "detected.";
+  }
+
+  return vectorization_result;
 }
 
 }  // namespace analyzer

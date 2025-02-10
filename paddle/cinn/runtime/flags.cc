@@ -154,6 +154,10 @@ PD_DEFINE_bool(cinn_use_cuda_vectorize,
                BoolFromEnv("FLAGS_cinn_use_cuda_vectorize", false),
                "Whether use cuda vectorize on schedule config");
 
+PD_DEFINE_bool(cinn_enable_vectorize,
+               BoolFromEnv("FLAGS_cinn_enable_vectorize", false),
+               "Whether use vectorize on schedule config");
+
 PD_DEFINE_bool(use_reduce_split_pass,
                BoolFromEnv("FLAGS_use_reduce_split_pass", false),
                "Whether use reduce split pass.");

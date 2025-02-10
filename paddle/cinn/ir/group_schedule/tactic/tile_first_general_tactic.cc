@@ -20,6 +20,8 @@
 #include "paddle/cinn/ir/ir_analyzer/ir_analyzer.h"
 #include "paddle/cinn/ir/schedule/ir_schedule_util.h"
 
+PD_DECLARE_bool(cinn_enable_vectorize);
+
 namespace cinn {
 namespace ir {
 
@@ -211,18 +213,72 @@ void TileFirstGeneralTactic::ApplyContinuousDataTile(
           << "], loop nest:\n"
           << sch->GetModule().GetExprs().front();
 
-  // Split spatial axes -> [sp_block, sp_loop, sp_thread]
+  int vectorize_factor = 4;
   int current_reduce_axis = 0;
+  auto loops = sch->GetLoops(block_id);
+
+  auto DoSpatialAxesVectorize = [&](cinn::ir::IRSchedule* sch,
+                                    const std::string& block_id,
+                                    int vectorize_factor,
+                                    int split_factor) {
+    auto loops = sch->GetLoops(block_id);
+    sch->Split(loops[0], {-1, split_factor, vectorize_factor});
+    loops = sch->GetLoops(block_id);
+    sch->Vectorize(loops[2], vectorize_factor);
+    VLOG(4) << "Applied vectorization on loops:\n" << loops[0];
+  };
+
+  auto DoReduceAxesVectorize = [&](cinn::ir::IRSchedule* sch,
+                                   const std::string& block_id,
+                                   int vectorize_factor) {
+    auto loops = sch->GetLoops(block_id);
+    int N = loops[current_reduce_axis].As<ir::For>()->extent.as_int64();
+    int f1 = rd_block * rd_thread;
+    int f3 = vectorize_factor;
+    int f2 = N / (f1 * f3);
+
+    sch->Split(
+        loops[current_reduce_axis],
+        f2 == 1 ? std::vector<int>{f1, f3} : std::vector<int>{f1, f2, f3});
+    loops = sch->GetLoops(block_id);
+    sch->Vectorize(loops[current_reduce_axis + (f2 == 1 ? 1 : 2)],
+                   vectorize_factor);
+    VLOG(4) << "Applied vectorization on loops:\n"
+            << loops[current_reduce_axis];
+  };
+
+  // Split spatial axes -> [sp_block, sp_loop, sp_thread]
   if (vec_flatten_axis_.size() > 0) {
     auto loops = sch->GetLoops(block_id);
+    bool can_vectorize = FLAGS_cinn_enable_vectorize &&
+                         analyzer::IsVectorizable(loops,
+                                                  vectorize_factor,
+                                                  current_reduce_axis,
+                                                  sp_thread,
+                                                  rd_thread,
+                                                  false);
     if (sp_loop > 1 && sp_thread > 1) {
-      // [S, R] => [S(-1), S(inner_loop), S(thread), R]
-      sch->Split(loops[0], {-1, sp_loop, sp_thread});
-      current_reduce_axis = 3;
+      if (can_vectorize) {
+        // [S, R] => [S(-1), S(thread), S(inner_loop), S(vectorize), R]
+        DoSpatialAxesVectorize(sch, block_id, vectorize_factor, sp_thread);
+        current_reduce_axis = 2;
+      } else {
+        // [S, R] => [S(-1), S(inner_loop), S(thread), R]
+        sch->Split(loops[0], {-1, sp_loop, sp_thread});
+        current_reduce_axis = 3;
+      }
     } else if (sp_loop > 1 || sp_thread > 1) {
-      // [S, R] => [S(-1), S(thread), R]
-      sch->Split(loops[0], {-1, sp_loop > 1 ? sp_loop : sp_thread});
-      current_reduce_axis = 2;
+      if (can_vectorize) {
+        // [S, R] => [S(-1), S(thread), S(vectorize), R]
+        DoSpatialAxesVectorize(
+            sch, block_id, vectorize_factor, sp_loop > 1 ? sp_loop : sp_thread);
+        current_reduce_axis = 2;
+      } else {
+        // [S, R] => [S(-1), S(thread), R]
+        sch->Split(loops[0], {-1, sp_loop > 1 ? sp_loop : sp_thread});
+        current_reduce_axis = 2;
+      }
+
     } else {
       // [S, R] => [S, R]
       current_reduce_axis = 1;
@@ -235,10 +291,20 @@ void TileFirstGeneralTactic::ApplyContinuousDataTile(
   std::string global_rf_block;
   if (vec_reduce_axis_.size() > 0) {
     auto loops = sch->GetLoops(block_id);
-    sch->Split(loops[current_reduce_axis], {-1, rd_block * rd_thread});
-
-    loops = sch->GetLoops(block_id);
-    sch->Reorder({loops[current_reduce_axis + 1], loops[current_reduce_axis]});
+    if (FLAGS_cinn_enable_vectorize &&
+        analyzer::IsVectorizable(loops,
+                                 vectorize_factor,
+                                 current_reduce_axis,
+                                 sp_thread,
+                                 rd_thread,
+                                 true)) {
+      DoReduceAxesVectorize(sch, block_id, vectorize_factor);
+    } else {
+      sch->Split(loops[current_reduce_axis], {-1, rd_block * rd_thread});
+      loops = sch->GetLoops(block_id);
+      sch->Reorder(
+          {loops[current_reduce_axis + 1], loops[current_reduce_axis]});
+    }
 
     loops = sch->GetLoops(block_id);
     if (IsReductionSBlock(sch->GetBlock(block_id)) &&

@@ -98,6 +98,13 @@ void AnalyzeScheduleBlockReadWriteBuffer(ir::ScheduleBlock* sche_block);
 
 std::string GetBlockName(const ir::Expr block);
 
+bool IsVectorizable(const std::vector<ir::Expr>& loops,
+                    int vectorize_factor,
+                    int current_reduce_axis,
+                    int sp_thread,
+                    int rd_thread,
+                    bool is_reduce_axis);
+
 }  // namespace analyzer
 }  // namespace ir
 }  // namespace cinn
