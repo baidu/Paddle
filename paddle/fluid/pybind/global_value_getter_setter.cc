@@ -74,19 +74,16 @@ class PYBIND11_HIDDEN GlobalVarGetterSetterRegistry {
 
  private:
   struct VarInfo {
-    VarInfo(bool is_public, const Getter &getter, const Getter &default_getter)
+    VarInfo(bool is_public, Getter getter, Getter default_getter)
         : is_public(is_public),
-          getter(getter),
-          default_getter(default_getter) {}
+          getter(std::move(getter)),
+          default_getter(std::move(default_getter)) {}
 
-    VarInfo(bool is_public,
-            const Getter &getter,
-            const Getter &default_getter,
-            const Setter &setter)
+    VarInfo(bool is_public, Getter getter, Getter default_getter, Setter setter)
         : is_public(is_public),
-          getter(getter),
-          default_getter(default_getter),
-          setter(setter) {}
+          getter(std::move(getter)),
+          default_getter(std::move(default_getter)),
+          setter(std::move(setter)) {}
 
     const bool is_public;
     const Getter getter;
@@ -257,10 +254,12 @@ void BindGlobalValueGetterSetter(pybind11::module *module) {
   } while (0)
 
 struct RegisterGetterSetterVisitor {
-  RegisterGetterSetterVisitor(const std::string &name,
+  RegisterGetterSetterVisitor(std::string name,
                               bool is_writable,
                               void *value_ptr)
-      : name_(name), is_writable_(is_writable), value_ptr_(value_ptr) {}
+      : name_(std::move(name)),
+        is_writable_(is_writable),
+        value_ptr_(value_ptr) {}
 
   template <typename T>
   void operator()(const T &default_value) const {

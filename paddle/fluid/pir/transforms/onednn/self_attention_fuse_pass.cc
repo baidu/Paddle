@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/self_attention_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -30,8 +32,8 @@ class SelfAttentionFusePattern : public paddle::drr::DrrPatternBase {
   uint32_t benefit_;
 
  public:
-  SelfAttentionFusePattern(const std::string &self_attn_name, uint32_t benefit)
-      : self_attn_name_(self_attn_name), benefit_(benefit) {}
+  SelfAttentionFusePattern(std::string self_attn_name, uint32_t benefit)
+      : self_attn_name_(std::move(self_attn_name)), benefit_(benefit) {}
 
   std::string name() const override { return "SelfAttentionFusePattern"; }
 

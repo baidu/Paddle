@@ -21,7 +21,7 @@ namespace platform {
 
 class DeserializationReader {
  public:
-  explicit DeserializationReader(const std::string& filename);
+  explicit DeserializationReader(std::string filename);
   explicit DeserializationReader(const char* filename);
   ~DeserializationReader();
   std::unique_ptr<ProfilerResult> Parse();

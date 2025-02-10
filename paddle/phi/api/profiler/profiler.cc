@@ -19,6 +19,7 @@ limitations under the License. */
 #include <sstream>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include "glog/logging.h"
 
@@ -62,10 +63,10 @@ Event::Event(EventType type,
              EventRole role,
              std::string attr)
     : type_(type),
-      name_(name),
+      name_(std::move(name)),
       thread_id_(thread_id),
       role_(role),
-      attr_(attr) {
+      attr_(std::move(attr)) {
   cpu_ns_ = GetTimeInNsec();
 }
 

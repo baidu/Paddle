@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/matmul_activation_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -69,14 +71,14 @@ class MatmulActivationFusePattern : public paddle::drr::DrrPatternBase {
   std::string act_type_;
 
  public:
-  MatmulActivationFusePattern(const std::string &matmul_name,
-                              const std::string &fused_matmul_name,
+  MatmulActivationFusePattern(std::string matmul_name,
+                              std::string fused_matmul_name,
                               uint32_t benefit,
-                              const std::string &act_type)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+                              std::string act_type)
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
-        act_type_(act_type) {}
+        act_type_(std::move(act_type)) {}
 
   std::string name() const override { return "MatmulActivationFusePattern"; }
 
@@ -167,11 +169,11 @@ class MatmulGeluTanhFusePattern : public paddle::drr::DrrPatternBase {
   uint32_t benefit_;
 
  public:
-  MatmulGeluTanhFusePattern(const std::string &matmul_name,
-                            const std::string &fused_matmul_name,
+  MatmulGeluTanhFusePattern(std::string matmul_name,
+                            std::string fused_matmul_name,
                             uint32_t benefit)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit) {}
 
   std::string name() const override { return "MatmulActivationFusePattern"; }
@@ -235,6 +237,14 @@ class MatmulClipFusePattern : public paddle::drr::DrrPatternBase {
   bool inplace_;
 
  public:
+<<<<<<< HEAD
+  MatmulClipFusePattern(std::string matmul_name,
+                        std::string fused_matmul_name,
+                        uint32_t benefit)
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
+        benefit_(benefit) {}
+=======
   MatmulClipFusePattern(const std::string &matmul_name,
                         const std::string &fused_matmul_name,
                         uint32_t benefit,
@@ -243,6 +253,7 @@ class MatmulClipFusePattern : public paddle::drr::DrrPatternBase {
         fused_matmul_name_(fused_matmul_name),
         benefit_(benefit),
         inplace_(inplace) {}
+>>>>>>> 337f0d225e59843df33c4ca189ae312b8c36a4f3
 
   std::string name() const override { return "MatmulActivationFusePattern"; }
 
@@ -318,14 +329,14 @@ class FusedMatmulActivationFusePattern : public paddle::drr::DrrPatternBase {
   std::string act_type_;
 
  public:
-  FusedMatmulActivationFusePattern(const std::string &matmul_name,
-                                   const std::string &fused_matmul_name,
+  FusedMatmulActivationFusePattern(std::string matmul_name,
+                                   std::string fused_matmul_name,
                                    uint32_t benefit,
-                                   const std::string &act_type)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+                                   std::string act_type)
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
-        act_type_(act_type) {}
+        act_type_(std::move(act_type)) {}
 
   std::string name() const override {
     return "FusedMatmulActivationFusePattern";
@@ -441,11 +452,11 @@ class FusedMatmulGeluTanhFusePattern : public paddle::drr::DrrPatternBase {
   uint32_t benefit_;
 
  public:
-  FusedMatmulGeluTanhFusePattern(const std::string &matmul_name,
-                                 const std::string &fused_matmul_name,
+  FusedMatmulGeluTanhFusePattern(std::string matmul_name,
+                                 std::string fused_matmul_name,
                                  uint32_t benefit)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit) {}
 
   std::string name() const override {
@@ -534,6 +545,14 @@ class FusedMatmulClipFusePattern : public paddle::drr::DrrPatternBase {
   bool inplace_;
 
  public:
+<<<<<<< HEAD
+  FusedMatmulClipFusePattern(std::string matmul_name,
+                             std::string fused_matmul_name,
+                             uint32_t benefit)
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
+        benefit_(benefit) {}
+=======
   FusedMatmulClipFusePattern(const std::string &matmul_name,
                              const std::string &fused_matmul_name,
                              uint32_t benefit,
@@ -542,6 +561,7 @@ class FusedMatmulClipFusePattern : public paddle::drr::DrrPatternBase {
         fused_matmul_name_(fused_matmul_name),
         benefit_(benefit),
         inplace_(inplace) {}
+>>>>>>> 337f0d225e59843df33c4ca189ae312b8c36a4f3
 
   std::string name() const override {
     return "FusedMatmulActivationFusePattern";

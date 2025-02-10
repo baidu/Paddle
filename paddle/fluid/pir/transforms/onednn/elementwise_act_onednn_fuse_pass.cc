@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/elementwise_act_onednn_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -43,11 +45,11 @@ class ElementwiseActivationFusePattern : public paddle::drr::DrrPatternBase {
   const int level_;
 
  public:
-  ElementwiseActivationFusePattern(const std::string &elementwise_type,
-                                   const std::string &activation_name,
+  ElementwiseActivationFusePattern(std::string elementwise_type,
+                                   std::string activation_name,
                                    int level)
-      : elementwise_type_(elementwise_type),
-        activation_name_(activation_name),
+      : elementwise_type_(std::move(elementwise_type)),
+        activation_name_(std::move(activation_name)),
         level_(level) {}
 
   std::string name() const override {
@@ -139,10 +141,10 @@ class ElementwiseGeluFusePattern : public paddle::drr::DrrPatternBase {
 
  public:
   ElementwiseGeluFusePattern(const std::string elementwise_type,
-                             const std::string &activation_name,
+                             std::string activation_name,
                              int level)
       : elementwise_type_(elementwise_type),
-        activation_name_(activation_name),
+        activation_name_(std::move(activation_name)),
         level_(level) {}
 
   std::string name() const override {
@@ -196,11 +198,11 @@ class ElementwiseClipFusePattern : public paddle::drr::DrrPatternBase {
   const int level_;
 
  public:
-  ElementwiseClipFusePattern(const std::string &elementwise_type,
-                             const std::string &activation_name,
+  ElementwiseClipFusePattern(std::string elementwise_type,
+                             std::string activation_name,
                              int level)
-      : elementwise_type_(elementwise_type),
-        activation_name_(activation_name),
+      : elementwise_type_(std::move(elementwise_type)),
+        activation_name_(std::move(activation_name)),
         level_(level) {}
 
   std::string name() const override {

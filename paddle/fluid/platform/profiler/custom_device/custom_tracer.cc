@@ -16,6 +16,7 @@
 
 #include <mutex>
 #include <unordered_map>
+#include <utility>
 
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/phi/core/os_info.h"
@@ -25,8 +26,13 @@
 
 namespace paddle::platform {
 
+<<<<<<< HEAD
+CustomTracer::CustomTracer(std::string dev_type)
+    : dev_type_(std::move(dev_type)) {
+=======
 CustomTracer::CustomTracer(const std::string& dev_type)
     : dev_type_(dev_type), context_(nullptr) {
+>>>>>>> 0d3fe4e7a356c78a77882666211f15a53847830f
 #ifdef PADDLE_WITH_CUSTOM_DEVICE
   auto selected_devices = phi::DeviceManager::GetSelectedDeviceList(dev_type_);
   if (selected_devices.size()) {

@@ -130,7 +130,7 @@ class PADDLE_API Tensor final {
    *
    * @param tensor_impl
    */
-  Tensor(std::shared_ptr<phi::TensorBase> tensor_impl, const std::string& name);
+  Tensor(std::shared_ptr<phi::TensorBase> tensor_impl, std::string name);
 
   /**
    * @brief Construct a new Tensor object with name
@@ -151,7 +151,7 @@ class PADDLE_API Tensor final {
    */
   Tensor(std::shared_ptr<phi::TensorBase> tensor_impl,
          std::shared_ptr<AbstractAutogradMeta> autograd_meta,
-         const std::string& name);
+         std::string name);
 
   /* Part 2: Dimension, DataType and DataLayout methods */
 

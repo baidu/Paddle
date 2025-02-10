@@ -141,11 +141,11 @@ class ProfilerResult {
 #if defined(PADDLE_WITH_CUDA) || defined(PADDLE_WITH_HIP)
   explicit ProfilerResult(
       std::unique_ptr<NodeTrees> tree,
-      const ExtraInfo& extra_info,
+      ExtraInfo extra_info,
       const std::map<uint32_t, gpuDeviceProp> device_property_map);
 #endif
   explicit ProfilerResult(std::unique_ptr<NodeTrees> tree,
-                          const ExtraInfo& extra_info);
+                          ExtraInfo extra_info);
 
   ~ProfilerResult();
   std::map<uint64_t, HostPythonNode*> GetData() {

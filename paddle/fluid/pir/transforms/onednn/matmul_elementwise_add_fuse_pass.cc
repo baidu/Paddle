@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/matmul_elementwise_add_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -30,12 +32,12 @@ class MatmulElementwiseAddFusePattern : public paddle::drr::DrrPatternBase {
   bool as_x_;  // Decide input direction of add
 
  public:
-  MatmulElementwiseAddFusePattern(const std::string &matmul_name,
-                                  const std::string &fused_matmul_name,
+  MatmulElementwiseAddFusePattern(std::string matmul_name,
+                                  std::string fused_matmul_name,
                                   uint32_t benefit,
                                   bool as_x)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
         as_x_(as_x) {}
 
@@ -99,12 +101,12 @@ class FusedMatmulElementwiseAddFusePattern
   bool as_x_;  // Decide input direction of add
 
  public:
-  FusedMatmulElementwiseAddFusePattern(const std::string &matmul_name,
-                                       const std::string &fused_matmul_name,
+  FusedMatmulElementwiseAddFusePattern(std::string matmul_name,
+                                       std::string fused_matmul_name,
                                        uint32_t benefit,
                                        bool as_x)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
         as_x_(as_x) {}
 

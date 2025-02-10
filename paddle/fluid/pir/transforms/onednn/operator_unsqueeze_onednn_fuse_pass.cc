@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/operator_unsqueeze_onednn_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -29,11 +31,11 @@ class OperatorUnsqueezeFusePattern : public paddle::drr::DrrPatternBase {
   uint32_t benefit_;
 
  public:
-  OperatorUnsqueezeFusePattern(const std::string &fusable_ops,
-                               const std::string &fused_ops_name,
+  OperatorUnsqueezeFusePattern(std::string fusable_ops,
+                               std::string fused_ops_name,
                                uint32_t benefit)
-      : fusable_ops_(fusable_ops),
-        fused_ops_name_(fused_ops_name),
+      : fusable_ops_(std::move(fusable_ops)),
+        fused_ops_name_(std::move(fused_ops_name)),
         benefit_(benefit) {}
 
   std::string name() const override {

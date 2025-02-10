@@ -14,6 +14,8 @@
 
 #include "paddle/fluid/pir/transforms/onednn/reshape_transpose_matmul_fuse_pass.h"
 
+#include <utility>
+
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
@@ -30,12 +32,12 @@ class ReshapeTransposeMatmulFusePattern : public paddle::drr::DrrPatternBase {
   bool as_x_;  // decide if the output of transpose is for input_x of matmul
 
  public:
-  ReshapeTransposeMatmulFusePattern(const std::string &matmul_name,
-                                    const std::string &fused_matmul_name,
+  ReshapeTransposeMatmulFusePattern(std::string matmul_name,
+                                    std::string fused_matmul_name,
                                     uint32_t benefit,
                                     bool as_x)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
         as_x_(as_x) {}
 
@@ -146,12 +148,12 @@ class ReshapeTransposeFusedMatmulFusePattern
   bool as_x_;  // decide if the output of transpose is for input_x of matmul
 
  public:
-  ReshapeTransposeFusedMatmulFusePattern(const std::string &matmul_name,
-                                         const std::string &fused_matmul_name,
+  ReshapeTransposeFusedMatmulFusePattern(std::string matmul_name,
+                                         std::string fused_matmul_name,
                                          uint32_t benefit,
                                          bool as_x)
-      : matmul_name_(matmul_name),
-        fused_matmul_name_(fused_matmul_name),
+      : matmul_name_(std::move(matmul_name)),
+        fused_matmul_name_(std::move(fused_matmul_name)),
         benefit_(benefit),
         as_x_(as_x) {}
 
