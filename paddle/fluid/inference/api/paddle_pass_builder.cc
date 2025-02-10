@@ -604,7 +604,7 @@ const std::vector<std::string> kPirGpuPasses{
     "add_norm_fuse_pass",
     "group_norm_silu_fuse_pass",
     "matmul_scale_fuse_pass",
-    "matmul_transpose_fuse_pass",
+    // "matmul_transpose_fuse_pass",
     "transpose_flatten_concat_fuse_pass",
     "remove_redundant_transpose_pass",
     "horizontal_fuse_pass",
