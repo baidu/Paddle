@@ -2604,18 +2604,12 @@ std::shared_ptr<Program> ApplyCommonSubexpressionEliminationPass(
   return program;
 }
 
-std::shared_ptr<Program> ApplyReduceAsToSumPass(
-    std::shared_ptr<Program> program) {
+void ApplyReduceAsToSumPass(
+    std::shared_ptr<pir::PassManager> &pass_manager,  // NOLINT
+    pir::Program &program) {                          // NOLINT
 #ifdef PADDLE_WITH_CINN
-  pir::PassManager pm(pir::IrContext::Instance(), 2);
-  pm.AddPass(cinn::dialect::ir::CreateReduceAsToSumPass());
-  pm.AddPass(pir::CreateDeadCodeEliminationPass());
-  pm.Run(program.get());
-  if (FLAGS_print_ir) {
-    std::cout << "IR After ReduceAsToSumPass -------------------" << std::endl;
-    std::cout << *program << std::endl;
-  }
-  return program;
+  pass_manager->AddPass(cinn::dialect::ir::CreateReduceAsToSumPass());
+  pass_manager->AddPass(pir::CreateDeadCodeEliminationPass());
 #else
   PADDLE_THROW(common::errors::Unimplemented(
       "Currently we only support ReduceAsToSumPass Pass for Pir under "

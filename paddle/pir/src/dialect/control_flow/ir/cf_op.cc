@@ -19,7 +19,6 @@
 #include "paddle/pir/include/core/ir_printer.h"
 #include "paddle/pir/include/dialect/control_flow/ir/cf_op.h"
 #include "paddle/pir/include/dialect/control_flow/ir/cf_type.h"
-
 namespace pir {
 
 void YieldOp::Build(Builder &builder,
@@ -88,6 +87,27 @@ size_t TuplePushOp::tuple_size() {
 
 TuplePopOp TuplePushOp::tuple_pop_op() {
   return container_interface().tuple_pop_op();
+}
+
+void TuplePushOp::CacheGradOpSymbolicShape(
+    pir::InferSymbolicShapeContext *infer_context) {
+  const auto &x_shape =
+      infer_context->GetShapeOrDataForValue(this->operand_source(0));
+  std::string tuple_pop_name(TuplePopOp::name());
+  pir::InferSymbolicShapeCacheKey op_shape_info(
+      tuple_pop_name,
+      {x_shape},
+      pir::GetOrderedOriginalAttributes("cf.tuple_pop",
+                                        this->operation()->attributes()));
+
+  std::vector<symbol::ShapeOrDataDimExprs> pop_value_shape_list;
+  for (size_t index = 1; index < num_operands(); ++index) {
+    const auto &pop_value_shape_or_data =
+        infer_context->GetShapeOrDataForValue(this->operand_source(index));
+    pop_value_shape_list.emplace_back(pop_value_shape_or_data);
+  }
+  infer_context->SetOpInferSymbolicShapeCache(op_shape_info,
+                                              pop_value_shape_list);
 }
 
 void TuplePopOp::Build(Builder &builder,             // NOLINT
@@ -202,11 +222,14 @@ void StackCreateOp::VerifySig() {
 
 bool StackCreateOp::InferSymbolicShape(
     pir::InferSymbolicShapeContext *infer_context) {
-  const auto &null_shape_or_data =
-      symbol::ShapeOrDataDimExprs(symbol::NullShapeOrDataDimExpr());
-  infer_context->SetShapeOrDataForValue(result(0), null_shape_or_data);
-  infer_context->SetShapeOrDataForValue(result(1), null_shape_or_data);
-  infer_context->SetShapeOrDataForValue(result(2), null_shape_or_data);
+  std::vector<symbol::DimExpr> shape;
+  shape.emplace_back(symbol::DimExpr(infer_context->GetNextSymName()));
+  const symbol::ShapeOrDataDimExprs &mark_shape_or_data =
+      symbol::ShapeOrDataDimExprs(symbol::TensorShapeOrDataDimExprs(shape));
+
+  infer_context->SetShapeOrDataForValue(result(0), mark_shape_or_data);
+  infer_context->SetShapeOrDataForValue(result(1), mark_shape_or_data);
+  infer_context->SetShapeOrDataForValue(result(2), mark_shape_or_data);
   return true;
 }
 

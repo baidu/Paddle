@@ -20,8 +20,10 @@
 #include "paddle/pir/include/core/op_base.h"
 #include "paddle/pir/include/core/op_trait.h"
 #include "paddle/pir/include/dialect/control_flow/ir/cf_interface.h"
+#include "paddle/pir/include/dialect/shape/interface/infer_symbolic_shape/cache_grad_op_symbolic_shape.h"
 #include "paddle/pir/include/dialect/shape/interface/infer_symbolic_shape/infer_symbolic_shape.h"
-
+#include "paddle/pir/include/dialect/shape/utils/original_attributes_filter.h"
+#include "paddle/pir/include/dialect/shape/utils/shape_analysis.h"
 namespace pir {
 class IR_API YieldOp : public Op<YieldOp, SideEffectTrait> {
  public:
@@ -39,7 +41,9 @@ class IR_API YieldOp : public Op<YieldOp, SideEffectTrait> {
 ///
 /// \brief Push a value tuple to a container.
 ///
-class IR_API TuplePushOp : public Op<TuplePushOp, SideEffectTrait> {
+class IR_API TuplePushOp : public Op<TuplePushOp,
+                                     SideEffectTrait,
+                                     CacheGradOpSymbolicShapeInterface> {
  public:
   using Op::Op;
   static const char *name() { return "cf.tuple_push"; }
@@ -70,6 +74,8 @@ class IR_API TuplePushOp : public Op<TuplePushOp, SideEffectTrait> {
     return inlet().defining_op<ContainerOpInterface>();
   }
   TuplePopOp tuple_pop_op();
+
+  void CacheGradOpSymbolicShape(pir::InferSymbolicShapeContext *infer_context);
 };
 
 class IR_API TuplePopOp : public Op<TuplePopOp, SideEffectTrait> {

@@ -623,7 +623,12 @@ class FullGraphPreProcessPass(ValuePreservePass):
     def apply(self, program):
         program = paddle.base.libpaddle.pir.apply_bn_add_act_pass(program)
         if self.use_cinn_pass:
-            program = paddle.base.libpaddle.pir.reduce_as_sum_pass(program)
+            # NOTE(gongshaotian): execute infer_symbolic_shape_pass before reduce_as_sum_pass
+            pm = paddle.base.libpaddle.pir.PassManager()
+            pm.add_pass("delete_assert_op_pass", {})
+            paddle.base.libpaddle.pir.infer_symbolic_shape_pass(pm, program)
+            paddle.base.libpaddle.pir.reduce_as_sum_pass(pm, program)
+            pm.run(program)
         return program
 
 
@@ -770,13 +775,6 @@ class PartialProgramLayer:
         if is_infer_mode:
 
             def pass_fn(forward_program, backward_program, program_name_attr):
-                # common pass
-                pm = paddle.base.libpaddle.pir.PassManager()
-                paddle.base.libpaddle.pir.infer_symbolic_shape_pass(
-                    pm, forward_program
-                )
-                pm.run(forward_program)
-
                 apply_general_passes(
                     forward_program,
                     enable_cse=cse_is_enabled(),
