@@ -274,13 +274,16 @@ def _select_sdp(head_dim: int) -> str:
     is determined by the sdp_kernel configuration or specified through input values.
     """
     place = paddle.get_device()
+    device = place.split(":")[0]
 
     if "xpu" in place:
         return "flash_attn"
 
     # not use sdp_kernel
     if g_enable_flash is None:
-        if "gpu" not in place:
+        if "gpu" not in place and not paddle.is_compiled_with_custom_device(
+            device
+        ):
             return "math"
         else:
             return _select_sdp_cuda(head_dim)
