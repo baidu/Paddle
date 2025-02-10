@@ -789,7 +789,7 @@
   output : Tensor(out)
   infer_meta :
     func : CSplitInferMeta
-    param : [x, nranks]
+    param : [x, rank, nranks]
   kernel :
     func : c_split
     param: [x, rank, nranks, use_model_parallel]

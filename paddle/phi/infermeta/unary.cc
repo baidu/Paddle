@@ -821,7 +821,10 @@ void CScatterInferMeta(const MetaTensor& x,
   out->set_dtype(x.dtype());
 }
 
-void CSplitInferMeta(const MetaTensor& x, int nranks, MetaTensor* out) {
+void CSplitInferMeta(const MetaTensor& x,
+                     int rank,
+                     int nranks,
+                     MetaTensor* out) {
   phi::DDim dim = x.dims();
   dim[dim.size() - 1] = dim[dim.size() - 1] / nranks;
   if (dim[0] < 0) dim[0] = -1;
