@@ -126,7 +126,7 @@ TEST(DimExpr, Print) {
   ASSERT_EQ((ToString(sym0 + sym1)), "Add(S0, S1)");
   ASSERT_EQ((ToString(sym0 - sym1)), "Add(S0, -S1)");
   ASSERT_EQ((ToString(sym0 * sym1)), "Mul(S0, S1)");
-  ASSERT_EQ((ToString(sym0 / sym1)), "Mul(S0, 1 / (S1))");
+  ASSERT_EQ((ToString(sym0 / sym1)), "Div(S0, S1)");
   ASSERT_EQ((ToString(builder.Max(sym0, sym1))), "Max(S0, S1)");
   ASSERT_EQ((ToString(builder.Min(sym0, sym1))), "Min(S0, S1)");
   ASSERT_EQ((ToString(builder.Broadcast(sym0, sym1))), "Broadcast(S0, S1)");

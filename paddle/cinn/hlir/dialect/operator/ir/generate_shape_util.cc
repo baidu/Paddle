@@ -31,11 +31,6 @@ std::string GetSerializedTag<Negative<DimExpr>>() {
 }
 
 template <>
-std::string GetSerializedTag<Reciprocal<DimExpr>>() {
-  return "Reciprocal";
-}
-
-template <>
 std::string GetSerializedTag<Add<DimExpr>>() {
   return "Add";
 }
@@ -43,6 +38,11 @@ std::string GetSerializedTag<Add<DimExpr>>() {
 template <>
 std::string GetSerializedTag<Mul<DimExpr>>() {
   return "Mul";
+}
+
+template <>
+std::string GetSerializedTag<Div<DimExpr>>() {
+  return "Div";
 }
 
 template <>
@@ -80,13 +80,20 @@ template <typename T>
   return pir::ArrayAttribute::get(ctx, attr_vecs);
 }
 
-::pir::Attribute ConvertDimExprToAttributeImpl(
-    ::pir::IrContext* ctx, const Negative<DimExpr>& dim_expr) {
-  return ConvertUnaryDimExprToAttributeImpl(ctx, dim_expr);
+template <typename T>
+::pir::Attribute ConvertBinaryDimExprToAttributeImpl(::pir::IrContext* ctx,
+                                                     const T& dim_expr) {
+  std::vector<::pir::Attribute> attr_vecs{};
+  attr_vecs.push_back(pir::StrAttribute::get(ctx, GetSerializedTag<T>()));
+  const auto& lhs = dim_expr->lhs;
+  const auto& rhs = dim_expr->rhs;
+  attr_vecs.push_back(ConvertDimExprToAttribute(ctx, lhs));
+  attr_vecs.push_back(ConvertDimExprToAttribute(ctx, rhs));
+  return pir::ArrayAttribute::get(ctx, attr_vecs);
 }
 
 ::pir::Attribute ConvertDimExprToAttributeImpl(
-    ::pir::IrContext* ctx, const Reciprocal<DimExpr>& dim_expr) {
+    ::pir::IrContext* ctx, const Negative<DimExpr>& dim_expr) {
   return ConvertUnaryDimExprToAttributeImpl(ctx, dim_expr);
 }
 
@@ -110,6 +117,11 @@ template <typename T>
 ::pir::Attribute ConvertDimExprToAttributeImpl(::pir::IrContext* ctx,
                                                const Mul<DimExpr>& dim_expr) {
   return ConvertVariadicDimExprToAttribute(ctx, dim_expr);
+}
+
+::pir::Attribute ConvertDimExprToAttributeImpl(::pir::IrContext* ctx,
+                                               const Div<DimExpr>& dim_expr) {
+  return ConvertBinaryDimExprToAttributeImpl(ctx, dim_expr);
 }
 
 ::pir::Attribute ConvertDimExprToAttributeImpl(::pir::IrContext* ctx,
@@ -151,6 +163,23 @@ std::optional<DimExpr> ConvertArrayAttributeToUnaryDimExpr(
 }
 
 template <typename T>
+std::optional<DimExpr> ConvertArrayAttributeToBinaryDimExpr(
+    const ::pir::ArrayAttribute& attribute) {
+  if (attribute.size() != 3) {
+    return std::nullopt;
+  }
+  std::optional<DimExpr> lhs = ConvertAttributeToDimExpr(attribute.at(1));
+  if (!lhs.has_value()) {
+    return std::nullopt;
+  }
+  std::optional<DimExpr> rhs = ConvertAttributeToDimExpr(attribute.at(2));
+  if (!rhs.has_value()) {
+    return std::nullopt;
+  }
+  return T{lhs.value(), rhs.value()};
+}
+
+template <typename T>
 std::optional<DimExpr> ConvertArrayAttributeToVariadicDimExpr(
     const ::pir::ArrayAttribute& attribute) {
   if (attribute.size() < 2) {
@@ -175,12 +204,12 @@ std::optional<ArrayAttributeConverterT> GetArrayAttributeConverter(
   static std::unordered_map<std::string, ArrayAttributeConverterT> map{
       {GetSerializedTag<Negative<DimExpr>>(),
        &ConvertArrayAttributeToUnaryDimExpr<Negative<DimExpr>>},
-      {GetSerializedTag<Reciprocal<DimExpr>>(),
-       &ConvertArrayAttributeToUnaryDimExpr<Reciprocal<DimExpr>>},
       {GetSerializedTag<Add<DimExpr>>(),
        &ConvertArrayAttributeToVariadicDimExpr<Add<DimExpr>>},
       {GetSerializedTag<Mul<DimExpr>>(),
        &ConvertArrayAttributeToVariadicDimExpr<Mul<DimExpr>>},
+      {GetSerializedTag<Div<DimExpr>>(),
+       &ConvertArrayAttributeToBinaryDimExpr<Div<DimExpr>>},
       {GetSerializedTag<Max<DimExpr>>(),
        &ConvertArrayAttributeToVariadicDimExpr<Max<DimExpr>>},
       {GetSerializedTag<Min<DimExpr>>(),
@@ -276,9 +305,6 @@ class SubstituteDimExprHelper final {
   std::optional<DimExpr> SubstituteImpl(const Negative<DimExpr>& dim_expr) {
     return SubstituteUnary(dim_expr);
   }
-  std::optional<DimExpr> SubstituteImpl(const Reciprocal<DimExpr>& dim_expr) {
-    return SubstituteUnary(dim_expr);
-  }
 
   template <typename T>
   std::optional<DimExpr> SubstituteUnary(const T& dim_expr) {
@@ -296,6 +322,25 @@ class SubstituteDimExprHelper final {
 
   std::optional<DimExpr> SubstituteImpl(const Mul<DimExpr>& dim_expr) {
     return SubstituteVariadic(dim_expr);
+  }
+
+  std::optional<DimExpr> SubstituteImpl(const Div<DimExpr>& dim_expr) {
+    return SubstituteBinary(dim_expr);
+  }
+
+  template <typename T>
+  std::optional<DimExpr> SubstituteBinary(const T& dim_expr) {
+    const auto& lhs = dim_expr->lhs;
+    const auto& rhs = dim_expr->rhs;
+    const auto& substituted_lhs = Substitute(lhs);
+    if (!substituted_lhs.has_value()) {
+      return std::nullopt;
+    }
+    const auto& substituted_rhs = Substitute(rhs);
+    if (!substituted_rhs.has_value()) {
+      return std::nullopt;
+    }
+    return T{substituted_lhs.value(), substituted_rhs.value()};
   }
 
   std::optional<DimExpr> SubstituteImpl(const Max<DimExpr>& dim_expr) {
@@ -412,11 +457,11 @@ bool IsAtomicImpl(const std::string&) { return true; }
 
 bool IsAtomicImpl(const symbol::Negative<symbol::DimExpr>&) { return false; }
 
-bool IsAtomicImpl(const symbol::Reciprocal<symbol::DimExpr>&) { return false; }
-
 bool IsAtomicImpl(const symbol::Add<symbol::DimExpr>&) { return false; }
 
 bool IsAtomicImpl(const symbol::Mul<symbol::DimExpr>&) { return false; }
+
+bool IsAtomicImpl(const symbol::Div<symbol::DimExpr>&) { return false; }
 
 bool IsAtomicImpl(const symbol::Max<symbol::DimExpr>&) { return false; }
 
@@ -484,9 +529,12 @@ void CollectSymbolNamesImpl(const symbol::Negative<symbol::DimExpr>& dim_expr,
   CollectSymbolNamesImplForUnary(dim_expr, ret);
 }
 
-void CollectSymbolNamesImpl(const symbol::Reciprocal<symbol::DimExpr>& dim_expr,
-                            std::set<std::string>* ret) {
-  CollectSymbolNamesImplForUnary(dim_expr, ret);
+template <typename T>
+void CollectSymbolNamesImplForBinary(const T& dim_expr,
+                                     std::set<std::string>* ret) {
+  const auto& [lhs, rhs] = *dim_expr;
+  CollectSymbolNames(lhs, ret);
+  CollectSymbolNames(rhs, ret);
 }
 
 template <typename T>
@@ -506,6 +554,11 @@ void CollectSymbolNamesImpl(const symbol::Add<symbol::DimExpr>& dim_expr,
 void CollectSymbolNamesImpl(const symbol::Mul<symbol::DimExpr>& dim_expr,
                             std::set<std::string>* ret) {
   CollectSymbolNamesImplForVariadic(dim_expr, ret);
+}
+
+void CollectSymbolNamesImpl(const symbol::Div<symbol::DimExpr>& dim_expr,
+                            std::set<std::string>* ret) {
+  CollectSymbolNamesImplForBinary(dim_expr, ret);
 }
 
 void CollectSymbolNamesImpl(const symbol::Max<symbol::DimExpr>& dim_expr,

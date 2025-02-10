@@ -27,9 +27,9 @@ bool IsComplicatedDimExpr(const symbol::DimExpr& dim_expr) {
       [](std::int64_t dim_expr) { return false; },
       [](const std::string& dim_expr) { return false; },
       [](const symbol::Negative<symbol::DimExpr>& dim_expr) { return true; },
-      [](const symbol::Reciprocal<symbol::DimExpr>& dim_expr) { return true; },
       [](const symbol::Add<symbol::DimExpr>& dim_expr) { return true; },
       [](const symbol::Mul<symbol::DimExpr>& dim_expr) { return true; },
+      [](const symbol::Div<symbol::DimExpr>& dim_expr) { return true; },
       [](const symbol::Max<symbol::DimExpr>& dim_expr) { return true; },
       [](const symbol::Min<symbol::DimExpr>& dim_expr) { return true; },
       [](const symbol::Broadcast<symbol::DimExpr>& dim_expr) { return true; }};

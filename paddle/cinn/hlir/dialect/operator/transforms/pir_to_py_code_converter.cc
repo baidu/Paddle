@@ -811,14 +811,6 @@ struct PirToPyCodeConverterHelper {
           ss << ")";
           return ss.str();
         },
-        [](const symbol::Reciprocal<symbol::DimExpr>& reciprocal) {
-          std::ostringstream ss;
-          const auto& [operand] = *reciprocal;
-          ss << "self.s_reciprocal(";
-          ss << PirToPyCodeConverterHelper::ConvertDimExpr(operand);
-          ss << ")";
-          return ss.str();
-        },
         [](const symbol::Add<symbol::DimExpr>& add) {
           std::ostringstream ss;
           ss << "self.s_add(";
@@ -844,6 +836,16 @@ struct PirToPyCodeConverterHelper {
             }
             ss << PirToPyCodeConverterHelper::ConvertDimExpr(operand);
           }
+          ss << ")";
+          return ss.str();
+        },
+        [](const symbol::Div<symbol::DimExpr>& div) {
+          std::ostringstream ss;
+          ss << "self.s_div(";
+          const auto& lhs = div->lhs;
+          const auto& rhs = div->rhs;
+          ss << PirToPyCodeConverterHelper::ConvertDimExpr(lhs) << ", "
+             << PirToPyCodeConverterHelper::ConvertDimExpr(rhs);
           ss << ")";
           return ss.str();
         },

@@ -49,7 +49,7 @@ class ArangeOpInferSymbolicShapeTest(TestBase):
         self.start = paddle.full([1], 0, dtype='int32')
         self.end = paddle.full([1], 5, dtype='int32')
         self.step = paddle.full([1], 1, dtype='int32')
-        self.expected = ['shape[Mul(Add(S1, -S0), 1 / (S2))], data[NULL]']
+        self.expected = ['shape[Div(Add(S1, -S0), S2)], data[NULL]']
 
     def test_eval_symbolic(self):
         net = ArangeNet()
