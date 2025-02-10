@@ -47,6 +47,9 @@ void ArangeTensorKernel(const Context& dev_ctx,
 
   int64_t size = 0;
   phi::funcs::GetSize(start_value, end_value, step_value, &size);
+  PADDLE_ENFORCE_GT(
+      size, 0u, phi::errors::PreconditionNotMet("size should large than 0"));
+
   out->Resize(common::make_ddim({size}));
   T* out_data = dev_ctx.template Alloc<T>(out);
 
@@ -72,6 +75,9 @@ void ArangeNullaryKernel(const Context& dev_ctx,
   MPType step_value_mpt = static_cast<MPType>(step_value);
   int64_t size = 0;
   phi::funcs::GetSize(start_value_mpt, end_value_mpt, step_value_mpt, &size);
+  PADDLE_ENFORCE_GT(
+      size, 0u, phi::errors::PreconditionNotMet("size should large than 0"));
+
   out->Resize(common::make_ddim({size}));
   T* out_data = dev_ctx.template Alloc<T>(out);
 
