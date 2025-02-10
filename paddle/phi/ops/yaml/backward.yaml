@@ -1993,6 +1993,16 @@
     func : lu_grad
   inplace : (out_grad -> x_grad)
 
+- backward_op : lu_solve_grad
+  forward : lu_solve (Tensor lu, Tensor pivots, Tensor b, bool trans = false) -> Tensor(out)
+  args : (Tensor lu, Tensor pivots, Tensor b, Tensor out, Tensor out_grad, bool trans)
+  output : Tensor(lu_grad), Tensor(b_grad)
+  infer_meta :
+    func : GeneralBinaryGradInferMeta
+    param : [lu, b]
+  kernel :
+    func : lu_solve_grad
+
 - backward_op : lu_unpack_grad
   forward : lu_unpack (Tensor x, Tensor y, bool unpack_ludata = true, bool unpack_pivots = true) -> Tensor(pmat), Tensor(l), Tensor(u)
   args : (Tensor x, Tensor y, Tensor l, Tensor u, Tensor pmat, Tensor l_grad, Tensor u_grad, bool unpack_ludata, bool unpack_pivots)

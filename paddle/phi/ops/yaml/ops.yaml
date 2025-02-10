@@ -3148,6 +3148,16 @@
   backward : lu_grad
   interfaces : paddle::dialect::InferSymbolicShapeInterface
 
+- op : lu_solve
+  args : (Tensor lu, Tensor pivots, Tensor b, bool trans = false)
+  output : Tensor(out)
+  infer_meta :
+    func : LUSolveInferMeta
+  kernel :
+    func : lu_solve
+  backward : lu_solve_grad
+  interfaces : paddle::dialect::InferSymbolicShapeInterface
+
 - op : lu_unpack
   args : (Tensor x, Tensor y, bool unpack_ludata = true, bool unpack_pivots = true)
   output : Tensor(pmat), Tensor(l), Tensor(u)

@@ -21,6 +21,17 @@ namespace funcs {
 template <typename T>
 void lapackLu(int m, int n, T *a, int lda, int *ipiv, int *info);
 
+template <typename T>
+void lapackGetrs(char trans,
+                 int n,
+                 int nrhs,
+                 T *a,
+                 int lda,
+                 const int *ipiv,
+                 T *b,
+                 int ldb,
+                 int *info);
+
 // Eigh
 template <typename T, typename ValueType = T>
 void lapackEigh(char jobz,

@@ -1288,6 +1288,70 @@ void LerpInferMeta(const MetaTensor& x,
   out->share_lod(x);
 }
 
+void LUSolveInferMeta(const MetaTensor& lu,
+                      const MetaTensor& pivot,
+                      const MetaTensor& b,
+                      bool trans,
+                      MetaTensor* out) {
+  auto lu_dims = lu.dims();
+  auto pivot_dims = pivot.dims();
+  auto b_dims = b.dims();
+
+  // lu must be [..., M, M] square matrix
+  PADDLE_ENFORCE_GE(
+      lu_dims.size(),
+      2,
+      common::errors::InvalidArgument(
+          "LU matrix must be at least 2D, but got %dD", lu_dims.size()));
+  PADDLE_ENFORCE_EQ(lu_dims[lu_dims.size() - 1],
+                    lu_dims[lu_dims.size() - 2],
+                    common::errors::InvalidArgument(
+                        "LU matrix must be square, but got shape [..., %d, %d]",
+                        lu_dims[lu_dims.size() - 2],
+                        lu_dims[lu_dims.size() - 1]));
+
+  // pivot should have shape [..., M]
+  PADDLE_ENFORCE_GE(pivot_dims.size(),
+                    1,
+                    common::errors::InvalidArgument(
+                        "Pivot indices tensor must be at least 1D, but got %dD",
+                        pivot_dims.size()));
+  PADDLE_ENFORCE_EQ(
+      pivot_dims[pivot_dims.size() - 1],
+      lu_dims[lu_dims.size() - 1],
+      common::errors::InvalidArgument("Pivot's last dimension must match LU's "
+                                      "last dimension, but got %d vs %d",
+                                      pivot_dims[pivot_dims.size() - 1],
+                                      lu_dims[lu_dims.size() - 1]));
+
+  // b should have shape [..., M] or [..., M, K]
+  PADDLE_ENFORCE_GE(
+      b_dims.size(),
+      1,
+      common::errors::InvalidArgument(
+          "RHS tensor must be at least 1D, but got %dD", b_dims.size()));
+  PADDLE_ENFORCE_EQ(
+      b_dims[b_dims.size() - (b_dims.size() == lu_dims.size() ? 2 : 1)],
+      lu_dims[lu_dims.size() - 1],
+      common::errors::InvalidArgument(
+          "B's relevant dimension must match LU's last dimension, but got %d "
+          "vs %d",
+          b_dims[b_dims.size() - (b_dims.size() == lu_dims.size() ? 2 : 1)],
+          lu_dims[lu_dims.size() - 1]));
+
+  std::vector<int64_t> out_dims{};
+  // Add matrix dimensions
+  if (b_dims.size() == lu_dims.size()) {
+    out_dims.push_back(lu_dims[lu_dims.size() - 2]);  // M
+    out_dims.push_back(b_dims[b_dims.size() - 1]);    // K
+  } else {
+    out_dims.push_back(lu_dims[lu_dims.size() - 1]);  // M
+  }
+
+  out->set_dims(common::make_ddim(out_dims));
+  out->set_dtype(lu.dtype());
+}
+
 void LinspaceRawInferMeta(const MetaTensor& start,
                           const MetaTensor& stop,
                           const MetaTensor& number,

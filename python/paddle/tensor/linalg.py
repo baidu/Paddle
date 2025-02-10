@@ -50,7 +50,6 @@ if TYPE_CHECKING:
 
 __all__ = []
 
-
 # Consistent with kDefaultDim from C++ Backend
 K_DEFAULT_DIM = 9
 
@@ -5837,6 +5836,98 @@ def cholesky_inverse(
     else:
         A = x @ x.T
     return paddle.linalg.inv(A)
+
+
+def lu_solve(
+    lu: Tensor,
+    pivots: Tensor,
+    b: Tensor,
+    trans: bool = False,
+    name: str | None = None,
+) -> Tensor:
+    r"""
+    Solves a system of linear equations with an LU-factored coefficient matrix.
+
+    Solves a system of equations :math:`Ax = b` given the LU factorization of :math:`A` computed by :func:`paddle.linalg.lu`.
+
+    When :attr:`trans` is False, solves the system of equations:
+
+    .. math::
+        Ax = b
+
+    When :attr:`trans` is True, solves the system of equations:
+
+    .. math::
+        A^T x = b
+
+    where :math:`A` can be reconstructed by :math:`A = PLU` (see :func:`paddle.linalg.lu`),
+    :math:`P` is a permutation matrix, :math:`L` is lower triangular with unit diagonal elements,
+    and :math:`U` is upper triangular.
+
+    Args:
+        lu (Tensor): The packed LU factorization returned by :func:`paddle.linalg.lu`.
+            Has shape ``(*, m, n)`` where ``*`` is zero or more batch dimensions.
+            The data type should be float32 or float64.
+        pivots (Tensor): The pivot indices returned by :func:`paddle.linalg.lu`.
+            Has shape ``(*, min(m,n))`` where ``*`` is zero or more batch dimensions.
+            The data type should be int32 or int64.
+        b (Tensor): Right hand side vectors/matrix. Has shape ``(*, m, k)`` where ``*``
+            is zero or more batch dimensions compatible with the batch dimensions of :attr:`x`.
+            The data type should be the same as :attr:`x`.
+        trans (bool, optional): Whether to solve the transposed system. Default: False.
+        name (str|None, optional): Name for the operation. For more information, please refer
+            to :ref:`api_guide_Name`. Default: None.
+
+    Returns:
+        Tensor: The solution vectors/matrix with shape ``(*, n, k)`` and same data type as :attr:`b`.
+
+    Examples:
+        .. code-block:: python
+
+            >>> import paddle
+
+            >>> # Create coefficient matrix A and right-hand side matrix B
+            >>> A = paddle.to_tensor([[3.0, 1.0], [1.0, 2.0]])
+            >>> B = paddle.to_tensor([[9.0], [8.0]])
+
+            >>> # Get LU factorization
+            >>> lu_results, pivots = paddle.linalg.lu(A)
+
+            >>> # Solve A @ x = B
+            >>> X = paddle.linalg.lu_solve(lu_results, pivots, B)
+            >>> print(X)
+            Tensor(shape=[2, 1], dtype=float32, place=Place(cpu), stop_gradient=True,
+            [[2.],
+            [3.]])
+
+            >>> # Verify solution
+            >>> print(paddle.matmul(A, X))
+            Tensor(shape=[2, 1], dtype=float32, place=Place(cpu), stop_gradient=True,
+            [[9.],
+            [8.]])
+    """
+    if in_dynamic_or_pir_mode():
+        return _C_ops.lu_solve(lu, pivots, b, trans)
+    else:
+        check_variable_and_dtype(
+            lu, 'dtype', ['float32', 'float64'], 'lu_solve'
+        )
+        check_variable_and_dtype(
+            pivots, 'dtype', ['int32', 'int64'], 'lu_solve'
+        )
+        check_variable_and_dtype(b, 'dtype', ['float32', 'float64'], 'lu_solve')
+        check_type(trans, 'trans', bool, 'lu_solve')
+
+        helper = LayerHelper('lu_solve', **locals())
+        out = helper.create_variable_for_type_inference(dtype=lu.dtype)
+
+        helper.append_op(
+            type='lu_solve',
+            inputs={'lu': lu, 'pivots': pivots, 'b': b},
+            outputs={'out': out},
+            attrs={'trans': trans},
+        )
+    return out
 
 
 def diagonal(

@@ -30,6 +30,35 @@ void lapackLu<float>(int m, int n, float *a, int lda, int *ipiv, int *info) {
   dynload::sgetrf_(&m, &n, a, &lda, ipiv, info);
 }
 
+// LU Solve
+template <>
+void lapackGetrs<double>(char trans,
+                         int n,
+                         int nrhs,
+                         double *a,
+                         int lda,
+                         const int *ipiv,
+                         double *b,
+                         int ldb,
+                         int *info) {
+  dynload::dgetrs_(
+      &trans, &n, &nrhs, a, &lda, const_cast<int *>(ipiv), b, &ldb, info);
+}
+
+template <>
+void lapackGetrs<float>(char trans,
+                        int n,
+                        int nrhs,
+                        float *a,
+                        int lda,
+                        const int *ipiv,
+                        float *b,
+                        int ldb,
+                        int *info) {
+  dynload::sgetrs_(
+      &trans, &n, &nrhs, a, &lda, const_cast<int *>(ipiv), b, &ldb, info);
+}
+
 // eigh
 template <>
 void lapackEigh<float>(char jobz,

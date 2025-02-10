@@ -407,4 +407,10 @@ void TdmSamplerInferMeta(const MetaTensor& x,
                          MetaTensor* mask,
                          MetaConfig config = MetaConfig());
 
+void LUSolveInferMeta(const MetaTensor& lu,
+                      const MetaTensor& pivot,
+                      const MetaTensor& b,
+                      bool trans,
+                      MetaTensor* out);
+
 }  // namespace phi

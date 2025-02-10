@@ -4908,6 +4908,62 @@ bool UpdateLossScaling_OpInferSymbolicShape(
   return true;
 }
 
+bool LuSolveOpInferSymbolicShape(
+    pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
+  const auto &lu_shape =
+      infer_context->GetShapeOrDataForValue(op->operand_source(0)).shape();
+  const auto &b_shape =
+      infer_context->GetShapeOrDataForValue(op->operand_source(1)).shape();
+
+  // LU tensor must be at least 2D (square matrix)
+  PADDLE_ENFORCE_GE(
+      lu_shape.size(),
+      2,
+      common::errors::InvalidArgument(
+          "The LU tensor must be at least 2D, but got %d dimensions",
+          lu_shape.size()));
+
+  // Last two dimensions of LU must be equal (square matrix)
+  infer_context->AddEqualCstr(lu_shape[lu_shape.size() - 1],
+                              lu_shape[lu_shape.size() - 2]);
+
+  // b tensor must have compatible shape with LU
+  PADDLE_ENFORCE_GE(
+      b_shape.size(),
+      1,
+      common::errors::InvalidArgument(
+          "The b tensor must be at least 1D, but got %d dimensions",
+          b_shape.size()));
+
+  // For broadcasting rules, b should be compatible with lu along batch
+  // dimensions
+  size_t lu_batch_dims = lu_shape.size() - 2;
+  size_t b_batch_dims = b_shape.size() - 1;
+  size_t max_batch_dims = std::max(lu_batch_dims, b_batch_dims);
+
+  // Output shape is same as b shape
+  std::vector<symbol::DimExpr> out_shape = b_shape;
+
+  // Add broadcast constraints for batch dimensions
+  for (size_t i = 0; i < max_batch_dims; ++i) {
+    symbol::DimExpr lu_dim =
+        i < lu_batch_dims ? lu_shape[i] : symbol::DimExpr(1);
+    symbol::DimExpr b_dim = i < b_batch_dims ? b_shape[i] : symbol::DimExpr(1);
+    infer_context->AddBroadcastableCstr(lu_dim, b_dim);
+  }
+
+  // Last dimension of b must be equal to last dimension of LU
+  infer_context->AddEqualCstr(b_shape[b_shape.size() - 1],
+                              lu_shape[lu_shape.size() - 1]);
+
+  infer_context->SetShapeOrDataForValue(
+      op->result(0),
+      symbol::ShapeOrDataDimExprs{
+          symbol::TensorShapeOrDataDimExprs(out_shape)});
+
+  return true;
+}
+
 bool YoloBoxPostOpInferSymbolicShape(
     pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
   const auto &image_shape_shape_or_data =
