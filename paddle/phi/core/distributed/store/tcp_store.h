@@ -37,8 +37,8 @@
 namespace phi {
 namespace distributed {
 
-enum class ReplyType { WAITING, STOP_WAIT, READY, NOT_READY };
-enum class Command { ADD, GET, CHECK, SET, WAIT, STOP };
+enum class ReplyType { WAITING, STOP_WAIT, READY, NOT_READY, SUCCESS, FAILURE };
+enum class Command { ADD, GET, CHECK, SET, WAIT, DELETEKEY, STOP };
 
 namespace detail {
 
@@ -61,6 +61,7 @@ class MasterDaemon {
   void _do_get(SocketType socket);
   void _do_check(SocketType socket);
   void _do_set(SocketType socket);
+  void _do_deletekey(SocketType socket);
   void _notify_waiting_sockets(const std::string&);
   SocketType _listen_socket;
   std::vector<SocketType> _sockets;
@@ -134,6 +135,7 @@ class TCPStore : public Store {
   bool check(const std::string& key) override;
   void wait(const std::string& key) override;
   void set(const std::string& key, const std::vector<uint8_t>& value) override;
+  bool deleteKey(const std::string& key) override;
 
  private:
   void waitWorkers();

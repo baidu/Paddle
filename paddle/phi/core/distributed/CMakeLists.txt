@@ -23,4 +23,8 @@ if(WITH_XPU_BKCL)
   list(APPEND DISTRIBUTED_COMMON_SRCS bkcl_comm_context.cc)
 endif()
 
+if(WITH_UCC)
+  list(APPEND DISTRIBUTED_COMMON_SRCS ucc_comm_context.cc ucc_tools.cc)
+endif()
+
 collect_srcs(core_srcs SRCS ${DISTRIBUTED_COMMON_SRCS})

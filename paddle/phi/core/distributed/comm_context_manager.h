@@ -105,6 +105,14 @@ class CommContextManager {
                                     const std::string& hash_key = "");
 #endif
 
+#if defined(PADDLE_WITH_UCC)
+  static void CreateUCCCommContext(const std::shared_ptr<Store>& store,
+                                   const std::string& unique_comm_key,
+                                   int rank,
+                                   int size,
+                                   const std::string& hash_key = "");
+#endif
+
  private:
   DISABLE_COPY_AND_ASSIGN(CommContextManager);
 

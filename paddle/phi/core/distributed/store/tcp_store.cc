@@ -120,6 +120,20 @@ void MasterDaemon::_do_check(SocketType socket) {
   }
 }
 
+void MasterDaemon::_do_deletekey(SocketType socket) {
+  std::string key = tcputils::receive_string(socket);
+  VLOG(8) << "MasterDaemon::_do_deletekey key(" << key << ") "
+          << GetSockName(socket);
+
+  auto iter = _store.find(key);
+  if (iter != _store.end()) {
+    _store.erase(iter);
+    tcputils::send_value<ReplyType>(socket, ReplyType::SUCCESS);
+  } else {
+    tcputils::send_value<ReplyType>(socket, ReplyType::FAILURE);
+  }
+}
+
 #ifndef _WIN32
 void MasterDaemon::InitControlFd() {
   PADDLE_ENFORCE_NE(
@@ -208,6 +222,9 @@ void MasterDaemon::ProcessCommands(std::vector<struct pollfd>* p_fds) {
           break;
         case Command::WAIT:
           _do_wait(fds[i].fd);
+          break;
+        case Command::DELETEKEY:
+          _do_deletekey(fds[i].fd);
           break;
         default:
           VLOG(8) << "Unknown command: " << static_cast<int>(command)
@@ -460,6 +477,17 @@ void TCPStore::wait(const std::string& key) {
       reply == ReplyType::STOP_WAIT,
       true,
       common::errors::InvalidArgument("Stop_waiting response is expected"));
+}
+
+bool TCPStore::deleteKey(const std::string& key) {
+  _client->send_command_for_key(Command::DELETEKEY, _key_prefix + key);
+  VLOG(3) << "TCPStore deleteKey.";
+  auto response = _client->receive_value<ReplyType>();
+  if (response == ReplyType::SUCCESS) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 TCPStore::~TCPStore() { VLOG(7) << "TCPStore destructure"; }

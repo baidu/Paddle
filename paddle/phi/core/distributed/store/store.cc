@@ -42,4 +42,9 @@ void Store::set(const std::string& key, const std::vector<uint8_t>& value) {
       errors::InvalidArgument("Implement the set method in the subclass."));
 }
 
+bool Store::deleteKey(const std::string& key) {
+  PADDLE_THROW(errors::InvalidArgument(
+      "Implement the deleteKey method in the subclass."));
+}
+
 }  // namespace phi::distributed

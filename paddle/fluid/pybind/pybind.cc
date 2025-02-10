@@ -314,6 +314,14 @@ bool IsCompiledWithMPI() {
 #endif
 }
 
+bool IsCompiledWithUCC() {
+#ifdef PADDLE_WITH_UCC
+  return true;
+#else
+  return false;
+#endif
+}
+
 // NOTE some mpi lib can support cuda aware, support it in the future.
 bool IsCompiledWithMPIAWARE() {
 #ifdef PADDLE_WITH_MPI_AWARE
@@ -2519,6 +2527,7 @@ All parameter, weight, gradient are variables in Paddle.
   m.def("is_compiled_with_nccl", IsCompiledWithNCCL);
   m.def("is_compiled_with_mpi", IsCompiledWithMPI);
   m.def("is_compiled_with_mpi_aware", IsCompiledWithMPIAWARE);
+  m.def("is_compiled_with_ucc", IsCompiledWithUCC);
   m.def("is_compiled_with_cinn", IsCompiledWithCINN);
   m.def("is_compiled_with_distribute", IsCompiledWithDISTRIBUTE);
   m.def("_is_compiled_with_heterps", IsCompiledWithHETERPS);

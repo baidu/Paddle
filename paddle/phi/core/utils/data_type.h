@@ -279,4 +279,32 @@ inline BKCLDataType ToBKCLDataType(DataType type) {
 }
 #endif
 
+#if defined(PADDLE_WITH_UCC)
+#include <ucc/api/ucc.h>
+inline ucc_datatype_t ToUCCDataType(DataType type) {
+  if (type == DataType::FLOAT32) {
+    return UCC_DT_FLOAT32;
+  } else if (type == DataType::FLOAT64) {
+    return UCC_DT_FLOAT64;
+  } else if (type == DataType::INT32) {
+    return UCC_DT_INT32;
+  } else if (type == DataType::INT64) {
+    return UCC_DT_INT64;
+  } else if (type == DataType::FLOAT16) {
+    return UCC_DT_FLOAT16;
+  } else if (type == DataType::UINT8) {
+    return UCC_DT_UINT8;
+  } else if (type == DataType::INT8) {
+    return UCC_DT_INT8;
+  } else if (type == DataType::BOOL) {
+    return UCC_DT_UINT8;
+  } else if (type == DataType::BFLOAT16) {
+    return UCC_DT_BFLOAT16;
+  } else {
+    PADDLE_THROW(
+        errors::Unimplemented("This datatype in ucc is not supported."));
+  }
+}
+#endif
+
 }  // namespace phi

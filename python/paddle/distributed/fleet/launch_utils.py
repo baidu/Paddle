@@ -1937,6 +1937,7 @@ def check_backend(backend):
         'auto',
         'heter',
         'xccl',
+        "ucc",
     ]:
         raise ValueError(
             "paddle.distributed initialize error, "
@@ -1955,6 +1956,12 @@ def check_backend(backend):
         raise ValueError(
             "paddle.distributed initialize error, "
             "your paddle is not compiled with xpu but you assign 'bkcl' as backend."
+        )
+
+    if backend == 'ucc' and not framework.core.is_compiled_with_ucc():
+        raise ValueError(
+            "paddle.distributed initialize error, "
+            "your paddle is not compiled with UCC but you assign 'ucc' as backend."
         )
 
 

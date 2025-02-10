@@ -42,6 +42,13 @@ if(WITH_MPI)
     DEPS phi)
 endif()
 
+if(WITH_UCC)
+  cc_library(
+    process_group_ucc
+    SRCS process_group_ucc.cc common.cc #ucc_tools.cc
+    DEPS process_group phi)
+endif()
+
 if(WITH_CUSTOM_DEVICE)
   cc_library(
     process_group_custom

@@ -112,7 +112,13 @@ def create_test_data(shape=None, dtype=None, seed=None):
 
 class TestCollectiveAPIRunnerBase:
     def get_model(
-        self, train_prog, startup_prog, rank, indata=None, dtype=None
+        self,
+        train_prog,
+        startup_prog,
+        rank,
+        indata=None,
+        dtype=None,
+        place=None,
     ):
         raise NotImplementedError(
             "get model should be implemented by child class."
@@ -167,8 +173,8 @@ class TestCollectiveAPIRunnerBase:
                 train_prog, feed={'tindata': indata}, fetch_list=fetch_list
             )
         else:
-            out = self.get_model(train_prog, startup_prog, rank, indata)
-            # print(out, sys.stderr)
+            out = self.get_model(train_prog, startup_prog, rank, indata, place)
+
         dump_output(out)
 
 
