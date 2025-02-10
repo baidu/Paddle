@@ -31,6 +31,7 @@ from .tensor.linalg import (
     householder_product,
     lstsq,
     lu,
+    lu_solve,
     lu_unpack,
     matrix_exp,
     matrix_norm,
