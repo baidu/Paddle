@@ -60,7 +60,7 @@ PD_DEFINE_string(cinn_tile_config_filename_label,
 
 PD_DEFINE_string(
     tile_config_policy,
-    StringFromEnv("FLAGS_tile_config_policy", "default"),
+    StringFromEnv("FLAGS_tile_config_policy", "hybrid"),
     "Which config does the compiler use, optimal, custom or default");
 
 PD_DEFINE_int32(cinn_parallel_compile_thread,
