@@ -100,6 +100,9 @@ RecordEvent::RecordEvent(const char *name,
                          const TracerEventType type,
                          uint32_t level,
                          const EventRole role) {
+  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
+    return;
+  }
 #ifndef _WIN32
 #ifdef PADDLE_WITH_CUDA
   if (ProfilerHelper::g_enable_nvprof_hook) {
@@ -108,9 +111,6 @@ RecordEvent::RecordEvent(const char *name,
   }
 #endif
 #endif
-  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
-    return;
-  }
   if (FLAGS_enable_host_event_recorder_hook == false) {
     if (ProfilerHelper::g_state !=
         ProfilerState::kDisabled) {  // avoid temp string
@@ -134,6 +134,9 @@ RecordEvent::RecordEvent(const std::string &name,
                          const TracerEventType type,
                          uint32_t level,
                          const EventRole role) {
+  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
+    return;
+  }
 #ifndef _WIN32
 #ifdef PADDLE_WITH_CUDA
   if (ProfilerHelper::g_enable_nvprof_hook) {
@@ -142,10 +145,6 @@ RecordEvent::RecordEvent(const std::string &name,
   }
 #endif
 #endif
-  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
-    return;
-  }
-
   if (FLAGS_enable_host_event_recorder_hook == false) {
     if (type == TracerEventType::Operator ||
         type == TracerEventType::OperatorInner ||
@@ -167,6 +166,10 @@ RecordEvent::RecordEvent(const std::string &name,
                          const TracerEventType type,
                          uint32_t level,
                          const EventRole role) {
+  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
+    return;
+  }
+
 #ifndef _WIN32
 #ifdef PADDLE_WITH_CUDA
   if (ProfilerHelper::g_enable_nvprof_hook) {
@@ -175,10 +178,6 @@ RecordEvent::RecordEvent(const std::string &name,
   }
 #endif
 #endif
-
-  if (UNLIKELY(HostTraceLevel::GetInstance().NeedTrace(level) == false)) {
-    return;
-  }
 
   if (FLAGS_enable_host_event_recorder_hook == false) {
     if (type == TracerEventType::Operator ||
