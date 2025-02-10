@@ -2531,7 +2531,7 @@ set +x
 
             #train Reset50
             echo "Starting to train ResNet50 model..."
-            python main.py -c paddlex/configs/image_classification/ResNet50.yaml \
+            python main.py -c paddlex/configs/modules/image_classification/ResNet50.yaml \
                 -o Global.mode=train \
                 -o Global.dataset_dir=./dataset/cls_flowers_examples \
                 -o Global.output=resnet50_output \
@@ -2543,7 +2543,7 @@ set +x
             echo ${DEVICES[0]}
 
             echo "Starting to predict ResNet50 model..."
-            python main.py -c paddlex/configs/image_classification/ResNet50.yaml \
+            python main.py -c paddlex/configs/modules/image_classification/ResNet50.yaml \
                 -o Global.mode=predict \
                 -o Predict.model_dir="./resnet50_output/best_model/inference" \
                 -o Predict.input="https://paddle-model-ecology.bj.bcebos.com/paddlex/imgs/demo_image/general_image_classification_001.jpg" \
