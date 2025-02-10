@@ -1671,7 +1671,11 @@ Expr ConvertCinnToCAS(Expr expr) {
         *expr = a;
         return;
       }
-      *expr = Sum::Make({a, b});
+      // TODO(phlrain): disable convert add to Sum
+      // Add support different input datatype
+      // Sum don't support different input datatype
+      // this convert may failed
+      // *expr = Sum::Make({a, b});
     }
     void Visit(const Mul* op, Expr* expr) override {
       auto a = op->a();
