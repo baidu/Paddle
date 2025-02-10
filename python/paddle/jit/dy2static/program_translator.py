@@ -20,6 +20,7 @@ import os
 import threading
 import warnings
 import weakref
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar
 
 from typing_extensions import ParamSpec, Self
@@ -267,6 +268,11 @@ def convert_to_static(function):
         return static_func
 
 
+class ClassInstanceHashType(Enum):
+    ATTR_ONLY = 0
+    INSTANCE_ID = 1
+
+
 class CacheKey:
     """
     Cached key for ProgramCache.
@@ -347,17 +353,31 @@ class CacheKey:
             class_instance,
         )
 
+    @staticmethod
+    def hash_class_instance(class_instance):
+        if not hasattr(class_instance.__class__, "__cache_attrs__"):
+            return (ClassInstanceHashType.INSTANCE_ID, class_instance)
+        attrs = tuple(
+            getattr(class_instance, attr)
+            for attr in class_instance.__class__.__cache_attrs__
+        )
+        return (ClassInstanceHashType.ATTR_ONLY, *attrs)
+
+    @staticmethod
+    def hash_function_spec(function_spec):
+        return (function_spec._input_spec, function_spec._dygraph_function)
+
     def __hash__(self):
         error_msg = "Arguments to a `@paddle.jit.to_static` must be a hashable Python objects (or nested structures of these types)."
         with_hook = self.kwargs.get("with_hook", False)
         is_train = self.kwargs.get("is_train", False)
         return hash(
             (
-                id(self.function_spec),
+                CacheKey.hash_function_spec(self.function_spec),
                 make_hashable(self.input_args_with_spec, error_msg),
                 make_hashable(self.input_kwargs_with_spec, error_msg),
                 self._spec_names_id,
-                self.class_instance,
+                CacheKey.hash_class_instance(self.class_instance),
                 with_hook,
                 is_train,
                 self._pir_flags,
@@ -425,7 +445,8 @@ class StaticFunction(Generic[_InputT, _RetT]):
 
         self._input_spec = input_spec
         self._function_spec = FunctionSpec(function, input_spec)
-        self._program_cache = ProgramCache()
+        # self._program_cache = ProgramCache()
+        self._program_cache = ProgramTranslator()._program_cache
         self._descriptor_cache = weakref.WeakKeyDictionary()
         # Note: Hold a reference to ProgramTranslator for switching `enable_to_static`.
         self._program_trans = ProgramTranslator()
