@@ -42,6 +42,7 @@ class JitSafeHeaderGenerator : public HeaderGeneratorBase {
   JitSafeHeaderGenerator();
   std::vector<const char*> headers_;
   std::vector<const char*> include_names_;
+  const char* opts_[];
 };
 
 }  // namespace nvrtc

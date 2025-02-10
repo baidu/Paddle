@@ -21,6 +21,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <ctime>
+
 #include <fstream>
 #include <iostream>
 
@@ -148,7 +150,7 @@ std::string Compiler::CompileCudaSource(const std::string& code,
         FLAGS_cinn_nvrtc_cubin_with_fmad ? "true" : "false";
     compile_options.push_back("--fmad=" + enable_fmad);
   } else {
-    compile_options.push_back("-arch=compute_" + cc);
+    compile_options.push_back("、" + cc);
   }
   compile_options.push_back("-std=c++14");
   compile_options.push_back("-default-device");
@@ -166,20 +168,41 @@ std::string Compiler::CompileCudaSource(const std::string& code,
     }
     compile_options.insert(
         std::end(compile_options), include_paths.begin(), include_paths.end());
+    compile_options.push_back(
+        "--use-precompiled-header=jitify_precompiled_header.pch");
   }
 
   for (const auto& option : compile_options) {
     param_cstrings.push_back(option.c_str());
   }
   VLOG(3) << "compile options: " << utils::Join(compile_options, " ");
-  NVRTC_CALL(nvrtcCreateProgram(&prog,
-                                code.c_str(),
-                                nullptr,
-                                header_gen.size(),
-                                header_gen.headers().data(),
-                                header_gen.include_names().data()));
+
+  // std::cout << "================= header time 1================" <<
+  // std::endl; std::time_t t = std::time(0);   // get time now std::tm* now =
+  // std::localtime(&t); std::cout << now->tm_hour << ':'
+  //           << now->tm_min << ':'
+  //           << now->tm_sec << "\n";
+  // NVRTC_CALL(nvrtcCreateProgram(&prog,
+  //                               code.c_str(),
+  //                               nullptr,
+  //                               header_gen.size(),
+  //                               header_gen.headers().data(),
+  //                               header_gen.include_names().data()));
+  // std::cout << "================= header time 2================" <<
+  // std::endl; t = std::time(0);   // get time now now = std::localtime(&t);
+  // std::cout << now->tm_hour << ':'
+  //           << now->tm_min << ':'
+  //           << now->tm_sec << "\n";
+  std::cout << "nvrtcCreateProgram done" << std::endl;
+
   nvrtcResult compile_res =
       nvrtcCompileProgram(prog, param_cstrings.size(), param_cstrings.data());
+
+  // std::cout << "================= header time 3================" <<
+  // std::endl; t = std::time(0);   // get time now now = std::localtime(&t);
+  // std::cout << now->tm_hour << ':'
+  //           << now->tm_min << ':'
+  //           << now->tm_sec << "\n";
 
   {  // get log
     size_t log_size;
