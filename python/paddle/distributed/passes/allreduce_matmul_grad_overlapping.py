@@ -32,7 +32,7 @@ logger = get_logger(logging.INFO)
 #   dX = c_allreduce_sum(dX)
 #   dY = matmul(X^T, dOut)
 #
-# Then the c_allreduce_sum can overlap with the compute of dY.
+# Then the all_reduce sum can overlap with the compute of dY.
 @register_pass("allreduce_matmul_grad_overlapping")
 class AllreduceMatmulGradOverlappingPass(PassBase):
     def __init__(self):
