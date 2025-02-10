@@ -7,6 +7,7 @@ This is an incomplete list of authors of [Paddle](https://github.com/PaddlePaddl
 | andreazanetti | Andrea Zanetti |
 | arlesniak | Artur Lesniak |
 | [arogowie-intel](https://raw.githubusercontent.com/jakpiase/Paddle/new_paddle_intel_authors/img/img.jpg) | Adam Osewski |
+| [Aurelius84](https://github.com/Aurelius84) | Liujie Zhang |
 | backyes | Yan-Fei Wang |
 | baiyfbupt | Yi-Fan Bai |
 | beckett1124 | Bin Qi |
