@@ -1081,6 +1081,37 @@ void Blas<phi::CPUContext>::GEMM(CBLAS_TRANSPOSE transA,
 }
 
 template <>
+template <typename T, typename U>
+void Blas<phi::CPUContext>::GEMM(CBLAS_TRANSPOSE transA,
+                                 CBLAS_TRANSPOSE transB,
+                                 int M,
+                                 int N,
+                                 int K,
+                                 U alpha,
+                                 const T *A,
+                                 const T *B,
+                                 U beta,
+                                 T *C) const {
+  int lda = (transA == CblasNoTrans) ? K : M;
+  int ldb = (transB == CblasNoTrans) ? N : K;
+  int ldc = N;
+  CBlas<T>::GEMM(CblasRowMajor,
+                 transA,
+                 transB,
+                 M,
+                 N,
+                 K,
+                 alpha,
+                 A,
+                 lda,
+                 B,
+                 ldb,
+                 beta,
+                 C,
+                 ldc);
+}
+
+template <>
 template <typename T>
 void Blas<phi::CPUContext>::GEMM(bool transA,
                                  bool transB,
@@ -1361,6 +1392,66 @@ void Blas<phi::CPUContext>::BatchedGEMM(CBLAS_TRANSPOSE transA,
                                         const T *A,
                                         const T *B,
                                         T beta,
+                                        T *C,
+                                        int batchCount,
+                                        int64_t strideA,
+                                        int64_t strideB) const {
+  PADDLE_ENFORCE_NOT_NULL(
+      A, common::errors::InvalidArgument("Pointer A should not be null."));
+  PADDLE_ENFORCE_NOT_NULL(
+      B, common::errors::InvalidArgument("Pointer B should not be null."));
+  PADDLE_ENFORCE_NOT_NULL(
+      C, common::errors::InvalidArgument("Pointer C should not be null."));
+#ifdef PADDLE_WITH_MKLML
+  int lda = (transA == CblasNoTrans) ? K : M;
+  int ldb = (transB == CblasNoTrans) ? N : K;
+  int ldc = N;
+  auto a_array = std::vector<const T *>(batchCount);
+  auto b_array = std::vector<const T *>(batchCount);
+  auto c_array = std::vector<T *>(batchCount);
+  for (int k = 0; k < batchCount; ++k) {
+    a_array[k] = &A[k * strideA];
+    b_array[k] = &B[k * strideB];
+    c_array[k] = &C[k * M * N];
+  }
+
+  CBlas<T>::GEMM_BATCH(CblasRowMajor,
+                       &transA,
+                       &transB,
+                       &M,
+                       &N,
+                       &K,
+                       &alpha,
+                       a_array.data(),
+                       &lda,
+                       b_array.data(),
+                       &ldb,
+                       &beta,
+                       c_array.data(),
+                       &ldc,
+                       1 /* group_count */,
+                       &batchCount);
+#else
+  for (int k = 0; k < batchCount; ++k) {
+    auto *Ak = &A[k * strideA];
+    auto *Bk = &B[k * strideB];
+    auto *Ck = &C[k * M * N];
+    this->template GEMM<T>(transA, transB, M, N, K, alpha, Ak, Bk, beta, Ck);
+  }
+#endif
+}
+
+template <>
+template <typename T, typename U>
+void Blas<phi::CPUContext>::BatchedGEMM(CBLAS_TRANSPOSE transA,
+                                        CBLAS_TRANSPOSE transB,
+                                        int M,
+                                        int N,
+                                        int K,
+                                        U alpha,
+                                        const T *A,
+                                        const T *B,
+                                        U beta,
                                         T *C,
                                         int batchCount,
                                         int64_t strideA,

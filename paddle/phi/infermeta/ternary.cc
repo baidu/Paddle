@@ -150,6 +150,88 @@ void AddmmInferMeta(const MetaTensor& input,
   out->set_dtype(input.dtype());
 }
 
+void BaddbmmInferMeta(const MetaTensor& input,
+                      const MetaTensor& x,
+                      const MetaTensor& y,
+                      float beta,
+                      float alpha,
+                      MetaTensor* out) {
+  auto input_dims = input.dims();
+  auto x_dims = x.dims();
+  auto y_dims = y.dims();
+
+  auto ndim_input = input_dims.size();
+  auto ndim_x = x_dims.size();
+  auto ndim_y = y_dims.size();
+
+  VLOG(3) << "baddbmm operator input.shape=" << input_dims
+          << " x.shape=" << x_dims << " y.shape=" << y_dims << " beta=" << beta
+          << " alpha=" << alpha << " ndim_input=" << ndim_input
+          << " ndim_x=" << ndim_x << " ndim_y=" << ndim_y;
+
+  PADDLE_ENFORCE_NE(
+      product(input_dims),
+      0,
+      errors::PreconditionNotMet("The Input variable 'input' has not "
+                                 "been initialized. You may need to confirm "
+                                 "if you put exe.run(startup_program) "
+                                 "after optimizer.minimize function."));
+
+  PADDLE_ENFORCE_NE(
+      product(x_dims),
+      0,
+      errors::PreconditionNotMet("The Input variable 'x' has not "
+                                 "been initialized. You may need to confirm "
+                                 "if you put exe.run(startup_program) "
+                                 "after optimizer.minimize function."));
+
+  PADDLE_ENFORCE_NE(
+      product(y_dims),
+      0,
+      errors::PreconditionNotMet("The Input variable 'y' has not "
+                                 "been initialized. You may need to confirm "
+                                 "if you put exe.run(startup_program) "
+                                 "after optimizer.minimize function."));
+  // dim check
+  PADDLE_ENFORCE_EQ(ndim_input == 3 || ndim_input == 2,
+                    true,
+                    errors::InvalidArgument(
+                        "The input tensor input's dimension must be 3 or 2. "
+                        "But received input's dimension = [%d].",
+                        ndim_input));
+  PADDLE_ENFORCE_EQ(
+      ndim_x,
+      3,
+      errors::InvalidArgument("The input tensor x's dimension must be 3. "
+                              "But received x's dimension = [%d].",
+                              ndim_x));
+  PADDLE_ENFORCE_EQ(
+      ndim_y,
+      3,
+      errors::InvalidArgument("The input tensor y's dimension must be 3. "
+                              "But received y's dimension = [%d].",
+                              ndim_y));
+
+  PADDLE_ENFORCE_EQ(
+      x_dims[2],
+      y_dims[1],
+      errors::InvalidArgument("The second dimension of x must be equal to the "
+                              "first dimension of y. "
+                              "But received x's second dimension = [%d], y's "
+                              "first dimension = [%d].",
+                              x_dims[2],
+                              y_dims[1]));
+
+  std::vector<int64_t> output_dims;
+  output_dims.push_back(x_dims[0]);
+  output_dims.push_back(x_dims[1]);
+  output_dims.push_back(y_dims[2]);
+
+  out->set_dims(common::make_ddim(output_dims));
+  out->share_lod(input);
+  out->set_dtype(input.dtype());
+}
+
 void AffineChannelInferMeta(const MetaTensor& x,
                             const MetaTensor& scale,
                             const MetaTensor& bias,

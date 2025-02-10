@@ -229,6 +229,74 @@ bool AucOpInferSymbolicShape(pir::Operation *op,
   return true;
 }
 
+bool BaddbmmOpInferSymbolicShape(
+    pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
+  const auto &input_shape =
+      infer_context->GetShapeOrDataForValue(op->operand_source(0));
+  const auto &x_shape =
+      infer_context->GetShapeOrDataForValue(op->operand_source(1));
+  const auto &y_shape =
+      infer_context->GetShapeOrDataForValue(op->operand_source(2));
+
+  auto ndim_input = input_shape.shape().size();
+  auto ndim_x = x_shape.shape().size();
+  auto ndim_y = y_shape.shape().size();
+
+  PADDLE_ENFORCE_EQ(ndim_input == 3 || ndim_input == 2,
+                    true,
+                    common::errors::InvalidArgument(
+                        "The input tensor input's dimension must be 3 or 2. "
+                        "But received input's dimension = [%d].",
+                        ndim_input));
+  PADDLE_ENFORCE_EQ(ndim_x,
+                    3,
+                    common::errors::InvalidArgument(
+                        "The input tensor x's dimension must be 3. "
+                        "But received x's dimension = [%d].",
+                        ndim_x));
+  PADDLE_ENFORCE_EQ(ndim_y,
+                    3,
+                    common::errors::InvalidArgument(
+                        "The input tensor y's dimension must be 3. "
+                        "But received y's dimension = [%d].",
+                        ndim_y));
+
+  std::vector<symbol::DimExpr> output_shape;
+  output_shape.push_back(x_shape.shape()[0]);  // batch size
+  output_shape.push_back(x_shape.shape()[1]);
+  output_shape.push_back(y_shape.shape()[2]);
+
+  infer_context->SetShapeOrDataForValue(
+      op->result(0),
+      symbol::ShapeOrDataDimExprs{
+          symbol::TensorShapeOrDataDimExprs(output_shape)});
+
+  infer_context->AddEqualCstr(x_shape.shape()[0],
+                              y_shape.shape()[0]);  // batch size
+  infer_context->AddEqualCstr(x_shape.shape()[2], y_shape.shape()[1]);
+
+  if (ndim_input == 3) {
+    infer_context->AddBroadcastableCstr(input_shape.shape()[0],
+                                        x_shape.shape()[0]);  // batch size
+    infer_context->AddBroadcastableCstr(input_shape.shape()[1],
+                                        x_shape.shape()[1]);
+    infer_context->AddBroadcastableCstr(input_shape.shape()[2],
+                                        y_shape.shape()[2]);
+  } else if (ndim_input == 2) {
+    infer_context->AddBroadcastableCstr(input_shape.shape()[0],
+                                        x_shape.shape()[0]);
+    infer_context->AddBroadcastableCstr(input_shape.shape()[1],
+                                        y_shape.shape()[2]);
+  }
+
+  return true;
+}
+
+bool Baddbmm_OpInferSymbolicShape(
+    pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
+  return BaddbmmOpInferSymbolicShape(op, infer_context);
+}
+
 bool BatchFcOpInferSymbolicShape(
     pir::Operation *op, pir::InferSymbolicShapeContext *infer_context) {
   const auto &input_shape_or_data =

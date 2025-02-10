@@ -48,6 +48,13 @@ void AddmmInferMeta(const MetaTensor& input,
                     float alpha,
                     MetaTensor* out);
 
+void BaddbmmInferMeta(const MetaTensor& input,
+                      const MetaTensor& x,
+                      const MetaTensor& y,
+                      float beta,
+                      float alpha,
+                      MetaTensor* out);
+
 void AffineChannelInferMeta(const MetaTensor& x,
                             const MetaTensor& scale,
                             const MetaTensor& bias,
