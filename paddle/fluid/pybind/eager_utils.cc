@@ -652,7 +652,7 @@ TensorDistAttr CastPyArg2DistAttr(PyObject* obj, ssize_t arg_pos) {
   PADDLE_THROW(common::errors::Unavailable(
       "The parsing of `DistAttr` is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -673,7 +673,7 @@ ProcessMesh CastPyArg2ProcessMesh(PyObject* obj, ssize_t arg_pos) {
   PADDLE_THROW(common::errors::Unavailable(
       "The parsing of `ProcessMesh` is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -712,7 +712,7 @@ std::vector<phi::distributed::ProcessMesh> CastPyArg2VectorOfProcessMesh(
   PADDLE_THROW(common::errors::Unavailable(
       "The parsing of `ProcessMesh` is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -1120,7 +1120,7 @@ PyObject* ToPyObject(const phi::distributed::DistTensor* value) {
   PADDLE_THROW(common::errors::Unavailable(
       "DistTensor to PyObject is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -1133,7 +1133,7 @@ PyObject* ToPyObject(const phi::distributed::TensorDistAttr* value) {
   PADDLE_THROW(common::errors::Unavailable(
       "TensorDistAttr to PyObject is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -1146,7 +1146,7 @@ PyObject* ToPyObject(const phi::distributed::ProcessMesh* value) {
   PADDLE_THROW(common::errors::Unavailable(
       "ProcessMesh to PyObject is not supported in the current "
       "PaddlePaddle, please recompile and installPaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
@@ -1170,7 +1170,7 @@ PyObject* ToPyObject(const phi::distributed::Placements& values) {
   PADDLE_THROW(common::errors::Unavailable(
       "Placements to PyObject is not supported in the current "
       "PaddlePaddle, please recompile and install PaddlePaddle with the option "
-      "of `WITH_DISTRIBUTE=ON`."));
+      "of `-DWITH_DISTRIBUTE=ON`."));
 #endif
 }
 
