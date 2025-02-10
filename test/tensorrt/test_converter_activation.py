@@ -69,6 +69,68 @@ class TestHardSwishTRTPattern(TensorRTBaseTest):
         self.check_trt_result()
 
 
+def softmax_wrapper(x, axis=-1):
+    softmax = paddle.nn.Softmax(axis=axis)
+    return softmax(x)
+
+
+class TestSoftmaxCase1TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = softmax_wrapper
+        self.api_args = {
+            "x": np.random.randn(2, 3, 3).astype("float32"),
+            "axis": -1,
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {"x": [1, 3, 3]}
+        self.opt_shape = {"x": [2, 3, 3]}
+        self.max_shape = {"x": [5, 3, 3]}
+
+    def test_trt_result_fp16(self):
+        self.check_trt_result(precision_mode="fp16")
+
+    def test_trt_result_fp32(self):
+        self.check_trt_result()
+
+
+class TestSoftmaxCase2TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = softmax_wrapper
+        self.api_args = {
+            "x": np.random.randn(2).astype("float32"),
+            "axis": -1,
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {"x": [1]}
+        self.opt_shape = {"x": [2]}
+        self.max_shape = {"x": [5]}
+
+    def test_trt_result_fp16(self):
+        self.check_trt_result(precision_mode="fp16")
+
+    def test_trt_result_fp32(self):
+        self.check_trt_result()
+
+
+class TestSoftmaxCase3TRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = softmax_wrapper
+        self.api_args = {
+            "x": np.random.randn(2, 3, 3).astype("float32"),
+            "axis": 1,
+        }
+        self.program_config = {"feed_list": ["x"]}
+        self.min_shape = {"x": [1, 3, 3]}
+        self.opt_shape = {"x": [2, 3, 3]}
+        self.max_shape = {"x": [5, 3, 3]}
+
+    def test_trt_result_fp16(self):
+        self.check_trt_result(precision_mode="fp16")
+
+    def test_trt_result_fp32(self):
+        self.check_trt_result()
+
+
 class TestReluTRTPattern(TensorRTBaseTest):
     def setUp(self):
         self.python_api = paddle.nn.functional.relu

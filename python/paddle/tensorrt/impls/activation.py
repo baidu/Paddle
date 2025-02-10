@@ -68,13 +68,49 @@ def relu6_converter(network, paddle_op, inputs):
 
 @converter_registry.register("pd_op.softmax", trt_version="trt_version_ge=8.0")
 def softmax_converter(network, paddle_op, inputs):
-    axis = paddle_op.attrs().get("axis", 0)
-    if axis < 0:
-        axis = len(inputs[0].shape) + axis
+    input1 = inputs[0]
+    input_shape = input1.shape
+    input_dims = len(input_shape)
+    axis = paddle_op.attrs().get("axis", -1)
 
-    softmax_layer = network.add_softmax(inputs[0])
-    softmax_layer.axes = 1 << axis
-    return softmax_layer.get_output(0)
+    # support 0 or 1 dims input
+    is_0_dims = input_dims == 0
+    is_1_dims = input_dims == 1
+    if is_0_dims or is_1_dims:
+        reshaped_layer = network.add_shuffle(input1)
+        reshaped_dims = (1, 1 if is_0_dims else input_shape[0])
+        reshaped_layer.reshape_dims = reshaped_dims
+        input1 = reshaped_layer.get_output(0)
+        input_shape = input1.shape
+        input_dims = len(input_shape)
+        axis = -1
+
+    layer = network.add_softmax(input1)
+    axes = max(0, input_dims - 3)
+
+    # Handle padded dimensions
+    padded_dims = 0
+    explicit_batch = 1
+    for i in range(input_dims - 1, explicit_batch, -1):
+        if input_shape[i] == 1:
+            padded_dims += 1
+        else:
+            break
+
+    if axis < 0:
+        axes = input_dims + axis
+    else:
+        axes = axis
+
+    layer.axes = 1 << axes
+
+    # Support 0 or 1 dims input
+    if is_0_dims or is_1_dims:
+        reshaped_layer = network.add_shuffle(layer.get_output(0))
+        reshaped_layer.reshape_dims = inputs[0].shape
+        layer = reshaped_layer
+
+    return layer.get_output(0)
 
 
 @converter_registry.register("pd_op.gelu", trt_version="trt_version_ge=8.0")

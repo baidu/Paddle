@@ -755,7 +755,7 @@ def stack_converter(network, paddle_op, inputs):
 def tile_converter(network, paddle_op, inputs):
     input = inputs[0]
     input_shape = input.shape
-    input_shape_tensor = network.add_shape(input).get_output(0)
+    input_shape_tensor = trt_shape(network, input)
     rank = len(input_shape)
 
     repeat_times = get_input_constant_value(paddle_op, inputs, 1)
@@ -764,8 +764,9 @@ def tile_converter(network, paddle_op, inputs):
         repeat_rank = len(repeat_times)
     else:
         repeat_tensor = inputs[1]
+        repeat_tensor = trt_concat(network, repeat_tensor)
+        repeat_shape = repeat_tensor.shape
         repeat_tensor = resize_to_1d(network, repeat_tensor)
-        repeat_shape = paddle_op.operands()[1].source().shape
         repeat_rank = repeat_shape[0]
 
     if rank > repeat_rank:

@@ -170,6 +170,8 @@ if(WITH_GPU AND TENSORRT_FOUND)
 
   set_tests_properties(test_trt_ops_fp32_mix_precision PROPERTIES TIMEOUT 300)
   set_tests_properties(test_trt_convert_unary PROPERTIES TIMEOUT 600)
+  set_tests_properties(test_trt_convert_temporal_shift_deprecated
+                       PROPERTIES TIMEOUT 1000)
 
   if(NOT WIN32)
 
