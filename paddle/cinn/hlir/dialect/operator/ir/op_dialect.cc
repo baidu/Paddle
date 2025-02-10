@@ -87,7 +87,7 @@ void OperatorDialect::PrintAttribute(pir::Attribute attr,
   } else if (attr.isa<CINNKernelInfoAttribute>()) {
     auto cinn_kernel_info = attr.dyn_cast<CINNKernelInfoAttribute>();
 
-    os << "(" << cinn_kernel_info.data().fn_ptr;
+    os << "(" << cinn_kernel_info.data().fn_name;
     os << ')';
   } else if (attr.isa<FusionTrackerPtrAttribute>()) {
     auto tracker = attr.dyn_cast<FusionTrackerPtrAttribute>();
