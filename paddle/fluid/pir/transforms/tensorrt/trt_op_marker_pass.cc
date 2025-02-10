@@ -2219,6 +2219,41 @@ class OneHotOpPattern
   }
 };
 
+class Pad3dOpPattern : public pir::OpRewritePattern<paddle::dialect::Pad3dOp> {
+ public:
+  using pir::OpRewritePattern<paddle::dialect::Pad3dOp>::OpRewritePattern;
+
+  bool MatchAndRewrite(paddle::dialect::Pad3dOp op,
+                       pir::PatternRewriter &rewriter) const override {
+    if (op->HasAttribute(kCanRunTrtAttr) &&
+        op->attribute<pir::BoolAttribute>(kCanRunTrtAttr).data()) {
+      return false;
+    }
+    pir::Value paddings_tensor = op.operand_source(1);
+    if (!paddings_tensor) {
+      return false;
+    }
+    if (op->HasAttribute("mode")) {
+      auto mode = op->attribute<pir::StrAttribute>("mode").AsString();
+      if (mode != "constant" && mode != "reflect" && mode != "replicate") {
+        VLOG(3) << "The pad3d layer of TRT only support "
+                   "constant/reflect/replicate mode.";
+        return false;
+      }
+    }
+    if (op->HasAttribute("data_format")) {
+      auto data_format =
+          op->attribute<pir::StrAttribute>("data_format").AsString();
+      if (data_format != "NCDHW") {
+        VLOG(3) << "The pad3d layer of TRT only support NCDHW data format.";
+        return false;
+      }
+    }
+    op->set_attribute(kCanRunTrtAttr, rewriter.bool_attr(true));
+    return true;
+  }
+};
+
 class TemporalShiftOpPattern
     : public pir::OpRewritePattern<paddle::dialect::TemporalShiftOp> {
  public:
@@ -2605,6 +2640,7 @@ class TrtOpMarkerPass : public pir::PatternRewritePass {
     ps.Add(std::make_unique<OneHotOpPattern>(context));
     ps.Add(std::make_unique<TemporalShiftOpPattern>(context));
     ps.Add(std::make_unique<InstanceNormOpPattern>(context));
+    ps.Add(std::make_unique<Pad3dOpPattern>(context));
     ps.Add(std::make_unique<EinsumOpPattern>(context));
     ps.Add(std::make_unique<PNormOpPattern>(context));
     ps.Add(std::make_unique<AffineChannelOpPattern>(context));
