@@ -169,20 +169,24 @@ struct GroupVectorizeInfo {
 
 struct FusionGroupInfo {
   std::vector<int64_t> loop_ranges;
+  std::vector<ir::Expr> loop_ranges_expr;
   std::vector<int64_t> loop_strides;
   std::vector<int64_t> reduce_axis;
   std::vector<std::string> reduce_var_name;
   bool can_apply_grid_reduce;
+  bool is_dynamic{false};
   GroupVectorizeInfo vectorize_info;
 
   std::string DebugPrint() {
     std::stringstream ss;
     ss << "GroupInfo\nloop_ranges: " << cinn::utils::Join(loop_ranges, " ")
+       << "\nloop_ranges_expr: " << cinn::utils::Join(loop_ranges_expr, ", ")
        << "\nloop_strides: " << cinn::utils::Join(loop_strides, ", ")
        << "\nreduce_axis: " << cinn::utils::Join(reduce_axis, " ")
        << "\nreduce_var_name: " << cinn::utils::Join(reduce_var_name, " ")
        << "\ncan_apply_grid_reduce: " << can_apply_grid_reduce
        << "\ncan_apply_vectorize: " << vectorize_info.can_apply_vectorize
+       << "\nis_dynamic: : " << is_dynamic
        << "\nhas_select_op: " << vectorize_info.has_select_op
        << "\ncontinuous_arg_nums: " << vectorize_info.continuous_arg_nums
        << "\nfusion_group_arg_nums: " << vectorize_info.fusion_group_arg_nums;

@@ -41,6 +41,8 @@ namespace pir {
 
 class PrettyNamer;
 using OpLoweringGroupPtr = std::shared_ptr<OpLoweringGroup>;
+using CondFuncPriorWrapper =
+    std::tuple<ir::SymbolicPredicate, ir::LoweredFunc, int>;
 
 using cinn::common::Target;
 class OpLowererImpl;
@@ -66,15 +68,21 @@ class OpLowererImpl : public OpLowererImplBase<OpLoweringGroupPtr> {
    * variables, applying low-level optimization passes, etc.
    * @param group The group to be lowered.
    * @param tensor_map All tensors used for calculating the group.
+   * @param fusion_group_info The info of the fusion group.
    * @param func_bodies The scheduled func bodies of group.
+   * @param predicates The symbolic predicate of each func.
+   * @param priorities The priority of each func.
    * @param group_func_arg_tensors Tensors used as the group function arguments.
    * @param group_func_args Arguments used as the group function arguments.
    * @return The lowered funcs after the post processing.
    */
-  std::vector<ir::LoweredFunc> PostProcess(
+  std::vector<CondFuncPriorWrapper> PostProcess(
       const OpLoweringGroupPtr& group,
       const std::unordered_map<::pir::Value, ir::Tensor>& tensor_map,
+      const std::shared_ptr<FusionGroupInfo>& fusion_group_info,
       std::vector<ir::Expr> func_bodies,
+      std::vector<ir::SymbolicPredicate> predicates,
+      std::vector<int> priorities,
       std::vector<ir::Tensor>* group_func_arg_tensors,
       std::vector<ir::Argument>* group_func_args,
       std::vector<ir::Tensor>* infer_shape_arg_tensor);

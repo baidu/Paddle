@@ -663,7 +663,6 @@ void TryElevateInt32ToInt64(const std::vector<Expr> &expr_vec) {
 void TryElevateInt64ToInt32(const std::vector<Expr> &expr_vec) {
   for (const Expr &expr : expr_vec) {
     if (!expr.is_index()) return;
-    if (expr.as_index().IsDynamic()) return;
   }
 
   for (const Expr &expr : expr_vec) {

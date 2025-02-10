@@ -335,7 +335,7 @@ void detail::CollectBucketStrategyHostFunctionVisitor::ProcessArgs(
                          ir::CallType::Extern,
                          ir::FunctionRef(),
                          0);
-      ir::Expr let_symbol = ir::Expr(args[i].var_arg());
+      ir::Expr let_symbol = ir::ir_utils::IRCopy(args[i].var_arg());
       let_symbol->set_type(type_of<int64_t>());
       ir::stmt::StmtRef stmt =
           ir::stmt::Let(let_symbol, call_get_value_in_kernel_args);

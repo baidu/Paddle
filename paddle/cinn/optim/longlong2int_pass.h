@@ -86,7 +86,8 @@ namespace optim {
  *   }
  * }
  */
-void TryCastLonglong2Int(ir::stmt::BlockRef block);
+void TryCastLonglong2Int(ir::stmt::BlockRef block,
+                         std::optional<bool> enforce_cast = std::nullopt);
 
 }  // namespace optim
 }  // namespace cinn

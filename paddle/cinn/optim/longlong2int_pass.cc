@@ -249,8 +249,11 @@ bool CanApplyLongLong2Int(ir::stmt::BlockRef block) {
   return !check_overflow(block);
 }
 
-void TryCastLonglong2Int(ir::stmt::BlockRef block) {
-  if (CanApplyLongLong2Int(block)) {
+void TryCastLonglong2Int(ir::stmt::BlockRef block,
+                         std::optional<bool> enforce_cast) {
+  bool can_cast = enforce_cast.has_value() ? enforce_cast.value()
+                                           : CanApplyLongLong2Int(block);
+  if (can_cast) {
     StmtPassManager stmt_pass_manager;
     stmt_pass_manager.AddPass(CreateLongLong2IntStmtPass());
     ExprPassManager expr_pass_manager;
