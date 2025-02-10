@@ -83,34 +83,42 @@ def YoloBoxOpConverter(network, paddle_op, inputs):
         trt.PluginField(
             "conf_thresh",
             np.array(conf_thresh, dtype=np.float32),
+            trt.PluginFieldType.FLOAT32,
         ),
         trt.PluginField(
             "downsample_ratio",
             np.array(downsample_ratio, dtype=np.int32),
+            trt.PluginFieldType.INT32,
         ),
         trt.PluginField(
             "clip_bbox",
-            np.array(clip_bbox, dtype=np.bool),
+            np.array(clip_bbox, dtype=np.bool_),
+            trt.PluginFieldType.INT32,
         ),
         trt.PluginField(
             "scale_x_y",
             np.array(scale_x_y, dtype=np.float32),
+            trt.PluginFieldType.FLOAT32,
         ),
         trt.PluginField(
             "iou_aware",
-            np.array(iou_aware, dtype=np.bool),
+            np.array(iou_aware, dtype=np.bool_),
+            trt.PluginFieldType.INT32,
         ),
         trt.PluginField(
             "iou_aware_factor",
             np.array(iou_aware_factor, dtype=np.float32),
+            trt.PluginFieldType.FLOAT32,
         ),
         trt.PluginField(
             "h",
             np.array(input_h, dtype=np.int32),
+            trt.PluginFieldType.INT32,
         ),
         trt.PluginField(
             "w",
             np.array(input_w, dtype=np.int32),
+            trt.PluginFieldType.INT32,
         ),
     ]
     plugin_field_collection = trt.PluginFieldCollection(plugin_fields)

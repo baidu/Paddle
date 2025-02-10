@@ -358,3 +358,84 @@ def nearest_interp_converter(network, paddle_op, inputs):
         resize_layer.scales = scales
 
     return resize_layer.get_output(0)
+
+
+@converter_registry.register(
+    "pd_op.linear_interp", trt_version="trt_version_ge=8.0"
+)
+def linear_interp_converter(network, paddle_op, inputs):
+    input_tensor = inputs[0]
+    data_layout = paddle_op.attrs().get("data_format")
+    interp_method = paddle_op.attrs().get("interp_method")
+    align_corners = paddle_op.attrs().get("align_corners")
+    out_w = paddle_op.attrs().get("out_w")
+    scale_attr = paddle_op.attrs().get("scale")
+    layer = network.add_resize(input_tensor)
+    trt_major = get_trt_version_list()[0]
+    trt_minor = get_trt_version_list()[1]
+    trt_version_float = float(f"{trt_major}.{trt_minor}")
+
+    if trt_version_float >= 8.6:
+        layer.resize_mode = trt.InterpolationMode.LINEAR
+    else:
+        layer.resize_mode = trt.ResizeMode.LINEAR
+
+    if align_corners:
+        layer.coordinate_transformation = (
+            trt.ResizeCoordinateTransformation.ALIGN_CORNERS
+        )
+    else:
+        layer.coordinate_transformation = (
+            trt.ResizeCoordinateTransformation.HALF_PIXEL
+        )
+
+    in_dim = input_tensor.shape
+    scale_w = -1.0
+
+    if scale_attr and len(scale_attr) > 0:
+        scale_w = scale_attr[0]
+
+    w_axis = 2 if data_layout == "NCHW" else 1
+
+    if float(scale_w) > 0.0:
+        out_w = int(in_dim[w_axis] * scale_w)
+
+    outsize_tensor = None
+    if len(inputs) > 1 and inputs[1] is not None:
+        outsize_tensor = inputs[1]
+
+    if outsize_tensor is None:
+        if len(inputs) > 2 and inputs[2] is not None:
+            outsize_tensor = inputs[2][0]
+
+    if out_w > 0 and scale_w <= 0:
+        scale_w = float(out_w) / float(in_dim[w_axis])
+
+    scales = [1.0]
+    if data_layout == "NCHW":
+        scales.append(1.0)
+        scales.append(scale_w)
+    elif data_layout == "NHWC":
+        scales.append(scale_w)
+        scales.append(1.0)
+
+    if outsize_tensor is not None:
+        outsize_itensors = []
+        input_shape = trt_shape(network, input_tensor)
+        batch_dim = get_shape_tensor_element(network, input_shape, 0)
+        outsize_itensors.append(batch_dim)
+
+        if data_layout == "NCHW":
+            channel_dim = get_shape_tensor_element(network, input_shape, 1)
+            outsize_itensors.append(channel_dim)
+            outsize_itensors.append(outsize_tensor)
+        elif data_layout == "NHWC":
+            outsize_itensors.append(outsize_tensor)
+            channel_dim = get_shape_tensor_element(network, input_shape, 2)
+            outsize_itensors.append(channel_dim)
+
+        layer.set_input(1, trt_concat(network, outsize_itensors))
+    else:
+        layer.scales = scales
+
+    return layer.get_output(0)
