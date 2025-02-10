@@ -14,7 +14,8 @@
 
 #include "paddle/fluid/pir/utils/name_analysis.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
-
+#include "paddle/fluid/pir/dialect/operator/trait/inplace.h"
+#include "paddle/fluid/pir/dialect/operator/utils/op_yaml_info_parser.h"
 namespace pir {
 namespace utils {
 namespace name_analysis {
@@ -215,6 +216,26 @@ std::map<std::string, std::string> RenameValue(Value value,
   return rename_mapping;
 }
 
+pir::Value GetCorrespondingInplaceValue(pir::Operation *op) {
+  pir::IrContext *ctx = pir::IrContext::Instance();
+  auto op_name = op->name();
+  pir::OpInfo op_info = ctx->GetRegisteredOpInfo(op_name);
+  paddle::dialect::OpYamlInfoParser yaml_parser(
+      op_info.GetInterfaceImpl<paddle::dialect::OpYamlInfoInterface>()
+          ->get_op_info_(op_name),
+      paddle::dialect::IsLegacyOp(op_name));
+  for (size_t i = 0; i < op->num_results(); ++i) {
+    std::string value_name = yaml_parser.OutputNames()[i];
+    if (yaml_parser.HasInplace(value_name)) {
+      const std::string &inplace_name = yaml_parser.InplaceName(value_name);
+      pir::Value inplace_value =
+          op->operand_source(yaml_parser.InputName2Id().at(inplace_name));
+      return inplace_value;
+    }
+  }
+  return nullptr;
+}
+
 std::optional<std::string> GetValueInputName(pir::Value value) {
   std::optional<std::string> name;
   if (auto block_arg = value.dyn_cast<pir::BlockArgument>()) {
@@ -229,6 +250,14 @@ std::optional<std::string> GetValueInputName(pir::Value value) {
     name = data_op.attribute<pir::StrAttribute>("name").AsString();
   } else if (auto constant_op = value.defining_op<::pir::ConstantTensorOp>()) {
     name = constant_op.tensor_name();
+  } else if (value.defining_op()->HasTrait<paddle::dialect::InplaceTrait>()) {
+    auto defining_op = value.defining_op();
+    auto value = GetCorrespondingInplaceValue(defining_op);
+    pir::Operation *owner = value.defining_op();
+    if (owner->isa<pir::ParameterOp>()) {
+      pir::ParameterOp parameter_op = owner->dyn_cast<pir::ParameterOp>();
+      name = parameter_op.param_name();
+    }
   }
   return name;
 }
@@ -277,7 +306,6 @@ std::optional<std::string> TryGetValueFirstName(pir::Value value) {
 
 std::string GetValueFirstName(pir::Value value) {
   auto name = TryGetValueFirstName(value);
-
   PADDLE_ENFORCE(name.has_value(),
                  common::errors::InvalidArgument(
                      "Currently, we can only get name of Value from "

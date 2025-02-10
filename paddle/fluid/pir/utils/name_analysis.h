@@ -38,7 +38,7 @@ std::map<std::string, std::string> RenameValue(Value value,
                                                const std::string &new_name,
                                                Block *block);
 std::optional<std::string> GetValueInputName(pir::Value value);
-
+pir::Value GetCorrespondingInplaceValue(pir::Operation *op);
 std::vector<std::string> GetValueOutputNames(pir::Value value);
 pir::Value GetOutputValueByName(const pir::Program &program,
                                 const std::string &name);
