@@ -81,7 +81,7 @@ TEST(CrossThreadReductionReplacer, basic) {
           {
             i0_0, i1 = axis.bind(i, reduce_j)
             {
-              B[i0_0] = cinn_partial_block_reduce_sum_fp32_internal_shm(A[i0_0, i1], _Buffer_<cinn_buffer_t*: 32>(shm32__fp32_reduce), false)
+              B[i0_0] = cinn_block_reduce_sum_fp32(A[i0_0, i1], _Buffer_<cinn_buffer_t*: 32>(shm32__fp32_reduce), false)
             }
           }
         }

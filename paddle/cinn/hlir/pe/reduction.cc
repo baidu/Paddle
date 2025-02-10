@@ -100,11 +100,11 @@ std::string Type2StrForReduce(cinn::common::Type type) {
     return "_fp64";
   } else if (type.is_bool()) {
     return "";
+  } else if (type.is_customized_type()) {
+    return "_" + type.customized_type();
   }
-  std::stringstream ss;
-  ss << "Reduce Not Support " << type;
-  PADDLE_THROW(::common::errors::InvalidArgument(ss.str()));
-  return "";
+  PADDLE_THROW(
+      ::common::errors::InvalidArgument("Reduce type not supported: %s", type));
 }
 
 /**
@@ -1138,97 +1138,47 @@ std::vector<ir::Tensor> TwoStepBlockReduceAny(const ir::Tensor& A,
                                     Expr(false));
 }
 
+std::string ReduceOpAndTypeStr(const ir::Expr& op,
+                               const cinn::common::Type type) {
+  if (op.As<ir::Add>()) {
+    if (type.is_bool()) {
+      return "any";
+    }
+    return "sum" + Type2StrForReduce(type);
+  } else if (op.As<ir::Mul>()) {
+    if (type.is_bool()) {
+      return "all";
+    }
+    return "prod" + Type2StrForReduce(type);
+  } else if (op.As<ir::Max>()) {
+    return "max" + Type2StrForReduce(type);
+  } else if (op.As<ir::Min>()) {
+    return "min" + Type2StrForReduce(type);
+  } else if (op.As<ir::And>()) {
+    return "all";
+  } else if (op.As<ir::Or>()) {
+    return "any";
+  }
+  PADDLE_THROW(::common::errors::InvalidArgument(
+      "No matching reduce template for op: %s, type: %s", op, type));
+}
+
 std::string CrossThreadReduceExternalFuncName(const ir::Expr& op,
                                               const ir::Expr& tensor) {
-  PADDLE_ENFORCE_NOT_NULL(
-      tensor.as_tensor(),
-      ::common::errors::InvalidArgument("Tensor is not a tensor!"));
-  if (op.As<ir::Add>()) {
-    if (tensor.as_tensor()->type().is_bool()) {
-      return "cinn_partial_block_reduce_any_internal_shm";
-    }
-    return "cinn_partial_block_reduce_sum" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Mul>()) {
-    if (tensor.as_tensor()->type().is_bool()) {
-      return "cinn_partial_block_reduce_all_internal_shm";
-    }
-    return "cinn_partial_block_reduce_prod" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Max>()) {
-    return "cinn_partial_block_reduce_max" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Min>()) {
-    return "cinn_partial_block_reduce_min" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::And>()) {
-    return "cinn_partial_block_reduce_all_internal_shm";
-  } else if (op.As<ir::Or>()) {
-    return "cinn_partial_block_reduce_any_internal_shm";
-  } else {
-    std::stringstream ss;
-    ss << "Reduce type: " << op << " Not supported yet!";
-    PADDLE_THROW(::common::errors::InvalidArgument(ss.str()));
-  }
-  return "";
+  std::string op_and_type = ReduceOpAndTypeStr(op, tensor.as_tensor()->type());
+  return "cinn_block_reduce_" + op_and_type;
 }
 
 std::string DiscreteReduceExternalFuncName(const ir::Expr& op,
                                            const ir::Expr& tensor) {
-  CHECK_NOTNULL(tensor.as_tensor());
-  if (op.As<ir::Add>()) {
-    if (tensor.as_tensor()->type().is_bool()) {
-      return "cinn_discrete_reduce_any_internal_shm";
-    }
-    return "cinn_discrete_reduce_sum" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Mul>()) {
-    if (tensor.as_tensor()->type().is_bool()) {
-      return "cinn_discrete_reduce_all_internal_shm";
-    }
-    return "cinn_discrete_reduce_prod" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Max>()) {
-    return "cinn_discrete_reduce_max" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::Min>()) {
-    return "cinn_discrete_reduce_min" +
-           Type2StrForReduce(tensor.as_tensor()->type()) + "_internal_shm";
-  } else if (op.As<ir::And>()) {
-    return "cinn_discrete_reduce_all_internal_shm";
-  } else if (op.As<ir::Or>()) {
-    return "cinn_discrete_reduce_any_internal_shm";
-  } else {
-    std::stringstream ss;
-    ss << "Reduce type: " << op << " Not supported yet!";
-    PADDLE_THROW(::common::errors::InvalidArgument(ss.str()));
-  }
-  return "";
+  std::string op_and_type = ReduceOpAndTypeStr(op, tensor.as_tensor()->type());
+  return "cinn_discrete_reduce_" + op_and_type;
 }
 
 std::string GridReduceExternalFuncName(const ir::Expr& op,
                                        const cinn::common::Type type) {
-  if (op.As<ir::Add>()) {
-    if (type.is_bool()) {
-      return "cinn_grid_reduce_any";
-    }
-    return "cinn_grid_reduce_sum" + Type2StrForReduce(type);
-  } else if (op.As<ir::Mul>()) {
-    if (type.is_bool()) {
-      return "cinn_grid_reduce_all";
-    }
-    return "cinn_grid_reduce_prod" + Type2StrForReduce(type);
-  } else if (op.As<ir::Max>()) {
-    return "cinn_grid_reduce_max" + Type2StrForReduce(type);
-  } else if (op.As<ir::Min>()) {
-    return "cinn_grid_reduce_min" + Type2StrForReduce(type);
-  } else if (op.As<ir::And>()) {
-    return "cinn_grid_reduce_all";
-  } else if (op.As<ir::Or>()) {
-    return "cinn_grid_reduce_any";
-  }
-  PADDLE_THROW(::common::errors::InvalidArgument(
-      "No matching grid reduce template for op: %s, type: %s", op, type));
+  std::string op_and_type = ReduceOpAndTypeStr(op, type);
+  return "cinn_grid_reduce_" + op_and_type;
 }
 
 }  // namespace pe
