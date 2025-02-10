@@ -24,7 +24,7 @@ template <typename Context>
 void AssignKernel(const Context& dev_ctx,
                   const DenseTensor& x,
                   DenseTensor* out) {
-  phi::Copy(dev_ctx, x, x.place(), false, out);
+  phi::Copy(dev_ctx, x, out->place(), false, out);
 }
 
 template <typename Context>

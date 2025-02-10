@@ -14,6 +14,7 @@
 
 #include "paddle/phi/backends/gpu/gpu_info.h"
 
+#include <unordered_set>
 #include "glog/logging.h"
 
 #include "paddle/phi/core/enforce.h"
@@ -296,6 +297,23 @@ void GpuMemcpyPeerAsync(void *dst,
                         int src_device,
                         size_t count,
                         gpuStream_t stream) {
+  static std::unordered_set<int> p2p_enabled_devices;
+  if (p2p_enabled_devices.find(src_device) == p2p_enabled_devices.end()) {
+    int p2p_flag;
+    PADDLE_ENFORCE_GPU_SUCCESS(
+        cudaDeviceCanAccessPeer(&p2p_flag, dst_device, src_device));
+    if (p2p_flag == 1) {
+      cudaError_t ret = cudaDeviceEnablePeerAccess(src_device, 0);
+      if (ret != cudaSuccess && ret != cudaErrorPeerAccessAlreadyEnabled) {
+        LOG(INFO) << " Cuda error(" << ret << "), " << cudaGetErrorString(ret)
+                  << ".";
+      } else {
+        VLOG(10) << "Peer memcpy is enable for device " << src_device;
+        cudaGetLastError();
+      }
+    }
+    p2p_enabled_devices.insert(src_device);
+  }
   PADDLE_ENFORCE_GPU_SUCCESS(
       cudaMemcpyPeerAsync(dst, dst_device, src, src_device, count, stream));
 }
