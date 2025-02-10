@@ -832,10 +832,10 @@ class DygraphShardingOptimizerV2:
         for p in self._parameter_list:
             clear_grad_func(p)
 
-        if self.sd_release_grads and not self.pp_overlap:
-            for comm_buffer in self._comm_buffer_list:
-                if comm_buffer.need_reduce_scale_sync():
-                    comm_buffer._clear_grad_storage()
+        # if self.sd_release_grads and not self.pp_overlap:
+        #     for comm_buffer in self._comm_buffer_list:
+        #         if comm_buffer.need_reduce_scale_sync():
+        #             comm_buffer._clear_grad_storage()
 
     def filter_parameters(self, parameter_list, hcg):
         parameter_list = [
@@ -857,36 +857,41 @@ class DygraphShardingOptimizerV2:
             paddle.device.synchronize()
 
         with framework.no_grad():
+            if self._enable_timer:
+                self.timers("reduce-gradients").start()
             for comm_buffer in self._comm_buffer_list:
                 if self.sd_release_grads and comm_buffer.grad_storage is None:
                     if comm_buffer.need_reduce_scale_sync():
                         for param in comm_buffer.params:
                             comm_buffer._copy_grad_to_buffer(param)
+                if g_sharding_v2_check_zero_padding:
+                    self._check_padding_zero_single_buffer(comm_buffer)
 
-            if g_sharding_v2_check_zero_padding:
-                self._check_padding_zero()
-
-            if self._enable_timer:
-                self.timers("reduce-gradients").start()
-            for comm_buffer in self._comm_buffer_list:
                 if not self.comm_overlap:
                     comm_buffer._comm_grads()
 
                 comm_buffer.scale_grads()
 
+                if self.sd_release_grads:
+                    if comm_buffer.need_reduce_scale_sync():
+                        comm_buffer._clear_grad_storage()
+
             if self._enable_timer:
                 self.timers("reduce-gradients").stop()
+
+    def _check_padding_zero_single_buffer(self, comm_buffer):
+        for k, v in comm_buffer._sharding_param_grad_view.items():
+            pad_tensor = v._get_padding()
+            if pad_tensor is not None:
+                assert paddle.all(
+                    pad_tensor == 0
+                ).item(), f"{SHARDING_PAD_NON_ZERO_ERROR}. The padding of Tensor {k} is not zero"
 
     def _check_padding_zero(self):
         if self._enable_timer:
             self.timers("check-padding-zero").start()
         for comm_buffer in self._comm_buffer_list:
-            for k, v in comm_buffer._sharding_param_grad_view.items():
-                pad_tensor = v._get_padding()
-                if pad_tensor is not None:
-                    assert paddle.all(
-                        pad_tensor == 0
-                    ).item(), f"{SHARDING_PAD_NON_ZERO_ERROR}. The padding of Tensor {k} is not zero"
+            self._check_padding_zero_single_buffer(comm_buffer)
         if self._enable_timer:
             self.timers("check-padding-zero").stop()
 
