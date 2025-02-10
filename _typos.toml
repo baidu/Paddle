@@ -40,6 +40,7 @@ feeded = 'feeded'
 grad = "grad"
 Halfs = 'Halfs'
 kinf = 'kinf'
+operants = 'operants'
 Optin = 'Optin'
 padd = 'padd'
 pash = 'pash'
@@ -52,7 +53,5 @@ unpacket = "unpacket"
 vaccum = 'vaccum'
 
 # These words need to be fixed
-Operants = 'Operants'
-operants = 'operants'
 setted = 'setted'
 UNSUPPORT = 'UNSUPPORT'

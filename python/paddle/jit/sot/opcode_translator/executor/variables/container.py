@@ -837,20 +837,19 @@ class DictVariable(ContainerVariable):
 
     def flatten_inner_vars(self):
         items = self.get_wrapped_items()
-        return reduce(
-            operator.add,
-            (
+        return [
+            inner_var
+            for key in items.keys()
+            for key_var in [
+                VariableFactory.from_value(
+                    key, self.graph, tracker=ConstTracker(key)
+                )
+            ]
+            for inner_var in (
                 key_var.flatten_inner_vars()
                 + self[key_var].flatten_inner_vars()
-                for key in items.keys()
-                for key_var in [
-                    VariableFactory.from_value(
-                        key, self.graph, tracker=ConstTracker(key)
-                    )
-                ]
-            ),
-            [],
-        )
+            )
+        ]
 
     def get_wrapped_items(self):
         items = {}

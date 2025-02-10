@@ -1176,7 +1176,38 @@ void FusedMoeInferMeta(const MetaTensor& X,
                        const std::string& quant_method,
                        const int moe_topk,
                        const bool norm_topk_prob,
+                       const bool group_moe,
                        MetaTensor* out);
+
+void MoeDispatchInferMeta(const MetaTensor& X,
+                          const MetaTensor& gating_output,
+                          const int moe_topk,
+                          const bool group_moe,
+                          const bool topk_only_mode,
+                          MetaTensor* permute_input,
+                          MetaTensor* token_nums_per_expert,
+                          MetaTensor* permute_indices_per_token,
+                          MetaTensor* expert_scales_float,
+                          MetaTensor* top_k_indices);
+
+void MoeFFNInferMeta(const MetaTensor& permute_input,
+                     const MetaTensor& token_nums_per_expert,
+                     const MetaTensor& ffn1_weight,
+                     const MetaTensor& ffn2_weight,
+                     const MetaTensor& ffn1_bias,
+                     const MetaTensor& ffn1_scale,
+                     const MetaTensor& ffn2_scale,
+                     const std::string& quant_method,
+                     MetaTensor* ffn_out);
+
+void MoeReduceInferMeta(const MetaTensor& ffn_out,
+                        const MetaTensor& expert_scales_float,
+                        const MetaTensor& permute_indices_per_token,
+                        const MetaTensor& top_k_indices,
+                        const MetaTensor& ffn2_bias,
+                        const bool norm_topk_prob,
+                        const float routed_scaling_factor,
+                        MetaTensor* output);
 
 void FusedMultiHeadAttentionInferMeta(const MetaTensor& query,
                                       const MetaTensor& key,

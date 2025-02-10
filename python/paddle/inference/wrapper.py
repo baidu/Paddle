@@ -88,6 +88,13 @@ def tensor_share_external_data(self, data: Tensor) -> None:
         )
 
 
+def tensor_share_external_data_by_ptr_name(self, data, shape, dtype, place):
+    '''
+    Support tensor.share_external_data_by_ptr_name.
+    '''
+    self._share_external_data_by_ptr_name_bind(data, shape, dtype, place)
+
+
 def convert_to_mixed_precision(
     model_file: str,
     params_file: str,
@@ -147,3 +154,4 @@ def convert_to_mixed_precision(
 
 Tensor.copy_from_cpu = tensor_copy_from_cpu
 Tensor.share_external_data = tensor_share_external_data
+Tensor.share_external_data_by_ptr_name = tensor_share_external_data_by_ptr_name

@@ -388,5 +388,54 @@ class TestYoloBoxCase1Pattern(TensorRTBaseTest):
         self.check_trt_result(rtol=1e-3, atol=1e-3, precision_mode="fp16")
 
 
+def deform_conv2d_wrapper(
+    input_data,
+    offset,
+    weight_shape,
+    mask=None,
+    stride=1,
+    padding=0,
+    dilation=1,
+    deformable_groups=1,
+    groups=1,
+    im2col_step=1,
+):
+    weights = paddle.create_parameter(
+        shape=weight_shape, dtype='float32', name="weights"
+    )
+    return paddle.vision.ops.deform_conv2d(
+        input_data,
+        offset,
+        weights,
+        None,
+        stride,
+        padding,
+        dilation,
+        deformable_groups,
+        groups,
+        mask,
+    )
+
+
+class TestDeformableConvTRTPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = deform_conv2d_wrapper
+        self.api_args = {
+            "input_data": np.random.random([8, 1, 28, 28]).astype(np.float32),
+            "offset": np.random.random([8, 2 * 3 * 3, 26, 26]).astype(
+                np.float32
+            ),
+            "weight_shape": [16, 1, 3, 3],
+            "mask": np.random.random([8, 3 * 3, 26, 26]).astype(np.float32),
+        }
+        self.program_config = {"feed_list": ["input_data", "offset", "mask"]}
+        self.min_shape = {"input_data": [1, 1, 28, 28]}
+        self.opt_shape = {"input_data": [8, 1, 28, 28]}
+        self.max_shape = {"input_data": [10, 1, 28, 28]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+
 if __name__ == '__main__':
     unittest.main()

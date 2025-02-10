@@ -821,8 +821,8 @@ Dispatcher.register(
     operator.setitem,
     (
         "VariableBase",
-        "int | str | ConstantVariable | TensorVariable",
-        "int | str | ConstantVariable | TensorVariable",
+        "int | str | ConstantVariable | TensorVariable | ContainerVariable",
+        "VariableBase",
     ),
     lambda var, key, value: var.setitem(add_guard(key).get_py_value(), value),
 )

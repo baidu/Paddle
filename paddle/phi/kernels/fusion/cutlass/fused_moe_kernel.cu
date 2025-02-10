@@ -54,6 +54,7 @@ void FusedMoeKernel(const Context& ctx,
                     const paddle::optional<DenseTensor>& ffn2_bias,
                     const std::string& quant_method,
                     const int moe_topk,
+                    const bool group_moe,
                     const bool norm_topk_prob,
                     DenseTensor* out) {
   out->Resize(X.dims());
@@ -84,7 +85,9 @@ void FusedMoeKernel(const Context& ctx,
                          ffn2_bias ? ffn2_bias.get_ptr() : nullptr,
                          nullptr,
                          moe_topk,
+                         group_moe,
                          norm_topk_prob,
+                         1.0,
                          "ffn",
                          out);
 }

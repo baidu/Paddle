@@ -284,6 +284,7 @@ def weight_to_tensor(network, paddle_value, trt_tensor, use_op_name):
         "pd_op.fused_conv2d_add_act",
         "pd_op.affine_channel",
         "pd_op.fused_bias_dropout_residual_layer_norm",
+        "pd_op.deformable_conv",
     ]
     if use_op_name in forbid_cast_op:
         return trt_tensor

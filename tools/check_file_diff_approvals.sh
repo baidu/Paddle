@@ -308,8 +308,8 @@ fi
 TEST_FILE_ADDED_LINES=$(git diff -U0 upstream/$BRANCH -- test |grep "^+")
 ENABLE_TO_STATIC_CHECK=`echo "$TEST_FILE_ADDED_LINES" | grep "enable_to_static(" || true`
 if [ "${ENABLE_TO_STATIC_CHECK}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
-    echo_line="You must have one RD (SigureMo, zrr1999 or gouzil) approval for using 'paddle.jit.enable_to_static', we recommend using 'enable_to_static_guard' in the related test files.\n"
-    check_approval 1 SigureMo zrr1999 gouzil
+    echo_line="You must have one RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for using 'paddle.jit.enable_to_static', we recommend using 'enable_to_static_guard' in the related test files.\n"
+    check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
 fi
 
 HAS_MODIFIED_DY2ST_TEST_FILES=$(git diff --name-only --diff-filter=ACMR upstream/$BRANCH | grep "test/dygraph_to_static/test_" || true)
@@ -321,15 +321,15 @@ if [ "${HAS_MODIFIED_DY2ST_TEST_FILES}" != "" ] && [ "${GIT_PR_ID}" != "" ]; the
         echo_line=${echo_line}${error_lines}"\n"
         echo_line=${echo_line}"You can run following command to fix the errors:\n"
         echo_line=${echo_line}"    python test/dygraph_to_static/check_approval.py "$(echo ${HAS_MODIFIED_DY2ST_TEST_FILES} | tr "\n" " ")"\n"
-        echo_line=${echo_line}"If you believe this is a false positive, please request one of the RD (SigureMo, zrr1999 or gouzil) approval for the changes.\n"
-        check_approval 1 SigureMo zrr1999 gouzil
+        echo_line=${echo_line}"If you believe this is a false positive, please request one of the RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for the changes.\n"
+        check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
     fi
 fi
 
 HAS_MODIFIED_DY2ST_TEST_TENSOR_ATTR_CONSISTENCY=$(git diff --name-only upstream/$BRANCH | grep "test/dygraph_to_static/test_tensor_attr_consistency.py" || true)
 if [ "${HAS_MODIFIED_DY2ST_TEST_TENSOR_ATTR_CONSISTENCY}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
-    echo_line="You must have one RD (SigureMo, zrr1999 or gouzil) approval for file changes in test/dygraph_to_static/test_tensor_attr_consistency.py.\n"
-    check_approval 1 SigureMo zrr1999 gouzil
+    echo_line="You must have one RD (SigureMo, DrRyanHuang, zrr1999 or gouzil) approval for file changes in test/dygraph_to_static/test_tensor_attr_consistency.py.\n"
+    check_approval 1 SigureMo DrRyanHuang zrr1999 gouzil
 fi
 
 HAS_USED_AUTO_PARALLEL_ALIGN_MODE=`git diff -U0 upstream/$BRANCH |grep -o -m 1 "auto_parallel_align_mode" || true`

@@ -325,7 +325,7 @@ ir::Expr CreateExprWithNewComputeBody(const FusibleOp& fusible_op,
 }
 
 int GetTensorCounter() {
-  static int counter = 1;
+  static thread_local std::atomic<int> counter = 1;
   return counter++;
 }
 

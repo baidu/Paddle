@@ -23,6 +23,15 @@ namespace stmt {
 
 using cinn::common::make_shared;
 
+const BlockRef _Stmt_::GetParentBlockRef() const { return BlockRef{parent_}; }
+
+void _Stmt_::set_block_fields(const std::vector<BlockRef> &blocks) {
+  blocks_ = blocks;
+  for (auto &block : blocks_) {
+    block->set_parent(this);
+  }
+}
+
 BlockRef _Block_::Make(const std::vector<StmtRef> &stmts) {
   BlockRef ref(new _Block_());
   ref->set_stmts(stmts);
@@ -215,8 +224,7 @@ IfThenElse _IfThenElse_::Make(Expr condition,
           "The true_case is not defined. "
           "A valid true_case expression is required for _IfThenElse_."));
   ref->set_condition(condition);
-  ref->set_true_case(true_case);
-  ref->set_false_case(false_case);
+  ref->set_block_fields({true_case, false_case});
   return ref;
 }
 

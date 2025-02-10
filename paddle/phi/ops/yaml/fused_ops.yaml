@@ -872,7 +872,7 @@
 
 - op: fused_moe
   args: (Tensor x, Tensor gate_weight, Tensor ffn1_weight, Tensor ffn1_scale, Tensor ffn1_bias, Tensor ffn2_weight, Tensor ffn2_scale, Tensor ffn2_bias,
-    str quant_method = "None", int moe_topk = 2, bool norm_topk_prob = true)
+    str quant_method = "None", int moe_topk = 2, bool group_moe = false, bool norm_topk_prob = true)
   output: Tensor (out)
   infer_meta:
     func: FusedMoeInferMeta

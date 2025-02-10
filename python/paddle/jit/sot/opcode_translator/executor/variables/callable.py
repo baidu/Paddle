@@ -561,7 +561,13 @@ class ContainerLayerVariable(LayerVariable):
 
     @VariableFactory.register_from_value(successor="PaddleLayerVariable")
     def from_value(value: Any, graph: FunctionGraph, tracker: Tracker):
-        if isinstance(value, PD_ALL_CONTAINERS):
+        # For Sequential and LayerList, we need to wrap them as ContainerLayerVariable
+        # to ensure inner layers are correctly tracked.
+        # But if user defined a container class and override the forward method,
+        # we should not wrap it as ContainerLayerVariable. Such as: RNNBase
+        if isinstance(value, PD_ALL_CONTAINERS) and value.__class__.forward in (
+            cls.forward for cls in PD_ALL_CONTAINERS
+        ):
             return ContainerLayerVariable(value, graph, tracker)
         return None
 

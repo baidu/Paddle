@@ -55,17 +55,13 @@ class IterVariable(VariableBase):
         return self
 
     def flatten_inner_vars(self) -> list[VariableBase]:
+        holds = self.hold
+        if not isinstance(holds, list):
+            holds = [holds]
         return [
-            var
-            for item_list in (
-                self.hold.get_wrapped_items()
-                if isinstance(self.hold, (ContainerVariable, IterVariable))
-                else [self.hold]
-            )
-            for item in (
-                item_list if isinstance(item_list, list) else [item_list]
-            )
-            for var in item.flatten_inner_vars()
+            inner_var
+            for hold in holds
+            for inner_var in hold.flatten_inner_vars()
         ]
 
 

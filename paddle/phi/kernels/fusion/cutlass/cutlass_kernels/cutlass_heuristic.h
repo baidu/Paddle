@@ -129,7 +129,7 @@ static std::vector<CutlassTileConfig> get_candidate_tiles(
       CutlassTileConfig::CtaShape32x128x64_WarpShape32x32x64,
       CutlassTileConfig::CtaShape64x128x64_WarpShape64x64x64,
       CutlassTileConfig::CtaShape128x128x64_WarpShape64x64x64,
-      CutlassTileConfig::CtaShape128x256x64_WarpShape64x64x64,
+      // CutlassTileConfig::CtaShape128x256x64_WarpShape64x64x64,
   };
   if (is_moe) {
     quant_B_configs_sm80.push_back(
@@ -251,10 +251,10 @@ static CutlassGemmConfig estimate_best_config_from_occupancies(
                           [](const CutlassGemmConfig& gemm_config) {
                             return gemm_config.tile_config ==
                                    CutlassTileConfig::
-                                       CtaShape128x256x64_WarpShape64x64x64;
+                                       CtaShape128x128x64_WarpShape128x32x64;
                           }) != candidate_configs.end()) {
     best_config = CutlassGemmConfig{
-        CutlassTileConfig::CtaShape128x256x64_WarpShape64x64x64,
+        CutlassTileConfig::CtaShape128x128x64_WarpShape128x32x64,
         SplitKStyle::NO_SPLIT_K,
         1,
         5};
