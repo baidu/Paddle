@@ -246,6 +246,11 @@ void AutoMixedPrecisionPass::Init(Graph* graph) const {
 
   black_list_ = Get<std::unordered_set<std::string>>("mixed_black_list");
   white_list_ = Get<std::unordered_set<std::string>>("mixed_white_list");
+  
+  
+  white_list_.insert("triton_FcRelu");
+  white_list_.insert("triton_Fc");
+
   SetDefaultBlacklist();
   VLOG(4) << "black_list has ";
   for (const auto& name : black_list_) {
