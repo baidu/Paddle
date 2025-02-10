@@ -37,7 +37,7 @@ namespace egr {
  * from GradOpDescMaker to GradNodeBase.
  *
  * NOTE: GradNodeBase has a method named run, this method should be overridden
- *by the specific derived class, it will prepare backward inputs and double
+ * by the specific derived class, it will prepare backward inputs and double
  * backward's depends. Then, it will call C++ API of backward kernel functions
  * to finish backward computation.
  *

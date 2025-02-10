@@ -21,6 +21,7 @@ limitations under the License. */
 #include "glog/logging.h"
 
 #include "paddle/common/ddim.h"
+#include "paddle/fluid/eager/autograd_meta.h"
 #include "paddle/phi/api/include/context_pool.h"
 #include "paddle/phi/api/lib/data_transform.h"
 #include "paddle/phi/api/lib/utils/allocator.h"
@@ -38,6 +39,7 @@ limitations under the License. */
 #include "paddle/phi/core/tensor_utils.h"
 
 namespace paddle {
+Tensor singleton_undefined_tensor;
 
 using DeviceContextPool = experimental::DeviceContextPool;
 using DefaultAllocator = experimental::DefaultAllocator;
@@ -554,6 +556,85 @@ Tensor Tensor::contiguous() {
     PADDLE_THROW(common::errors::Unimplemented(
         "Only support contiguous operation on DenseTensor or DistTensor now."));
   }
+}
+
+/* Part 13: Forward AD related*/
+// The Forward AD API functions below are low level and are not to be used by
+// end users who should use the API provided in torch/csrc/autograd.h
+
+/// This function returns the forward gradient for this Tensor at the given
+/// level.
+const Tensor &Tensor::_fw_grad(uint64_t level) const {
+  if (!autograd_meta_) return singleton_undefined_tensor;
+
+  return autograd_meta_->fw_grad(level, *this);
+}
+
+// / This function can be used to set the value of the forward grad.
+// / Note that the given new_grad might not be used directly if it has different
+// / metadata (size/stride/storage offset) compared to this Tensor. In that
+// case, / new_grad content will be copied into a new Tensor void
+// _set_fw_grad(const paddle::Tensor& new_grad, uint64_t level, bool
+// is_inplace_op) const {
+//   // impl_->_set_fw_grad(*new_grad, *this, level, is_inplace_op);
+// }
+
+// const Tensor& Tensor::_fw_grad(
+//     uint64_t level,
+//     const TensorBase& self) const {
+//   // See TensorImpl::grad() above for explanation about the line below
+//   if (!autograd_meta_)
+//     return Tensor();
+//   return autograd_meta_->fw_grad(level, self);
+// }
+
+void Tensor::_set_fw_grad(const Tensor &new_grad,
+                          uint64_t level,
+                          bool is_inplace_op) {
+  if (!autograd_meta_) {
+    autograd_meta_ = std::make_shared<egr::AutogradMeta>();
+  }
+  autograd_meta_->set_fw_grad(new_grad, *this, level, is_inplace_op);
+}
+
+std::shared_ptr<phi::TensorBase> Tensor::get_impl() const {
+  return this->impl_;
+}
+
+// Taken from codegened version
+const Tensor &Tensor::_fw_primal(int64_t level) const {
+  // auto& self_ = unpack(self, "self", 0);
+  // std::shared_ptr<Identity> grad_fn;
+  // if (compute_requires_grad( self )) {
+  //   grad_fn = std::make_shared<Identity>();
+  //   grad_fn->set_next_edges(collect_next_edges( self ));
+  // }
+  // auto tmp = ([&]() {
+  //   at::AutoNonVariableTypeMode non_var_type_mode(true);
+  //   return self_.alias();
+  // })();
+  // c10::optional<std::function<at::Tensor(const at::Tensor&)>>
+  // func=c10::nullopt; if (!self.unsafeGetTensorImpl()->support_as_strided()) {
+  //   auto size_vec = self.sizes().vec();
+  //   func = [=](const at::Tensor& input_base) {
+  //     return input_base.view(size_vec);
+  //   };
+  // }
+  // auto result = as_view(/* base */ self, /* output */ tmp, /*
+  // is_bw_differentiable */ true,
+  //                       /* is_fw_differentiable */ false, /* view_func */
+  //                       func, /* creation_meta */ CreationMeta::DEFAULT);
+  // if (grad_fn) {
+  //     set_history(flatten_tensor_args( result ), grad_fn);
+  // }
+  // if (generated::details::isFwGradDefined(self)) {
+  //   // Modified from original codegen
+  //   // We explicitly want to ignore the forward grad at the given level
+  //   PD_CHECK(level == 0, "Invalid level given to _fw_primal");
+  //   // End modified from original codegen
+  // }
+  // return result;
+  return this->autograd_meta_->fw_grad(level, *this);
 }
 
 }  // namespace paddle

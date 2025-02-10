@@ -16,6 +16,7 @@
 
 #include "paddle/fluid/eager/autograd_meta.h"
 #include "paddle/fluid/eager/eager_tensor.h"
+#include "paddle/fluid/eager/fwd/forward_grad.h"
 #include "paddle/fluid/eager/grad_node_info.h"
 #include "paddle/phi/api/all.h"
 #include "paddle/phi/api/lib/kernel_dispatch.h"
@@ -65,11 +66,35 @@ class ComputeRequireGradIter : public IterHelper<AutogradMeta*> {
     // Dispensable Tensors feeds in nullptr autograd_meta
     if (!element) return;
 
-    bool stop_gradient = element->StopGradient();
-    if (!stop_gradient) require_grad_ = true;
+    if (!require_grad_) {
+      bool stop_gradient = element->StopGradient();
+      if (!stop_gradient) {
+        require_grad_ = true;
+      }
+    }
   }
 
   bool require_grad_ = false;
+};
+
+class ComputeRequireFwdGradIter : public IterHelper<AutogradMeta*> {
+ public:
+  bool RequireFwdGrad() { return require_fwd_grad_; }
+
+ private:
+  void visit(AutogradMeta* element) override {
+    // Dispensable Tensors feeds in nullptr autograd_meta
+    if (!element) return;
+
+    if (!require_fwd_grad_) {
+      bool require_fwd_grad = element->fw_grad(0).has_allocation();
+      if (require_fwd_grad) {
+        require_fwd_grad_ = true;
+      }
+    }
+  }
+
+  bool require_fwd_grad_ = false;
 };
 
 class PassStopGradientIter : public IterHelper<AutogradMeta*> {
@@ -170,6 +195,33 @@ class TEST_API EagerUtils {
     iter.apply(std::forward<Args>(args)...);
 
     return iter.RequireGrad();
+  }
+
+  template <typename... Args>
+  static bool ComputeRequireFwdGrad(Args&&... args) {
+    auto iter = ComputeRequireFwdGradIter();
+    iter.apply(std::forward<Args>(args)...);
+
+    return iter.RequireFwdGrad();
+  }
+
+  static const paddle::Tensor& toNonOptTensor(const paddle::Tensor& t) {
+    return t;
+  }
+
+  static const paddle::Tensor& toNonOptFwGrad(const paddle::Tensor& t) {
+    return t.has_allocation() ? t._fw_grad(/*level */ 0)
+                              : ForwardGrad::undef_grad();
+  }
+
+  static const paddle::Tensor& toNonOptPrimal(const paddle::Tensor& t) {
+    if (t.has_allocation()) {
+      // if (t->unsafeGetTensorImpl()->is_wrapped_number()) {
+      //   return *t;
+      // } // 当t是一个单数字时，直接返回自己，因为数字本身的primal就是自己
+      return t._fw_primal(/* level */ 0);  // 否则返回0级primal
+    }
+    return ForwardGrad::undef_grad();  // 返回一个空的primal
   }
 
   template <typename T, typename... Args>

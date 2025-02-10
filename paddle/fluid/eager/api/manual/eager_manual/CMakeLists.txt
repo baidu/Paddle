@@ -1,3 +1,4 @@
+add_subdirectory(forward_grad)
 add_subdirectory(forwards)
 add_subdirectory(nodes)
 set(eager_manual_functions
@@ -5,4 +6,7 @@ set(eager_manual_functions
     PARENT_SCOPE)
 set(eager_manual_nodes
     ${eager_manual_nodes}
+    PARENT_SCOPE)
+set(eager_manual_jvps
+    ${eager_manual_jvps}
     PARENT_SCOPE)

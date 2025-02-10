@@ -208,6 +208,7 @@ limitations under the License. */
 
 #include "paddle/common/flags.h"
 #include "paddle/fluid/eager/api/utils/global_utils.h"
+#include "paddle/fluid/eager/fwd/forward.h"
 #include "paddle/fluid/eager/nan_inf_utils.h"
 #include "paddle/fluid/imperative/layout_autotune.h"
 #include "paddle/fluid/pir/dialect/distributed/ir/dist_interface.h"
@@ -1155,6 +1156,11 @@ PYBIND11_MODULE(libpaddle, m) {
         &paddle::prim::PrimCommonUtils::IsEagerPrimEnabled);
   m.def("__set_eager_prim_enabled",
         &paddle::prim::PrimCommonUtils::SetEagerPrimEnabled);
+  m.def("_enter_dual_level", &egr::enter_dual_level);
+  m.def("_exit_dual_level",
+        [](int idx) { egr::exit_dual_level(static_cast<uint64_t>(idx)); });
+  m.def("make_dual", egr::make_dual);
+  m.def("unpack_dual", egr::unpack_dual);
   m.def("_set_prim_target_grad_name",
         &paddle::prim::PrimCommonUtils::SetTargetGradName);
   m.def("set_num_threads", &platform::SetNumThreads);

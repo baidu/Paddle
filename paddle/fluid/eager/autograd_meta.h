@@ -15,10 +15,12 @@
 #pragma once
 
 #include "paddle/fluid/eager/api/utils/global_utils.h"
+#include "paddle/fluid/eager/fwd/forward_grad.h"
 #include "paddle/fluid/eager/grad_node_info.h"
 namespace egr {
 
 using AbstractAutogradMeta = paddle::AbstractAutogradMeta;
+using ForwardGrad = forward_ad::ForwardGrad;
 /**
  *
  * AutogradMeta is what record the backward info for tensor. When we run
@@ -65,6 +67,11 @@ class AutogradMeta : public AbstractAutogradMeta {
     out_rank_ = edge.GetEdgeRankInfo().second;
     grad_node_ = edge.GetMutableGradNode();
   }
+
+  // AutogradMeta(const AutogradMeta&) = delete;
+  // AutogradMeta(AutogradMeta&&) = delete;
+  // AutogradMeta& operator=(const AutogradMeta&) = delete;
+  // AutogradMeta& operator=(AutogradMeta&&) = delete;
 
   ~AutogradMeta() override = default;
 
@@ -131,6 +138,93 @@ class AutogradMeta : public AbstractAutogradMeta {
 
   void SetRetainGrads(bool value) { retain_grads_ = value; }
 
+  const paddle::Tensor& fw_grad(uint64_t level,
+                                const paddle::Tensor& self) const {
+    // Ensure that concurrent fw_grad() "reads" are thread safe
+    // std::lock_guard<std::mutex> lock(mutex_);
+
+    const auto& direct_fw_grad =
+        fw_grad_ ? fw_grad_->value(level) : ForwardGrad::undef_grad();
+
+    // if (fale && !direct_fw_grad.defined()) {
+    //   // For view that don't have a forward grad, check if their base has one
+    //   that
+    //   // has been defined by an inplace operation.
+    //   // This ensure that case 5 from [Forward Grad View/inplace] above works
+    //   fine auto const_view_meta =
+    //       static_cast<const torch::autograd::DifferentiableViewMeta*>(this);
+    //   // This is ok to do as we ONLY modify fw_grad_ and this field is
+    //   properly
+    //   // locked in all methods
+    //   if (const_view_meta->has_fw_view()) {
+    //     const auto& view_info = const_view_meta->get_forward_view();
+    //     const auto& base = view_info.base_;
+
+    //     const auto& base_val = base._fw_grad(level);
+    //     if (base_val.defined()) {
+    //       // Lazy initialization of fw_grad_
+    //       const_view_meta->fw_grad_ = std::make_shared<ForwardGrad>();
+
+    //       Variable new_val;
+    //       if (view_info.has_view_fn()) {
+    //         new_val = view_info.view_fn()(base_val);
+    //       } else {
+    //         new_val = base_val.as_strided(
+    //             self.sizes(), self.strides(), self.storage_offset());
+    //       }
+
+    //       const_view_meta->fw_grad_->set_value(new_val, level);
+    //       return const_view_meta->fw_grad_->value(level);
+    //     }
+    //   }
+    // }
+    return direct_fw_grad;
+  }
+
+  const paddle::Tensor& fw_grad(uint64_t level) const {
+    // Ensure that concurrent fw_grad() "reads" are thread safe
+    // std::lock_guard<std::mutex> lock(mutex_);
+
+    // const auto& direct_fw_grad =
+    //     fw_grad_ ? fw_grad_->value(level) : ForwardGrad::undef_grad();
+    const auto& direct_fw_grad =
+        fw_grad_ ? fw_grad_->value(level) : ForwardGrad::undef_grad();
+
+    // if (!direct_fw_grad.defined() && false) {
+    //   // For view that don't have a forward grad, check if their base has one
+    //   that
+    //   // has been defined by an inplace operation.
+    //   // This ensure that case 5 from [Forward Grad View/inplace] above works
+    //   fine auto const_view_meta =
+    //       static_cast<const torch::autograd::DifferentiableViewMeta*>(this);
+    //   // This is ok to do as we ONLY modify fw_grad_ and this field is
+    //   properly
+    //   // locked in all methods
+    //   if (const_view_meta->has_fw_view()) {
+    //     const auto& view_info = const_view_meta->get_forward_view();
+    //     const auto& base = view_info.base_;
+
+    //     const auto& base_val = base._fw_grad(level);
+    //     if (base_val.defined()) {
+    //       // Lazy initialization of fw_grad_
+    //       const_view_meta->fw_grad_ = std::make_shared<ForwardGrad>();
+
+    //       Variable new_val;
+    //       if (view_info.has_view_fn()) {
+    //         new_val = view_info.view_fn()(base_val);
+    //       } else {
+    //         new_val = base_val.as_strided(
+    //             self.sizes(), self.strides(), self.storage_offset());
+    //       }
+
+    //       const_view_meta->fw_grad_->set_value(new_val, level);
+    //       return const_view_meta->fw_grad_->value(level);
+    //     }
+    //   }
+    // }
+    return direct_fw_grad;
+  }
+
  private:
   // TODO(jiabin) :Should we use pointer instead of object?
   std::shared_ptr<paddle::Tensor> grad_ = std::make_shared<paddle::Tensor>();
@@ -164,5 +258,148 @@ class AutogradMeta : public AbstractAutogradMeta {
 
   // TODO(jiabin) :Support Quantum here and add cache mechanism as
   // VarCache defined in VarBase
+
+  // This field is used to store all the forward AD gradients
+  // associated with this AutogradMeta (and the Tensor it corresponds to)
+  // There is a semantic 1:1 correspondence between AutogradMeta and
+  // ForwardGrad but:
+  //   - This field is lazily populated.
+  //   - This field is a shared_ptr but it must never be
+  //     shared by multiple Tensors. See Note [ Using ForwardGrad ]
+  // Any transition from not_initialized to initialized
+  // must be protected by mutex_
+  mutable std::shared_ptr<ForwardGrad> fw_grad_;
+  // mutable std::mutex mutex_;
+
+  // This function is will ensure that the fw_grad_ is properly a view of the
+  // base for inplace ops on Tensors that do not have forward grad originally.
+  void set_fw_grad(const paddle::Tensor& new_grad_base,
+                   const paddle::Tensor& self_base,
+                   uint64_t level,
+                   bool is_inplace_op) {
+    PD_CHECK(!new_grad_base._fw_grad(level).defined(),
+             "Setting a forward grad that "
+             "itself has a forward gradient at the same level"
+             // level,
+             // " is not supported."
+    );
+    // PD_CHECK(
+    //     (new_grad_base.is_floating_point() || new_grad_base.is_complex()) &&
+    //         (self_base.is_floating_point() || self_base.is_complex()),
+    //     "Expected both tensor and its forward grad to be floating point or
+    //     complex");
+    // Lazy initialization
+    {
+      // std::lock_guard<std::mutex> lock(mutex_);
+      if (!fw_grad_) {
+        fw_grad_ = std::make_shared<ForwardGrad>();
+      }
+    }
+    if (fw_grad_->contains(level)) {
+      // Setting the forward grad again is only allowed if it is a no-op.
+      // We do allow this case to simplify writing codegen for inplace ops.
+      PD_CHECK(new_grad_base.defined(),
+               "Cannot set a forward grad that is an undefined Tensor. Use "
+               "_fw_primal(level) to get a new Tensor with this forward grad "
+               "unset.");
+
+      PD_CHECK(is_inplace_op,
+               "Only inplace operations can re-set the forward grad of a "
+               "Tensor that "
+               "already has one.");
+
+      PD_CHECK(fw_grad_->value(level).get_impl() == new_grad_base.get_impl(),
+               "Cannot set a value of a forward grad if it "
+               "already exists. Inplace operations should modify it inplace.");
+    } else {
+      // TODO(alband) remove this spurious version counter bump
+      paddle::Tensor self_ref(new_grad_base);
+      const paddle::Tensor& self = self_ref;
+
+      // PD_CHECK(
+      //   self.is_same_size(new_grad),
+      //   true,
+      //   "Trying to set a forward gradient that has a different size than that
+      //   " "of the original Tensor, this is not supported. Tensor is of size
+      //   ", self.sizes(), " while the given " "forward gradient is of size ",
+      //   new_grad.sizes(),
+      // ".");
+
+      // if (is_inplace_op && is_view_) {
+      //   auto this_view_meta = static_cast<DifferentiableViewMeta*>(this);
+
+      //   // For inplace ops on a Tensor that does not already have a forward
+      //   grad
+      //   // and is a view, we propagate the tangent to the base and ensure
+      //   that the
+      //   // new_grad is a view of that base's tangent. This ensure that case 4
+      //   from
+      //   // [Forward Grad View/inplace] above works fine What happens in this
+      //   long
+      //   // if statement is:
+      //   //   - Check if the base already has a grad
+      //   //   - If not, set a new fw_grad for it full of zeros
+      //   //   - Take a view of the base's forward grad
+      //   //   - Copy the given new_grad into this view
+      //   //   - Use this view as the new new_grad
+      //   if (this_view_meta->has_fw_view()) {
+      //     auto& view_info = this_view_meta->get_forward_view();
+      //     auto& base = view_info.base_;
+
+      //     if (!base._fw_grad(level).defined()) {
+      //       // Enforce same meta here to make sure that the view op below is
+      //       // always valid
+      //       Tensor new_base_fw_grad;
+      //       if (utils::has_same_meta(new_grad, base) &&
+      //           utils::has_same_meta(new_grad, self)) {
+      //         // TODO extend this special case to when the underlying storage
+      //         of
+      //         // new_grad can be re-used.
+      //         new_base_fw_grad = new_grad;
+      //       } else {
+      //         new_base_fw_grad =
+      //             at::_new_zeros_with_same_feature_meta(new_grad, base);
+      //         new_base_fw_grad._set_conj(base.is_conj());
+      //         new_base_fw_grad._set_neg(base.is_neg());
+
+      //         // Update new_grad to be a view of the base
+      //         Tensor new_fw_grad_value;
+      //         if (view_info.has_view_fn()) {
+      //           new_fw_grad_value = view_info.view_fn()(new_base_fw_grad);
+      //         } else {
+      //           new_fw_grad_value = new_base_fw_grad.as_strided(
+      //               self.sizes(), self.strides(), self.storage_offset());
+      //         }
+
+      //         new_fw_grad_value.copy_(new_grad);
+      //         new_grad = new_fw_grad_value;
+      //       }
+
+      //       base._set_fw_grad(new_base_fw_grad, level, /* is_inplace_op */
+      //       false);
+      //     }
+      //   }
+      // }
+
+      // Enforce the basic layout constraint
+      // if (!utils::has_same_meta(new_grad, self)) {
+      //   if (is_view_) {
+      //     auto this_view_meta = static_cast<DifferentiableViewMeta*>(this);
+      //     PD_CHECK(
+      //         !this_view_meta->has_fw_view(),
+      //         true,
+      //         "Expected the output of forward differentiable view operations
+      //         to have the tangent have the same layout as primal")
+      //   }
+      //   auto res = at::_new_zeros_with_same_feature_meta(new_grad, self);
+      //   res._set_conj(self.is_conj());
+      //   res._set_neg(self.is_neg());
+      //   res.copy_(new_grad);
+      //   new_grad = res;
+      // }
+
+      fw_grad_->set_value(self, level);
+    }
+  }
 };
 }  // namespace egr

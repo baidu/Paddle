@@ -14,4 +14,7 @@ if(NOT ((NOT WITH_PYTHON) AND ON_INFER))
   set(eager_manual_nodes
       ${eager_manual_nodes}
       PARENT_SCOPE)
+  set(eager_manual_jvps
+      ${eager_manual_jvps}
+      PARENT_SCOPE)
 endif()

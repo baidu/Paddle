@@ -393,11 +393,12 @@ TEST_API {} {}({}) {{
 
   bool trace_backward = egr::Controller::Instance().HasGrad();
   bool require_any_grad = egr::EagerUtils::ComputeRequireGrad({});
+  // bool require_any_fwd_grad = egr::EagerUtils::ComputeRequireFwdGrad({});
 
   // Node Declaration
   std::shared_ptr<{}> grad_node;
 
-  // Pre contiguous tensor in not strided op, if 1)require_any_grad=true; 2) need wrapper to backward; 3) not contiguous
+  // Pre contiguous tensor in not strided op, if 1) require_any_grad=true; 2) need wrapper to backward; 3) not contiguous
 {}
 
   // Set grad_node before API Call
@@ -490,9 +491,9 @@ FORWARD_BODY_BEFORE_API_CALL_TEMPLATE = """  if (require_any_grad) {{
     // Node Construction
 {}
     // Set for forward trace
-  if (FLAGS_check_nan_inf || FLAGS_call_stack_level == 3) {{
-    grad_node->SetForwardTrace(egr::Controller::Instance().GetPythonStack());
-  }}
+    if (FLAGS_check_nan_inf || FLAGS_call_stack_level == 3) {{
+        grad_node->SetForwardTrace(egr::Controller::Instance().GetPythonStack());
+    }}
     // SetAttributes if needed
 {}
     // Set TensorWrappers for Forward Inputs if needed
@@ -593,6 +594,7 @@ FORWARD_CC_FILE_TEMPLATE = """
 #include "paddle/fluid/eager/type_promotion_utils.h"
 #include "paddle/phi/common/type_promotion.h"
 #include "paddle/fluid/imperative/amp_utils.h"
+#include "paddle/fluid/eager/api/manual/eager_manual/forward_grad/manual_jvp.h"
 
 COMMON_DECLARE_bool(check_nan_inf);
 COMMON_DECLARE_int32(call_stack_level);
@@ -662,7 +664,7 @@ AMP_LOGIC_TEMPLATE = """  if (egr::Controller::Instance().GetAMPLevel() != paddl
 """
 
 TYPE_PROMOTION_LOGIC_TEMPLATE = """
-    if (phi::NeedTypePromotion({op_func_name}, {x}.dtype(), {y}.dtype(), {x}.shape(), {y}.shape())) {{
+  if (phi::NeedTypePromotion({op_func_name}, {x}.dtype(), {y}.dtype(), {x}.shape(), {y}.shape())) {{
     VLOG(5) << "got different data type, run type promotion automatically.";
     LOG_FIRST_N(WARNING, 1) << "got different data type, run type promotion automatically, this may cause data type been changed.";
     {op_name}
@@ -1177,7 +1179,7 @@ class DygraphFunctionGeneratorBase(FunctionGeneratorBase):
         for name, (_, _) in forward_outputs_position_map.items():
             output_autograd_meta_name = GetAutoGradMetaName(name)
             pass_stop_gradient_args_list.append(output_autograd_meta_name)
-        pass_stop_gradient_args_str = ",".join(pass_stop_gradient_args_list)
+        pass_stop_gradient_args_str = ", ".join(pass_stop_gradient_args_list)
         return pass_stop_gradient_args_str
 
     def GenerateNodeCreationCodes(self, for_backward=False, is_inplaced=False):
@@ -1309,7 +1311,7 @@ class DygraphFunctionGeneratorBase(FunctionGeneratorBase):
             for name, (ttype, pos) in forward_inputs_position_map.items():
                 if name in need_pre_contiguous_set:
                     pre_contiguous_list.append(
-                        f"{indent}const auto& {name}_tmp = (require_any_grad && {name}.is_dense_tensor() && !std::dynamic_pointer_cast<phi::DenseTensor>({name}.impl())->meta().is_contiguous()) ? paddle::Tensor(std::make_shared<phi::DenseTensor>(paddle::experimental::Trans2Contiguous(*(std::dynamic_pointer_cast<phi::DenseTensor>({name}.impl())))), {name}.mutable_autograd_meta(), {name}.name()) : {name};"
+                        f"{GetIndent(1)}const auto& {name}_tmp = (require_any_grad && {name}.is_dense_tensor() && !std::dynamic_pointer_cast<phi::DenseTensor>({name}.impl())->meta().is_contiguous()) ? paddle::Tensor(std::make_shared<phi::DenseTensor>(paddle::experimental::Trans2Contiguous(*(std::dynamic_pointer_cast<phi::DenseTensor>({name}.impl())))), {name}.mutable_autograd_meta(), {name}.name()) : {name};"
                     )
                     self.inputs_call_list_tmp[pos] = (
                         self.inputs_call_list_tmp[pos] + '_tmp'
@@ -1905,6 +1907,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
             # 1. Get Input AutoGradMeta
             inputs_autograd_meta_list = []
             compute_require_grad_args_list = ["trace_backward"]
+            compute_require_fwd_grad_args_list = []
             for name, (ttype, pos) in forward_inputs_position_map.items():
                 # Has corresponding grad output
                 has_corresponding_grad_output = False
@@ -1933,10 +1936,14 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                     compute_require_grad_args_list.append(
                         input_autograd_meta_name
                     )
+                    compute_require_fwd_grad_args_list.append(name)
 
             inputs_autograd_meta_str = "\n".join(inputs_autograd_meta_list)
-            compute_require_grad_args_str = ",".join(
+            compute_require_grad_args_str = ", ".join(
                 compute_require_grad_args_list
+            )
+            compute_require_fwd_grad_args_str = ", ".join(
+                compute_require_fwd_grad_args_list
             )
 
             # 2. Get Output AutoGradMeta
@@ -2004,7 +2011,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
             f"return {forward_ad_function_name}({amp_inputs_call_args_str});"
         )
         if is_inplaced or (forward_api_name == "cast"):
-            amp_logic_str = f'\n VLOG(5) << " No AMP for {forward_ad_function_name} because it is a inplace or cast api. "; '
+            amp_logic_str = f'\n  VLOG(5) << " No AMP for {forward_ad_function_name} because it is a inplace or cast api. ";'
         else:
             amp_logic_str = AMP_LOGIC_TEMPLATE.format(
                 kernel_trans2_op_name_str,
@@ -2060,7 +2067,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                 return_value=type_promote_call_list,
             )
         else:
-            type_promotion_logic_str = f'\n VLOG(5) << " No Type Promotion for {forward_ad_function_name} api. "; '
+            type_promotion_logic_str = f'\n  VLOG(5) << " No Type Promotion for {forward_ad_function_name} api. ";'
 
         # Forward type autocast logic
         if forward_api_name in type_autocast_op_list:
@@ -2084,12 +2091,12 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                 return_value=type_autocast_call_list,
             )
         else:
-            type_autocast_logic_str = f'\n VLOG(5) << " No Type Autocast for {forward_ad_function_name} api. "; '
+            type_autocast_logic_str = f'\n  VLOG(5) << " No Type Autocast for {forward_ad_function_name} api. ";'
 
         # Forward layout autotune
-        layout_autotune_list_str = "    ".join(
-            layout_autotune_list
-        ) + "    ".join(layout_autotune_optional_list)
+        layout_autotune_list_str = "    ".join(layout_autotune_list) + "".join(
+            [("    " + s) for s in layout_autotune_optional_list]
+        )
         layout_logic_str = self.GenerateForwardLayoutAutotune(
             forward_api_name,
             amp_tensors_vector_list,
@@ -2124,7 +2131,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
         # Generate forward_definition_str and forward_declaration_str
         if self.is_forward_only:
             if len(amp_tensors_vector_list) == 0:
-                amp_logic_str = f'\n VLOG(7) << " No AMP for {forward_ad_function_name} because it has no input. "; '
+                amp_logic_str = f'\n VLOG(7) << " No AMP for {forward_ad_function_name} because it has no input. ";'
             self.forward_definition_str += (
                 FORWARD_ONLY_FUNCTION_TEMPLATE.format(
                     returns_type_str,
@@ -2166,6 +2173,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                 forward_api_name,
                 before_log_str,
                 compute_require_grad_args_str,
+                compute_require_fwd_grad_args_str,
                 self.grad_node_name,
                 node_creation_pre_contiguous_str,
                 node_creation_before_call_str,
@@ -2179,6 +2187,7 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
                 node_creation_after_call_str,
                 forward_api_name,
                 log_str,
+                # forward_ad_computation_str,
                 returns_str,
             )
 

@@ -21,10 +21,17 @@ from ..base.dygraph.base import (  # noqa: F401
 )
 from . import (  # noqa: F401
     backward_mode,
+    forward_mode,
     ir_backward,
 )
 from .autograd import hessian, jacobian
 from .backward_mode import backward
+from .forward_mode import (
+    dual_level,
+    enter_dual_level,
+    exit_dual_level,
+    make_dual,
+)
 from .py_layer import PyLayer, PyLayerContext
 from .saved_tensors_hooks import saved_tensors_hooks
 
@@ -35,4 +42,8 @@ __all__ = [
     'PyLayer',
     'PyLayerContext',
     'saved_tensors_hooks',
+    'enter_dual_level',
+    'exit_dual_level',
+    'make_dual',
+    'dual_level',
 ]

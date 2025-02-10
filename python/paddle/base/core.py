@@ -351,6 +351,8 @@ try:
         _remove_skip_comp_ops,
         _set_bwd_prim_blacklist,
         _set_prim_target_grad_name,
+        _enter_dual_level,
+        _exit_dual_level,
     )
 
     # type promotion
