@@ -173,11 +173,9 @@ def infer(word_dict, use_cuda, save_dirname=None):
         # element (word). Hence the DenseTensor will hold data for three sentences of
         # length 3, 4 and 2, respectively.
         # Note that recursive_sequence_lengths should be a list of lists.
-        recursive_seq_lens = [[3, 4, 2]]
-        base_shape = [1]
         # The range of random integers is [low, high]
-        tensor_words = base.create_random_int_lodtensor(
-            recursive_seq_lens, base_shape, place, low=0, high=word_dict_len - 1
+        tensor_words = paddle.randint(
+            low=0, high=word_dict_len - 1, shape=[9, 1], dtype=paddle.int64
         )
 
         # Construct feed as a dictionary of {feed_target_name: feed_target_data}

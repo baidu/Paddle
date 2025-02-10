@@ -224,20 +224,21 @@ def infer(target, save_dirname=None):
         # meaning there is only one level of detail and there is only one sequence of
         # one word on this level.
         # Note that recursive_sequence_lengths should be a list of lists.
-        recursive_seq_lens = [[1]]
-        base_shape = [1]
+        shape = [1, 1]
+        low = 0
+        high = dict_size - 1
         # The range of random integers is [low, high]
-        first_word = base.create_random_int_lodtensor(
-            recursive_seq_lens, base_shape, place, low=0, high=dict_size - 1
+        first_word = paddle.randint(
+            low=low, high=high, shape=shape, dtype=paddle.int64
         )
-        second_word = base.create_random_int_lodtensor(
-            recursive_seq_lens, base_shape, place, low=0, high=dict_size - 1
+        second_word = paddle.randint(
+            low=low, high=high, shape=shape, dtype=paddle.int64
         )
-        third_word = base.create_random_int_lodtensor(
-            recursive_seq_lens, base_shape, place, low=0, high=dict_size - 1
+        third_word = paddle.randint(
+            low=low, high=high, shape=shape, dtype=paddle.int64
         )
-        fourth_word = base.create_random_int_lodtensor(
-            recursive_seq_lens, base_shape, place, low=0, high=dict_size - 1
+        fourth_word = paddle.randint(
+            low=low, high=high, shape=shape, dtype=paddle.int64
         )
 
         assert feed_target_names[0] == 'firstw'
@@ -259,17 +260,7 @@ def infer(target, save_dirname=None):
             return_numpy=False,
         )
 
-        def to_infer_tensor(lod_tensor):
-            infer_tensor = base.core.PaddleTensor()
-            infer_tensor.lod = lod_tensor.lod()
-            infer_tensor.data = base.core.PaddleBuf(np.array(lod_tensor))
-            infer_tensor.shape = lod_tensor.shape()
-            infer_tensor.dtype = base.core.PaddleDType.INT64
-            return infer_tensor
-
         infer_inputs = [first_word, second_word, third_word, fourth_word]
-        infer_inputs = [to_infer_tensor(t) for t in infer_inputs]
-
         infer_config = base.core.NativeConfig()
         infer_config.prog_file = save_dirname + ".pdmodel"
         infer_config.param_file = save_dirname + ".pdiparams"

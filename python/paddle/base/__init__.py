@@ -118,7 +118,6 @@ from .initializer import set_global_initializer  # noqa: F401
 from .layers.math_op_patch import monkey_patch_variable
 from .lod_tensor import (  # noqa: F401
     create_lod_tensor,
-    create_random_int_lodtensor,
 )
 from .param_attr import ParamAttr, WeightNormParamAttr  # noqa: F401
 from .trainer_desc import (  # noqa: F401
