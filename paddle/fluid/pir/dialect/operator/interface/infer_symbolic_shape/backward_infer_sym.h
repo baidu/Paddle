@@ -18,4 +18,6 @@
 
 namespace paddle::dialect {
 OP_DECLARE_INFER_SYMBOLIC_SHAPE(FusedAttentionGrad)
+OP_DECLARE_INFER_SYMBOLIC_SHAPE(GroupNormGrad)
+OP_DECLARE_INFER_SYMBOLIC_SHAPE(GroupNormGrad_)
 }  // namespace paddle::dialect
