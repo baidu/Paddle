@@ -1406,7 +1406,9 @@ class API_NormTest(unittest.TestCase):
             data = paddle.static.data(
                 name="data_2d", shape=[2, 2], dtype="float64"
             )
-            self.assertRaises(ValueError, paddle.norm, data, p="unsupport norm")
+            self.assertRaises(
+                ValueError, paddle.norm, data, p="unsupported norm"
+            )
             self.assertRaises(ValueError, paddle.norm, data, p=[1])
             self.assertRaises(ValueError, paddle.norm, data, p=[1], axis=-1)
             self.assertRaises(ValueError, paddle.norm, 0, [1, 0], "float64")

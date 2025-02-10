@@ -253,7 +253,7 @@ void OpTester::CreateOpDesc() {
       case framework::proto::AttrType::LONGS:
       default:
         PADDLE_THROW(common::errors::Unimplemented(
-            "Unsupport attr type %d in OpTester.", type));
+            "Unsupported attr type %d in OpTester.", type));
     }
   }
 }
@@ -496,7 +496,7 @@ std::string OpTester::DebugString() {
       } break;
       default:
         PADDLE_THROW(common::errors::Unimplemented(
-            "Unsupport attr type %d in OpTester.", attr_type));
+            "Unsupported attr type %d in OpTester.", attr_type));
     }
     ss << GenSpaces(--count) << "}\n";
   }

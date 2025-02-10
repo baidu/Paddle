@@ -304,7 +304,7 @@ class TestMultiMarginLoss(unittest.TestCase):
         self.assertRaises(
             ValueError,
             paddle.nn.MultiMarginLoss,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         input = paddle.to_tensor([[0.1, 0.3]], dtype='float32')
         label = paddle.to_tensor([0], dtype='int32')
@@ -313,7 +313,7 @@ class TestMultiMarginLoss(unittest.TestCase):
             paddle.nn.functional.multi_margin_loss,
             input=input,
             label=label,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 

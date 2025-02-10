@@ -275,7 +275,7 @@ class TestTripletMarginLoss(unittest.TestCase):
         self.assertRaises(
             ValueError,
             paddle.nn.loss.TripletMarginLoss,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         input = paddle.to_tensor([[0.1, 0.3]], dtype='float32')
         positive = paddle.to_tensor([[0.0, 1.0]], dtype='float32')
@@ -286,7 +286,7 @@ class TestTripletMarginLoss(unittest.TestCase):
             input=input,
             positive=positive,
             negative=negative,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 

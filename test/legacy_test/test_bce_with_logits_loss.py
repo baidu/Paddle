@@ -325,7 +325,7 @@ class TestBCEWithLogitsLoss(unittest.TestCase):
         self.assertRaises(
             ValueError,
             paddle.nn.BCEWithLogitsLoss,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         logit = paddle.to_tensor([[0.1, 0.3]], dtype='float32')
         label = paddle.to_tensor([[0.0, 1.0]], dtype='float32')
@@ -334,7 +334,7 @@ class TestBCEWithLogitsLoss(unittest.TestCase):
             paddle.nn.functional.binary_cross_entropy_with_logits,
             logit=logit,
             label=label,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 

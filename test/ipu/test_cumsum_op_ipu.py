@@ -29,7 +29,7 @@ class TestBase(IPUOpTest):
         self.set_feed_attr()
         self.set_op_attrs()
 
-    # popart unsupport fp16 cumsum
+    # part unsupported fp16 cumsum
     @property
     def fp16_enabled(self):
         return False

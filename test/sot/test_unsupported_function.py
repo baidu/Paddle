@@ -25,7 +25,7 @@ def call_locals(x: int, y: paddle.Tensor):
     return x + y + len(list(tmp.keys())), list(tmp.keys())
 
 
-class TestUnsupportFunction(TestCaseBase):
+class TestUnsupportedFunction(TestCaseBase):
     @strict_mode_guard(False)
     def test_locals(self):
         x = paddle.to_tensor([2])

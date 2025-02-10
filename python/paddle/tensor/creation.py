@@ -2740,7 +2740,7 @@ def assign(x: TensorLike, output: paddle.Tensor | None = None) -> paddle.Tensor:
                 )
             ):
                 raise TypeError(
-                    "Unsupport paddle.assign([Variable, Variable...]) with non-scalar variable."
+                    "Unsupported paddle.assign([Variable, Variable...]) with non-scalar variable."
                 )
 
             def convert_scalar(x):

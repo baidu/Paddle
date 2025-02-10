@@ -238,7 +238,9 @@ class TestBCELoss(unittest.TestCase):
     def test_BCELoss_error(self):
         paddle.disable_static()
         self.assertRaises(
-            ValueError, paddle.nn.loss.BCELoss, reduction="unsupport reduction"
+            ValueError,
+            paddle.nn.loss.BCELoss,
+            reduction="unsupported reduction",
         )
         input = paddle.to_tensor([[0.1, 0.3]], dtype='float32')
         label = paddle.to_tensor([[0.0, 1.0]], dtype='float32')
@@ -247,7 +249,7 @@ class TestBCELoss(unittest.TestCase):
             paddle.nn.functional.binary_cross_entropy,
             input=input,
             label=label,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 

@@ -276,7 +276,7 @@ def _decompress(fname):
     elif zipfile.is_zipfile(fname):
         uncompressed_path = _uncompress_file_zip(fname)
     else:
-        raise TypeError(f"Unsupport compress file type {fname}")
+        raise TypeError(f"Unsupported compress file type {fname}")
 
     return uncompressed_path
 

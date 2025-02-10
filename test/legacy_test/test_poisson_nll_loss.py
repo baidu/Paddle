@@ -161,7 +161,7 @@ class TestPoissonNLLLossBasicCase(unittest.TestCase):
                 log_input=log_input,
                 full=full,
                 epsilon=epsilon,
-                reduction="unsupport reduction",
+                reduction="unsupported reduction",
             )
         elif type == 'test_err_epsilon':
             self.assertRaises(

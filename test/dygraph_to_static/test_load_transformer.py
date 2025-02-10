@@ -37,7 +37,7 @@ class Net(paddle.nn.Layer):
         super().__init__()
 
     def forward(self, x):
-        # unsupport g as store.
+        # unsupported g as store.
         t = g * 2 + x
         t = f.var * t
         return t

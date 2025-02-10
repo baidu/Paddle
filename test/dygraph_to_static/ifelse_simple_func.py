@@ -473,7 +473,7 @@ def dyfunc_ifelse_ret_int4(x):
     if pred:
         y = x[index] + 1
         index = index + 1
-        return 'unsupport ret'
+        return 'unsupported ret'
     else:
         y = x[index] + 2
         return y

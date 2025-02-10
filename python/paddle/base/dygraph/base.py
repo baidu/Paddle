@@ -76,7 +76,7 @@ def in_sot_simulation_mode() -> bool:
 in_declarative_mode = in_to_static_mode
 
 
-def to_static_unsupport_argument_warning(
+def to_static_unsupported_argument_warning(
     func_name, input_names, inputs, support_values
 ):
     """
@@ -804,7 +804,7 @@ def grad(
         # to calculate grads.
         from paddle.static import gradients
 
-        to_static_unsupport_argument_warning(
+        to_static_unsupported_argument_warning(
             "paddle.grad",
             ["retain_graph", "create_grad", "only_inputs", "allow_unused"],
             [retain_graph, create_graph, only_inputs, allow_unused],

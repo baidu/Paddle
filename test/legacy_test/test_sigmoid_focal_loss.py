@@ -195,7 +195,7 @@ class TestSigmoidFocalLoss(unittest.TestCase):
             logit=logit,
             label=label,
             normalizer=None,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 

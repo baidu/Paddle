@@ -28,16 +28,16 @@ class TestZeroPad2dAPIError(unittest.TestCase):
 
     def setUp(self):
         """
-        unsupport dtypes
+        unsupported dtypes
         """
         self.shape = [4, 3, 224, 224]
-        self.unsupport_dtypes = ['bool', 'int8']
+        self.unsupported_dtypes = ['bool', 'int8']
 
-    def test_unsupport_dtypes(self):
+    def test_unsupported_dtypes(self):
         """
-        test unsupport dtypes.
+        test unsupported dtypes.
         """
-        for dtype in self.unsupport_dtypes:
+        for dtype in self.unsupported_dtypes:
             pad = 2
             x = np.random.randint(-255, 255, size=self.shape)
             x_tensor = to_tensor(x).astype(dtype)

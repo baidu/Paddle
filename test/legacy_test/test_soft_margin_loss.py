@@ -181,7 +181,7 @@ class TestSoftMarginLoss(unittest.TestCase):
         self.assertRaises(
             ValueError,
             paddle.nn.loss.SoftMarginLoss,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         input = paddle.to_tensor([[0.1, 0.3]], dtype='float32')
         label = paddle.to_tensor([[-1.0, 1.0]], dtype='float32')
@@ -190,7 +190,7 @@ class TestSoftMarginLoss(unittest.TestCase):
             paddle.nn.functional.soft_margin_loss,
             input=input,
             label=label,
-            reduction="unsupport reduction",
+            reduction="unsupported reduction",
         )
         paddle.enable_static()
 
