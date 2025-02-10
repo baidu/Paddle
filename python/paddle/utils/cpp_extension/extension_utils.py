@@ -725,8 +725,12 @@ def find_cuda_home():
         which_cmd = 'where' if IS_WINDOWS else 'which'
         try:
             with open(os.devnull, 'w') as devnull:
+                # STARTUPINFO used to hide the console window
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
                 nvcc_path = subprocess.check_output(
-                    [which_cmd, 'nvcc'], stderr=devnull
+                    [which_cmd, 'nvcc'], stderr=devnull, startupinfo=si
                 )
                 nvcc_path = nvcc_path.decode()
                 # Multi CUDA, select the first
