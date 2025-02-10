@@ -17,15 +17,11 @@
 #include "paddle/fluid/framework/ir/conv_bn_fuse_pass.h"
 #include "paddle/fluid/framework/ir/pass_tester_helper.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 class VarDesc;
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 void AddVarToScope(Scope* param_scope,
                    const std::string& name,
@@ -100,8 +96,6 @@ TEST(ConvBNFusePass, conv2d) { TestMain("conv"); }
 
 TEST(ConvBNFusePass, conv2d_transpose) { TestMain("conv_transpose"); }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(conv_bn_fuse_pass);

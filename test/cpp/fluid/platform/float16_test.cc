@@ -17,8 +17,7 @@ limitations under the License. */
 #include "paddle/fluid/platform/enforce.h"
 #include "paddle/phi/kernels/funcs/eigen/extensions.h"
 
-namespace paddle {
-namespace platform {
+namespace paddle::platform {
 using float16 = phi::dtype::float16;
 using namespace phi::dtype;  // NOLINT
 
@@ -167,5 +166,4 @@ TEST(float16, isnan) {
   EXPECT_EQ(std::isnan(c), true);
 }
 
-}  // namespace platform
-}  // namespace paddle
+}  // namespace paddle::platform

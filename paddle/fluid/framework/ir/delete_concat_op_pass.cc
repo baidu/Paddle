@@ -23,16 +23,11 @@ namespace phi {
 class DenseTensor;
 }  // namespace phi
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 class Scope;
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework
 
-namespace paddle {
-namespace framework {
-namespace ir {
-namespace patterns {
+namespace paddle::framework::ir::patterns {
 
 struct ConcatPattern : public PatternBase {
   ConcatPattern(PDPattern* pattern, const std::string& name_scope);
@@ -64,7 +59,8 @@ ConcatPattern::ConcatPattern(PDPattern* pattern, const std::string& name_scope)
   concat->LinksFrom({any_op_out}).LinksTo({concat_out});
 }
 
-}  // namespace patterns
+}  // namespace paddle::framework::ir::patterns
+namespace paddle::framework::ir {
 
 /*
 Delete "concat" if only has one input.
@@ -107,9 +103,7 @@ void DeleteConcatOpPass::ApplyImpl(ir::Graph* graph) const {
   AddStatis(found_subgraph_count);
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 REGISTER_PASS(delete_concat_op_pass, paddle::framework::ir::DeleteConcatOpPass);
 

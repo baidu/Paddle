@@ -16,8 +16,7 @@ limitations under the License. */
 #include <string>
 #include "paddle/fluid/framework/op_proto_maker.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 
 std::string InsertIndentationIntoEachLine(const std::string &str) {
   std::ostringstream sout;
@@ -149,5 +148,4 @@ void AppendErrorOpHint(const std::string &type,
   exception->set_error_str(sout.str());
 }
 
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

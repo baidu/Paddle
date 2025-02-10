@@ -17,8 +17,7 @@
 #include "paddle/fluid/framework/new_executor/pir_adaptor/pir_adaptor_util.h"
 #include "paddle/fluid/pir/dialect/operator/ir/control_flow_op.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 HasElementsInstruction::HasElementsInstruction(
     size_t id,
     const phi::Place& place,
@@ -58,5 +57,4 @@ void HasElementsInstruction::Run() {
   bool* has_elements = pool.Get(phi::CPUPlace())->Alloc<bool>(bool_tensor_);
   *has_elements = !stack_element_var_array_->empty();
 }
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

@@ -27,13 +27,9 @@ limitations under the License. */
 #include "paddle/fluid/framework/op_version_registry.h"
 #include "paddle/fluid/platform/enforce.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 class Node;
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 /*
  * When a op's inputs and outputs is determined before feeding data to the
@@ -42,16 +38,14 @@ class Node;
  *
  */
 
-namespace paddle {
-namespace framework {
-namespace ir {
-namespace patterns {
+namespace paddle::framework::ir::patterns {
 
 struct ConstantFolding : public PatternBase {
   ConstantFolding(PDPattern *pattern, const std::string &name_scope)
       : PatternBase(pattern, name_scope, "constant_folding_pass") {}
 };
-}  // namespace patterns
+}  // namespace paddle::framework::ir::patterns
+namespace paddle::framework::ir {
 
 namespace {
 std::unordered_set<std::string> GetControlFlowVarNames(ir::Graph *graph) {
@@ -204,9 +198,7 @@ void ConstantFoldingPass::ApplyImpl(ir::Graph *graph) const {
   AddStatis(folded_op_num);
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 REGISTER_PASS(constant_folding_pass,
               paddle::framework::ir::ConstantFoldingPass);

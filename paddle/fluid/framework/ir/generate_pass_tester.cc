@@ -73,9 +73,7 @@ REGISTER_GENERATE_PASS(generate_combine_matmul) {
   return {pattern, replace};
 }
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 TEST(GeneratePass, construct_with_string) {
   std::string binary_str;
@@ -222,6 +220,4 @@ TEST(GeneratePass, generate_combine_matmul) {
           num_matmul_nodes_after));
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir

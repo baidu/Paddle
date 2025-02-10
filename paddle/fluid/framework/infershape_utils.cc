@@ -33,8 +33,7 @@ limitations under the License. */
 
 #include "glog/logging.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 
 class InferShapeArgumentMappingContext : public phi::ArgumentMappingContext {
  public:
@@ -906,5 +905,4 @@ CompatInferMetaContext BuildInferMetaContext(InferShapeContext* ctx,
   return infer_meta_context;
 }
 
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

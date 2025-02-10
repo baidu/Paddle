@@ -23,9 +23,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/program_desc.h"
 #include "paddle/fluid/framework/var_desc.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 class Node;
 
@@ -410,8 +408,6 @@ TEST(GraphToProgramPass, MultiBlock) {
   FLAGS_convert_all_blocks = flag_temp;
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(graph_to_program_pass);

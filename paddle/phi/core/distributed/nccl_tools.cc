@@ -24,8 +24,7 @@
 #define NCCL_REMOTE_ERROR
 #endif
 
-namespace phi {
-namespace distributed {
+namespace phi::distributed {
 
 ncclRedOp_t ToNCCLRedType(ReduceOp reduction) {
   static const std::unordered_map<ReduceOp, ncclRedOp_t> red_type = {
@@ -94,5 +93,4 @@ std::string NCCLRedTypeToString(ncclRedOp_t op) {
   return "UDF_" + std::to_string(op);
 }
 
-}  //  namespace distributed
-}  // namespace phi
+}  // namespace phi::distributed

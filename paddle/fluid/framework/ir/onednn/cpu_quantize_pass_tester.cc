@@ -21,9 +21,7 @@
 #include "paddle/fluid/imperative/type_defs.h"
 #include "paddle/phi/common/place.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 static float const SCALE = 2.f;
 static int const S8_MAX = 127;
@@ -904,8 +902,6 @@ TEST(CpuQuantizePass, multi_inputs_outputs_ops) {
            added_nodes);
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(cpu_quantize_pass);

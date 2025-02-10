@@ -23,8 +23,7 @@ ncclResult_t ncclCommInitRank2(ncclComm_t* newcomm,
   return ncclInvalidUsage;
 }
 
-namespace phi {
-namespace dynload {
+namespace phi::dynload {
 
 std::once_flag nccl_dso_flag;
 void* nccl_dso_handle;
@@ -49,5 +48,4 @@ NCCL_RAND_ROUTINE_EACH_AFTER_2703(DEFINE_WRAP)
 NCCL_RAND_ROUTINE_EACH_AFTER_21100(DEFINE_WRAP)
 #endif
 
-}  // namespace dynload
-}  // namespace phi
+}  // namespace phi::dynload

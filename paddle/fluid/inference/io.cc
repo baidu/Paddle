@@ -36,8 +36,7 @@ PD_DEFINE_int32(math_num_threads,
                 1,
                 "Number of threads used to run math functions.");
 
-namespace paddle {
-namespace inference {
+namespace paddle::inference {
 
 void Init(const std::vector<std::string> argv) {
   framework::InitGflags(argv);
@@ -278,5 +277,4 @@ void SaveVars(const framework::Scope& scope,
   exe.Run(prog, const_cast<framework::Scope*>(&scope), 0, true, true);
 }
 
-}  // namespace inference
-}  // namespace paddle
+}  // namespace paddle::inference

@@ -19,9 +19,7 @@
 
 COMMON_DECLARE_string(allocator_strategy);
 
-namespace paddle {
-namespace memory {
-namespace allocation {
+namespace paddle::memory::allocation {
 
 static AllocatorStrategy GetStrategyFromFlag() {
   if (FLAGS_allocator_strategy == "naive_best_fit") {
@@ -48,6 +46,4 @@ AllocatorStrategy GetAllocatorStrategy() {
 }
 
 void UseAllocatorStrategyGFlag() {}
-}  // namespace allocation
-}  // namespace memory
-}  // namespace paddle
+}  // namespace paddle::memory::allocation

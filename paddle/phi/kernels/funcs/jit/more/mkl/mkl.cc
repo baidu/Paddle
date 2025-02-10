@@ -19,10 +19,7 @@
 #include "paddle/phi/kernels/funcs/jit/refer/refer.h"
 #include "paddle/phi/kernels/funcs/jit/registry.h"
 
-namespace phi {
-namespace jit {
-namespace more {
-namespace mkl {
+namespace phi::jit::more::mkl {
 
 template <>
 void MatMul<float>(const float* a,
@@ -262,10 +259,7 @@ AWALYS_USE_ME_WITH_DOUBLE(VSquare);
 AWALYS_USE_ME_WITH_DOUBLE(VCopy);
 
 #undef AWALYS_USE_ME_WITH_DOUBLE
-}  // namespace mkl
-}  // namespace more
-}  // namespace jit
-}  // namespace phi
+}  // namespace phi::jit::more::mkl
 
 namespace mkl = phi::jit::more::mkl;
 

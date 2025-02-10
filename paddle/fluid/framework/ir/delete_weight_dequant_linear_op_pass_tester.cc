@@ -17,9 +17,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/ir/delete_weight_dequant_linear_op_pass.h"
 #include "paddle/fluid/framework/ir/pass_tester_helper.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 template <typename T>
 void AddVarToScope(Scope* param_scope,
@@ -134,8 +132,6 @@ TEST(DeleteWeightDequantLinearOpPass, basic_fp16) {
                         num_dequant_nodes_after));
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(delete_weight_dequant_linear_op_pass);

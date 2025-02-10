@@ -17,9 +17,7 @@
 #include "paddle/fluid/framework/ir/onednn/cpu_quantize_placement_pass.h"
 #include "paddle/fluid/platform/onednn_helper.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 void SetOp(ProgramDesc* prog,
            const std::string& type,
@@ -178,8 +176,6 @@ TEST(QuantizerPlacementPass, unsupported_op_type) {
   EnabledOpTypesTest({"conv2d", "dropout"}, "dropout");
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(cpu_quantize_placement_pass);

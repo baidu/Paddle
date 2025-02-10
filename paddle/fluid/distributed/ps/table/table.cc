@@ -27,8 +27,7 @@
 #include "paddle/fluid/distributed/ps/table/ssd_sparse_table.h"
 #include "paddle/fluid/distributed/ps/table/tensor_accessor.h"
 
-namespace paddle {
-namespace distributed {
+namespace paddle::distributed {
 REGISTER_PSCORE_CLASS(Table, GraphTable);
 REGISTER_PSCORE_CLASS(Table, MemoryDenseTable);
 REGISTER_PSCORE_CLASS(Table, BarrierTable);
@@ -104,5 +103,4 @@ int32_t Table::InitializeAccessor() {
   return 0;
 }
 
-}  // namespace distributed
-}  // namespace paddle
+}  // namespace paddle::distributed

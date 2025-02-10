@@ -19,8 +19,7 @@
 #include "paddle/fluid/framework/new_executor/instruction/instruction_util.h"
 #include "paddle/fluid/framework/new_executor/pir_adaptor/pir_adaptor_util.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 TuplePopInstruction::TuplePopInstruction(size_t id,
                                          const phi::Place& place,
                                          ::pir::Operation* op,
@@ -143,5 +142,4 @@ void TuplePopInstruction::Run() {
   }
 }
 
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

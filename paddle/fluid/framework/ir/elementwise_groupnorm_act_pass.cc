@@ -19,18 +19,11 @@ limitations under the License. */
 #include "paddle/fluid/framework/ir/graph_pattern_detector.h"
 #include "paddle/fluid/framework/op_version_registry.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 class Node;
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
-namespace paddle {
-namespace framework {
-namespace ir {
-namespace patterns {
+namespace paddle::framework::ir::patterns {
 
 struct SkipGroupNormAct : public PatternBase {
   SkipGroupNormAct(PDPattern *pattern, const std::string &name_scope)
@@ -93,7 +86,8 @@ void SkipGroupNormAct::operator()(PDNode *x, PDNode *y) {
   act->LinksFrom({group_norm_out_var}).LinksTo({act_out});
 }
 
-}  // namespace patterns
+}  // namespace paddle::framework::ir::patterns
+namespace paddle::framework::ir {
 
 int SkipGroupNormActFusePass::ApplyGNSiluPattern(ir::Graph *graph) const {
   PADDLE_ENFORCE_NOT_NULL(
@@ -190,9 +184,7 @@ void SkipGroupNormActFusePass::ApplyImpl(ir::Graph *graph) const {
   AddStatis(found_subgraph_count);
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 REGISTER_PASS(elementwise_groupnorm_act_pass,
               paddle::framework::ir::SkipGroupNormActFusePass);

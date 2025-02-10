@@ -18,9 +18,7 @@
 #undef FALSE
 #undef TRUE
 #endif
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 enum class ISTEST_STATE { FALSE, TRUE, UNSET };
 
@@ -170,8 +168,6 @@ TEST(IsTestPass, basic) {
   }
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(is_test_pass);

@@ -19,18 +19,15 @@ limitations under the License. */
 #include "paddle/fluid/framework/data_type_transform.h"
 #include "paddle/phi/api/lib/data_transform.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 class Variable;
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework
 
 #ifdef PADDLE_WITH_DNNL
 #include "paddle/fluid/platform/onednn_helper.h"
 #endif
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 
 static void PassTensorData(phi::DenseTensor *from, phi::DenseTensor *to) {
   to->ShareDataWith(*from);
@@ -186,5 +183,4 @@ phi::GetKernelTypeForVarContext BuildGetKernelTypeForVarContext(
   return phi::GetKernelTypeForVarContext(&kernel_key, phi_attrs);
 }
 
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

@@ -14,8 +14,7 @@
 
 #include "paddle/phi/kernels/funcs/blas/blas.h"
 
-namespace phi {
-namespace funcs {
+namespace phi::funcs {
 MatDescriptor CreateMatrixDescriptor(const DDim &tensor_dim,
                                      int num_flatten_cols,
                                      bool trans) {
@@ -51,5 +50,4 @@ MatDescriptor CreateMatrixDescriptor(const DDim &tensor_dim,
   retv.trans_ = trans;
   return retv;
 }
-}  // namespace funcs
-}  // namespace phi
+}  // namespace phi::funcs

@@ -14,8 +14,7 @@ limitations under the License. */
 
 #include "paddle/fluid/operators/collective/c_concat_op.h"
 
-namespace paddle {
-namespace operators {
+namespace paddle::operators {
 
 class CConcatOp : public framework::OperatorWithKernel {
  public:
@@ -107,8 +106,7 @@ AllGather the tensors on different trainers and concat them along the last dimen
   }
 };
 
-}  // namespace operators
-}  // namespace paddle
+}  // namespace paddle::operators
 
 namespace ops = paddle::operators;
 

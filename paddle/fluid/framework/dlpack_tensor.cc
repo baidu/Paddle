@@ -18,10 +18,7 @@
 #include "paddle/phi/common/place.h"
 #include "paddle/phi/core/utils/visit_place.h"
 
-namespace paddle {
-namespace framework {
-
-namespace internal {
+namespace paddle::framework::internal {
 template <typename T>
 static ::DLDataType GetDLDataTypeCode() {
   ::DLDataType dtype;
@@ -124,7 +121,8 @@ struct DLDeviceVisitor {
 #endif
   }
 };
-}  // namespace internal
+}  // namespace paddle::framework::internal
+namespace paddle::framework {
 
 struct PaddleDLMTensor {
   phi::DenseTensor handle;
@@ -246,5 +244,4 @@ DLPackTensor::DLPackTensor(const phi::DenseTensor &tensor, LaneType lanes)
   return tensor;
 }
 
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework

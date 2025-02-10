@@ -32,8 +32,7 @@
 #include "paddle/fluid/pir/dialect/operator/ir/onednn_op.h"
 #endif
 
-namespace paddle {
-namespace dialect {
+namespace paddle::dialect {
 
 const std::unordered_set<std::string> LegacyOpList = {
     DistributedPushSparseOp::name(),
@@ -641,5 +640,4 @@ bool CanGroupOpRunCpuKernel(const std::vector<::pir::Value>& vec_inputs,
   return true;
 }
 
-}  // namespace dialect
-}  // namespace paddle
+}  // namespace paddle::dialect

@@ -14,8 +14,7 @@
 
 #include "paddle/phi/backends/onednn/matmul_utils.h"
 
-namespace phi {
-namespace funcs {
+namespace phi::funcs {
 
 DDim RowMatrixDimsFromVector(const DDim& x_dim) {
   return x_dim.size() > 1 ? x_dim : common::make_ddim({1, x_dim[0]});
@@ -91,5 +90,4 @@ std::vector<int64_t> GetInputStrides(const std::string input_name,
   return strides;
 }
 
-}  // namespace funcs
-}  // namespace phi
+}  // namespace phi::funcs

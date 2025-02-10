@@ -40,8 +40,7 @@ using egr::InputsContainDistTensor;
 
 COMMON_DECLARE_bool(enable_pir_api);
 
-namespace paddle {
-namespace pybind {
+namespace paddle::pybind {
 
 extern PyTypeObject* p_tensor_type;
 
@@ -1067,5 +1066,4 @@ struct PyGetSetDef string_tensor_variable_properties[] = {  // NOLINT
     {"__dict__", (getter)tensor_properties___dict__, nullptr, nullptr, nullptr},
     {nullptr, nullptr, nullptr, nullptr, nullptr}};
 
-}  // namespace pybind
-}  // namespace paddle
+}  // namespace paddle::pybind

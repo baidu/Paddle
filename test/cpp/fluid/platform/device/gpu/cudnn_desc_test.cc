@@ -16,8 +16,7 @@
 
 #include "paddle/phi/core/platform/device/gpu/gpu_dnn.h"
 
-namespace paddle {
-namespace platform {
+namespace paddle::platform {
 
 TEST(TensorDescriptor, Empty) {
   phi::backends::gpu::ActivationDescriptor a;
@@ -40,5 +39,4 @@ TEST(TensorDescriptor, Normal) {
   EXPECT_TRUE(desc.desc() != nullptr);
 }
 
-}  // namespace platform
-}  // namespace paddle
+}  // namespace paddle::platform

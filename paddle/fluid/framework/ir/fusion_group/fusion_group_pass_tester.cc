@@ -17,9 +17,7 @@ limitations under the License. */
 #include "paddle/fluid/framework/ir/fusion_group/fusion_group_pass.h"
 #include "paddle/fluid/framework/ir/pass_tester_helper.h"
 
-namespace paddle {
-namespace framework {
-namespace ir {
+namespace paddle::framework::ir {
 
 void VisualizeGraph(std::unique_ptr<Graph>* graph, std::string graph_viz_path) {
   // Insert a graph_viz_pass to transform the graph to a .dot file.
@@ -150,9 +148,7 @@ TEST(FusionGroupPass, elementwise_tree) {
   EXPECT_EQ(num_fusion_group_ops, 4);
 }
 
-}  // namespace ir
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework::ir
 
 USE_PASS(fusion_group_pass);
 USE_PASS(graph_viz_pass);

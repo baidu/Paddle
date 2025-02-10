@@ -14,8 +14,7 @@ limitations under the License. */
 
 #include "paddle/phi/infermeta/sparse/binary.h"
 
-namespace phi {
-namespace sparse {
+namespace phi::sparse {
 
 inline void GetOutShape(const DDim& x_dims,
                         const std::vector<int>& kernel_sizes,
@@ -206,5 +205,4 @@ void SparseCooTensorInferMeta(const MetaTensor& values,
   out->set_layout(values.layout());
 }
 
-}  // namespace sparse
-}  // namespace phi
+}  // namespace phi::sparse

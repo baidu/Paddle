@@ -22,14 +22,11 @@
 #include "paddle/utils/string/split.h"
 #include "paddle/utils/string/string_helper.h"
 
-namespace paddle {
-namespace framework {
+namespace paddle::framework {
 class Variable;
-}  // namespace framework
-}  // namespace paddle
+}  // namespace paddle::framework
 
-namespace paddle {
-namespace imperative {
+namespace paddle::imperative {
 
 void GLOOParallelContext::Init() {
   // PADDLE_THROW(common::errors::OutOfRange(
@@ -216,5 +213,4 @@ void GLOOParallelContext::SynchronizeCompute() {
   return;
 }
 
-}  //  namespace imperative
-}  //  namespace paddle
+}  // namespace paddle::imperative

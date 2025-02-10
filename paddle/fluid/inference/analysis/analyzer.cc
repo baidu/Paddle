@@ -19,9 +19,7 @@
 #include "paddle/fluid/inference/analysis/passes/passes.h"
 #include "paddle/utils/string/pretty_log.h"
 
-namespace paddle {
-namespace inference {
-namespace analysis {
+namespace paddle::inference::analysis {
 
 Analyzer::Analyzer() = default;
 
@@ -47,6 +45,4 @@ void Analyzer::RunAnalysis(Argument *argument) {
   }
 }
 
-}  // namespace analysis
-}  // namespace inference
-}  // namespace paddle
+}  // namespace paddle::inference::analysis
