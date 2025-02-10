@@ -17,6 +17,9 @@
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
 #include "paddle/fluid/pir/utils/general_functions.h"
+#ifdef PADDLE_WITH_CUDA
+#include "paddle/phi/core/platform/device/gpu/gpu_info.h"
+#endif
 
 #include "paddle/pir/include/pass/pass.h"
 #include "paddle/pir/include/pass/pass_registry.h"

@@ -19,6 +19,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <random>
 #include "paddle/cinn/hlir/dialect/operator/transforms/check_infer_symbolic_pass.h"
 #include "paddle/cinn/hlir/dialect/operator/transforms/local_infer_symbolic_util.h"
 #include "paddle/cinn/hlir/dialect/operator/transforms/split_generate_shape_into_shape_ops_pass.h"

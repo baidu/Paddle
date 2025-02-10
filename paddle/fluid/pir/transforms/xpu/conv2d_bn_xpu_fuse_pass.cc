@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "paddle/fluid/pir/transforms/xpu/conv2d_bn_xpu_fuse_pass.h"
+#include "paddle/fluid/framework/infershape_utils.h"
+#include "paddle/fluid/ir_adaptor/translator/utils.h"
 #include "paddle/fluid/pir/dialect/operator/ir/pd_op.h"
 #include "paddle/fluid/pir/drr/include/drr_pattern_base.h"
 #include "paddle/fluid/pir/utils/general_functions.h"

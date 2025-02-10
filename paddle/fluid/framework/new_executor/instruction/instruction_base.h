@@ -19,7 +19,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "paddle/fluid/framework/new_executor/new_executor_defs.h"
+#include "paddle/fluid/framework/new_executor/instruction/instruction_defs.h"
 #include "paddle/phi/api/profiler/event.h"
 
 namespace pir {
@@ -29,8 +29,8 @@ class Value;
 namespace paddle {
 namespace framework {
 class ValueExecutionInfo;
-
-using SchedulingPriority = int64_t;
+class Variable;
+class Scope;
 
 class InstructionBase {
  public:

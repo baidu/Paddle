@@ -16,6 +16,7 @@
 
 #include <memory>
 
+#include <climits>
 #include <iterator>
 #include <queue>
 #include <regex>

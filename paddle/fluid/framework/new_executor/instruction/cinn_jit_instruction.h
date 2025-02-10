@@ -16,6 +16,7 @@
 
 #include <memory>
 #include "paddle/fluid/framework/new_executor/instruction/instruction_base.h"
+#include "paddle/phi/core/ddim.h"
 
 namespace pir {
 class Operation;
