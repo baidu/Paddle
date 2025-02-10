@@ -22,7 +22,7 @@
 #include "paddle/phi/api/profiler/event_tracing.h"
 #include "paddle/phi/backends/device_manager.h"
 #include "paddle/phi/core/memory/allocation/aligned_allocator.h"
-
+#include "paddle/phi/core/memory/stats.h"
 PHI_DEFINE_EXPORTED_READONLY_bool(
     free_idle_chunk,
     false,
@@ -208,7 +208,14 @@ void AutoGrowthBestFitAllocator::FreeImpl(phi::Allocation *allocation) {
 
   free_blocks_.emplace(std::make_pair(block_it->size_, block_it->ptr_),
                        block_it);
-
+  if (phi::is_cpu_place(allocation->place()) ||
+      phi::is_cuda_pinned_place(allocation->place())) {
+    HOST_MEMORY_STAT_UPDATE(
+        Allocated, allocation->place().GetDeviceId(), -allocation->size());
+  } else {
+    DEVICE_MEMORY_STAT_UPDATE(
+        Allocated, allocation->place().GetDeviceId(), -allocation->size());
+  }
   delete allocation;
 
   if (FLAGS_free_idle_chunk) {

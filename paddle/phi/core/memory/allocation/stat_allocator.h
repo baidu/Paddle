@@ -31,14 +31,6 @@ class StatAllocator : public Allocator {
 
  protected:
   void FreeImpl(phi::Allocation* allocation) override {
-    if (phi::is_cpu_place(allocation->place()) ||
-        phi::is_cuda_pinned_place(allocation->place())) {
-      HOST_MEMORY_STAT_UPDATE(
-          Allocated, allocation->place().GetDeviceId(), -allocation->size());
-    } else {
-      DEVICE_MEMORY_STAT_UPDATE(
-          Allocated, allocation->place().GetDeviceId(), -allocation->size());
-    }
     platform::RecordMemEvent(allocation->ptr(),
                              allocation->place(),
                              allocation->size(),
