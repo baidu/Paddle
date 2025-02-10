@@ -248,7 +248,7 @@ if [ "${HAS_MODIFIED_SETUP_IN}" != "" ] && [ "${GIT_PR_ID}" != "" ]; then
     check_approval 1 zyfncg YuanRisheng phlrain
 fi
 
-HAS_MODIFIED_SETUP=`git diff --name-only upstream/$BRANCH | grep "${PADDLE_ROOT}/setup.py" || true`
+HAS_MODIFIED_SETUP=`git diff --name-only upstream/$BRANCH | grep "setup.py" || true`
 if [ "${HAS_MODIFIED_SETUP}" != "" ] || ([ "${HAS_MODIFIED_SETUP_IN}" != "" ] && [ "${HAS_MODIFIED_SETUP}" == "" ]); then
     echo_line="You must have one RD (risemeup1, zhangbo9674) approval for file changes in setup.py or setup.py and python/setup.py.in are not changed synchronously.\n"
     check_approval 1 risemeup1 zhangbo9674
