@@ -223,6 +223,9 @@ class TensorRTConfigManager:
         if not cls._instance:
             cls._instance = super().__new__(cls)
             cls._instance.trt_config = trt_config
+        else:
+            if trt_config is not None:
+                cls._instance.trt_config = trt_config
         return cls._instance
 
     def _init(self, trt_config=None):

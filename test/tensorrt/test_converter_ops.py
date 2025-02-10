@@ -338,6 +338,51 @@ class TestRoundFloatTRTPattern(TensorRTBaseTest):
         self.check_trt_result(precision_mode="fp16")
 
 
+def roi_align(
+    x, boxes, boxes_num, output_size, spatial_scale, sampling_ratio, aligned
+):
+    x = paddle.to_tensor(x)
+    boxes = paddle.to_tensor(boxes)
+    boxes_num = paddle.to_tensor(boxes_num)
+    roi_align_out = paddle.vision.ops.roi_align(
+        x,
+        boxes,
+        boxes_num,
+        output_size,
+        spatial_scale,
+        sampling_ratio,
+        aligned,
+    )
+    return roi_align_out
+
+
+class TestRoiAlignPattern(TensorRTBaseTest):
+    def setUp(self):
+        self.python_api = roi_align
+        boxes = np.random.random([3, 4]).astype(np.float32)
+        boxes[:, 2] += boxes[:, 0] + 3
+        boxes[:, 3] += boxes[:, 1] + 4
+        self.api_args = {
+            "x": np.random.random((1, 256, 32, 32)).astype("float32"),
+            "boxes": boxes,
+            "boxes_num": np.array([3]).astype(np.int32),
+            "output_size": (3, 3),
+            "spatial_scale": 1.0,
+            "sampling_ratio": -1,
+            "aligned": True,
+        }
+        self.program_config = {"feed_list": ["x", "boxes", "boxes_num"]}
+        self.min_shape = {"x": [1, 256, 32, 32], "boxes": [3, 4]}
+        self.opt_shape = {"x": [1, 256, 32, 32], "boxes": [3, 4]}
+        self.max_shape = {"x": [1, 256, 32, 32], "boxes": [3, 4]}
+
+    def test_trt_result(self):
+        self.check_trt_result()
+
+    def test_trt_fp16_result(self):
+        self.check_trt_result(rtol=1e-3, atol=1e-3, precision_mode="fp16")
+
+
 def yolo_box(x, img_size):
     x = paddle.to_tensor(x)
     img_size = paddle.to_tensor(img_size)

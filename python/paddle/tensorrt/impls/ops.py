@@ -49,6 +49,58 @@ def UnaryOpConverter(network, paddle_op, inputs):
     return layer_output
 
 
+@converter_registry.register("pd_op.roi_align", trt_version="8.x")
+def roi_align_converter(network, paddle_op, inputs):
+    x = inputs[0]
+    rois = inputs[1]
+    pooled_height = paddle_op.attrs().get("pooled_height")
+    pooled_width = paddle_op.attrs().get("pooled_width")
+    spatial_scale = paddle_op.attrs().get("spatial_scale")
+    sampling_ratio = paddle_op.attrs().get("sampling_ratio")
+    aligned = paddle_op.attrs().get("aligned")
+    type_id = int(WithFp16())
+    plugin_fields = [
+        trt.PluginField(
+            "type_id",
+            np.array([type_id], dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "pooled_height",
+            np.array(pooled_height, dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "pooled_width",
+            np.array(pooled_width, dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "spatial_scale",
+            np.array(spatial_scale, dtype=np.float32),
+            trt.PluginFieldType.FLOAT32,
+        ),
+        trt.PluginField(
+            "sampling_ratio",
+            np.array(sampling_ratio, dtype=np.int32),
+            trt.PluginFieldType.INT32,
+        ),
+        trt.PluginField(
+            "aligned",
+            np.array(aligned, dtype=np.bool),
+        ),
+    ]
+    plugin_field_collection = trt.PluginFieldCollection(plugin_fields)
+    plugin_name = "pir_roi_align_plugin_dynamic"
+    plugin_version = "2"
+    plugin = get_trt_plugin(
+        plugin_name, plugin_field_collection, plugin_version
+    )
+    roi_align_inputs = [x, rois]
+    roi_align_layer = network.add_plugin_v2(roi_align_inputs, plugin)
+    return roi_align_layer.get_output(0)
+
+
 @converter_registry.register("pd_op.yolo_box", trt_version="trt_version_ge=8.0")
 def YoloBoxOpConverter(network, paddle_op, inputs):
     x, imgSize = inputs
