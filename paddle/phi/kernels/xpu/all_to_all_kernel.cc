@@ -1,4 +1,4 @@
-// Copyright (c) 2024 PaddlePaddle Authors. All Rights Reserved.
+// Copyright (c) 2025 PaddlePaddle Authors. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "paddle/phi/kernels/all_reduce_kernel.h"
+#include "paddle/phi/kernels/all_to_all_kernel.h"
 #include "paddle/phi/backends/all_context.h"
 #include "paddle/phi/core/kernel_registry.h"
 #if defined(PADDLE_WITH_XPU_BKCL)
@@ -22,12 +22,12 @@
 namespace phi {
 
 template <typename T, typename Context>
-void AllReduceKernel(const Context& dev_ctx,
-                     const DenseTensor& x,
-                     int reduce_type,
-                     DenseTensor* out) {
+void AllToAllKernel(const Context& dev_ctx,
+                    const DenseTensor& x,
+                    DenseTensor* out) {
 #if defined(PADDLE_WITH_XPU_BKCL)
-  out->Resize(x.dims());
+  auto x_dims = x.dims();
+  out->Resize(x_dims);
   dev_ctx.template Alloc<T>(out);
 
   auto comm_ctx =
@@ -37,32 +37,19 @@ void AllReduceKernel(const Context& dev_ctx,
                     common::errors::Unavailable(
                         "BKCLCommContext is nullptr, collective op should "
                         "has ring_id attr."));
+
   XPUStream stream = comm_ctx->GetStream();
+  int nranks = comm_ctx->GetSize();
+  PADDLE_ENFORCE_EQ(
+      x_dims[0] % nranks,
+      0,
+      errors::InvalidArgument(
+          "The first dimension size (%d) of the input tensor must be "
+          "divisible by the number of ranks (%d).",
+          x_dims[0],
+          nranks));
 
-  BKCLOp bkcl_reduce_type = BKCL_ADD;
-  switch (static_cast<ReduceType>(reduce_type)) {
-    case ReduceType::kRedSum:
-      bkcl_reduce_type = BKCL_ADD;
-      break;
-
-    case ReduceType::kRedMax:
-      bkcl_reduce_type = BKCL_MAX;
-      break;
-
-    case ReduceType::kRedMin:
-      bkcl_reduce_type = BKCL_MIN;
-      break;
-
-    case ReduceType::kRedProd:
-      bkcl_reduce_type = BKCL_PRODUCT;
-      break;
-
-    default:
-      PADDLE_THROW(common::errors::InvalidArgument("Invalid reduce type: %d",
-                                                   reduce_type));
-  }
-
-  comm_ctx->AllReduce(out, x, bkcl_reduce_type, stream);
+  comm_ctx->AllToAll(out, x, stream);
 #else
   PADDLE_THROW(common::errors::PreconditionNotMet(
       "PaddlePaddle should be compiled with XPU."));
@@ -71,12 +58,14 @@ void AllReduceKernel(const Context& dev_ctx,
 
 }  // namespace phi
 
-PD_REGISTER_KERNEL(all_reduce,
+PD_REGISTER_KERNEL(all_to_all,
                    XPU,
                    ALL_LAYOUT,
-                   phi::AllReduceKernel,
+                   phi::AllToAllKernel,
                    int,
                    int64_t,
+                   bool,
+                   uint8_t,
                    float,
                    phi::dtype::float16,
                    phi::dtype::bfloat16) {}
