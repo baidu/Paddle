@@ -390,6 +390,8 @@ struct KernelImpl<Return (*)(DevCtx, Args...), kernel_fn> {
   PD_SPECIALIZE_KernelCallHelper_FOR_MULTI_OUTPUT(ExtendedTensor);
   PD_SPECIALIZE_KernelCallHelper_FOR_MULTI_OUTPUT(Vocab);
 
+  PD_SPECIALIZE_KernelCallHelper_FOR_OUTPUT(FetchList);
+
   /* End case */
   template <typename T>
   struct KernelCallHelper<TypeTag<T>> {

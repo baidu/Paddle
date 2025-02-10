@@ -283,6 +283,8 @@ phi::TensorBase* GetTensorFormVar(framework::Variable* var) {
       return var->template GetMutable<phi::Strings>();
     } else if (var->template IsType<phi::Vocab>()) {
       return var->template GetMutable<phi::Vocab>();
+    } else if (var->template IsType<phi::FetchList>()) {
+      return var->template GetMutable<phi::FetchList>();
     } else if (var->template IsType<phi::RawTensor>() ||
                !var->IsInitialized()) {
       return var->template GetMutable<phi::RawTensor>();
