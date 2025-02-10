@@ -341,7 +341,9 @@ class TestOptimBreakInFor(TestDy2staticException):
     def setUp(self):
         self.x = np.random.random([10, 16]).astype('float32')
         self.dyfunc = test_optim_break_in_for
-        self.error = "python while pred change from bool to variable."
+        self.error = (
+            "In a loop using the `break`. In the case of motion to static"
+        )
 
 
 class TestOptimBreakInWhile(TestContinueInWhile):

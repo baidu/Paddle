@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import re
+import textwrap
 import warnings
 from contextlib import contextmanager
 
@@ -259,9 +260,24 @@ def _run_py_while(cond, body, getter, setter):
     while True:
         pred = cond()
         if isinstance(pred, (Variable, Value)):
-            raise Dygraph2StaticException(
-                "python while pred change from bool to variable."
-            )
+            err_msg = """\
+                In a loop using the `break`. In the case of motion to static,
+                an intermediate variable `break_flag` is generated, and python converts `break_flag` from a bool to a Tensor,
+                whereas under static graphs Tensor has no known values, so that leads to this error, for example:
+
+                    >>> x = paddle.to_tensor([5, 10])
+                    >>> for _ in range(10):
+                    ...     if x.sum() > 5:
+                    ...         break
+
+                There are one common workarounds available:
+                Explicit conversion of code to control flow form, for example:
+                    >>> x = paddle.to_tensor([5, 10])
+                    >>> for _ in range(paddle.to_tensor(10)):
+                    ...     if x.sum() > 5:
+                    ...         break
+            """
+            raise Dygraph2StaticException(textwrap.dedent(err_msg))
         if not pred:
             break
         body()
