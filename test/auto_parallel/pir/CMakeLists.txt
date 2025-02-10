@@ -96,3 +96,5 @@ py_test_modules(test_pir_1f1b_plan MODULES test_pir_1f1b_plan ENVS
                 FLAGS_enable_pir_api=1)
 py_test_modules(test_pir_reshard_p_to_s MODULES test_pir_reshard_p_to_s ENVS
                 FLAGS_enable_pir_api=1)
+py_test_modules(test_pir_reshard_s_to_p MODULES test_pir_reshard_s_to_p ENVS
+                FLAGS_enable_pir_api=1)

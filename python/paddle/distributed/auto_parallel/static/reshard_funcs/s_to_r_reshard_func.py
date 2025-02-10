@@ -288,7 +288,8 @@ class SToRReshardFunction(ReshardFunction):
                     ],
                     split_axis,
                 )
-                split_op = tmp_split_values.get_defining_op()
+                builtin_split_op = split_values[0].get_defining_op()
+                split_op = builtin_split_op.operand_source(0).get_defining_op()
                 split_op.dist_attr = copy_op_attr_with_new_member(
                     split_op.dist_attr, new_chunk_id=chunk_id
                 )
