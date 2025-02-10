@@ -2059,6 +2059,96 @@ int AppendShadowOutputs(Program *program,
   return counter;
 }
 
+std::shared_ptr<Program> RemoveNoNeedShadowOutput(const Program &program) {
+  pir::IrMapping mapper;
+  auto cloned_program = program.Clone(mapper);
+
+  std::set<std::vector<int64_t>> param_set;
+  std::set<std::string> grad_out;
+  std::set<std::string> remove_op_name;
+
+  for (auto it = cloned_program->block()->begin();
+       it != cloned_program->block()->end();
+       ++it) {
+    if (it->isa<::pir::ParameterOp>()) {
+      param_set.insert(
+          phi::vectorize(it->result(0)
+                             .type()
+                             .dyn_cast<paddle::dialect::DenseTensorType>()
+                             .dims()));
+    }
+  }
+
+  bool have_param_grad = false;
+  for (auto it = cloned_program->block()->begin();
+       it != cloned_program->block()->end();
+       ++it) {
+    // if( it)
+
+    if (it->isa<::pir::ShadowOutputOp>()) {
+      auto fetch_name = it->attribute("output_name")
+                            .dyn_cast<::pir::StrAttribute>()
+                            .AsString();
+
+      // std::cerr << "fetch name " << fetch_name << std::endl;
+
+      auto shape1 =
+          phi::vectorize(it->operand_source(0)
+                             .type()
+                             .dyn_cast<paddle::dialect::DenseTensorType>()
+                             .dims());
+
+      if (param_set.count(shape1)) {
+        have_param_grad = true;
+      }
+    }
+  }
+
+  std::cerr << "before move ops \n";
+  cloned_program->Print(std::cout);
+  if (have_param_grad) {
+    std::vector<::pir::Block::ConstIterator> remove_list;
+    for (auto it = cloned_program->block()->begin();
+         it != cloned_program->block()->end();
+         ++it) {
+      // if( it)
+
+      if (it->isa<::pir::ShadowOutputOp>()) {
+        auto fetch_name = it->attribute("output_name")
+                              .dyn_cast<::pir::StrAttribute>()
+                              .AsString();
+
+        // std::cerr << "fetch name " << fetch_name << std::endl;
+
+        auto shape1 =
+            phi::vectorize(it->operand_source(0)
+                               .type()
+                               .dyn_cast<paddle::dialect::DenseTensorType>()
+                               .dims());
+
+        if (!param_set.count(shape1)) {
+          if (fetch_name.find("grad_output") != std::string::npos) {
+            // std::cerr << "erase op " <<fetch_name << "\t" <<
+            // it->operand_source(0).type().dyn_cast<paddle::dialect::DenseTensorType>().dims()
+            // << std::endl;
+            remove_list.push_back(it);
+          }
+        }
+      }
+    }
+
+    std::reverse(remove_list.begin(), remove_list.end());
+    for (size_t i = 0; i < remove_list.size(); ++i) {
+      cloned_program->block()->erase(remove_list[i]);
+    }
+  }
+
+  std::cerr << "after move ops \n";
+  cloned_program->Print(std::cout);
+
+  return cloned_program;
+}
+
 SplitedResult SplitForwardBackward(
     const Program &program,
     const std::vector<pir::Value> &forward_inputs,
@@ -2343,6 +2433,7 @@ void BindUtils(pybind11::module *m) {
   m->def("clone_program", CloneProgram);
   m->def("get_op_inplace_info", GetOpInplaceInfo);
   m->def("split_program", SplitForwardBackward);
+  m->def("remove_no_need_shadow_output", RemoveNoNeedShadowOutput);
   m->def("append_shadow_outputs", AppendShadowOutputs);
   m->def("append_shadow_output", AppendShadowOutput);
   m->def("fake_value", FakeValue);
