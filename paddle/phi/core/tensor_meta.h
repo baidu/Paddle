@@ -58,7 +58,11 @@ struct TEST_API DenseTensorMeta {
   DenseTensorMeta(DataType dtype,
                   const DDim& dims,
                   DataLayout layout,
+<<<<<<< HEAD
+                  LoD  lod,
+=======
                   const LegacyLoD& legacy_lod,
+>>>>>>> 337f0d225e59843df33c4ca189ae312b8c36a4f3
                   size_t offset = 0);
 
   DenseTensorMeta(const DenseTensorMeta& other);

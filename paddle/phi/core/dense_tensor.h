@@ -47,7 +47,7 @@ class TEST_API DenseTensor : public TensorBase,
   /// \param meta The meta data of dense tensor.
   DenseTensor(Allocator* a, DenseTensorMeta&& meta);
 
-  DenseTensor(const std::shared_ptr<phi::Allocation>& holder,
+  DenseTensor(std::shared_ptr<phi::Allocation>  holder,
               const DenseTensorMeta& meta);
 
   /// \brief Because dense tensor is a kind of container, we give a default

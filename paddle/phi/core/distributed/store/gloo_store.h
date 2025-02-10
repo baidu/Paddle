@@ -27,7 +27,7 @@ namespace distributed {
 
 class GlooStore : public gloo::rendezvous::Store {
  public:
-  explicit GlooStore(const std::shared_ptr<phi::distributed::Store>& store);
+  explicit GlooStore(std::shared_ptr<phi::distributed::Store>  store);
 
   ~GlooStore() = default;
 

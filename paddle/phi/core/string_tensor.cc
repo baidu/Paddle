@@ -14,6 +14,8 @@ limitations under the License. */
 
 #include "paddle/phi/core/string_tensor.h"
 
+#include <utility>
+
 #include "glog/logging.h"
 
 #include "paddle/phi/common/memory_utils.h"
@@ -33,9 +35,9 @@ StringTensor::StringTensor(Allocator* a, StringTensorMeta&& meta)
   init_holder();
 }
 
-StringTensor::StringTensor(const std::shared_ptr<phi::Allocation>& holder,
-                           const StringTensorMeta& meta)
-    : meta_(meta), holder_(holder) {}
+StringTensor::StringTensor(std::shared_ptr<phi::Allocation>  holder,
+                           StringTensorMeta  meta)
+    : meta_(std::move(meta)), holder_(std::move(holder)) {}
 
 StringTensor::StringTensor(const StringTensor& other) {  // NOLINT
   this->meta_ = other.meta();

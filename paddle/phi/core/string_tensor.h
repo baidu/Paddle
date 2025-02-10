@@ -43,8 +43,8 @@ class StringTensor : public TensorBase,
   /// \param meta The meta data of string tensor.
   StringTensor(Allocator* a, StringTensorMeta&& meta);
 
-  StringTensor(const std::shared_ptr<phi::Allocation>& holder,
-               const StringTensorMeta& meta);
+  StringTensor(std::shared_ptr<phi::Allocation>  holder,
+               StringTensorMeta  meta);
 
   /// \brief Because string tensor is a resource handle, we provide a default
   /// move constructor to support move semantics.

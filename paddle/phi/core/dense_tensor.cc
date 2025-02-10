@@ -14,6 +14,8 @@ limitations under the License. */
 
 #include "paddle/phi/core/dense_tensor.h"
 
+#include <utility>
+
 #include "glog/logging.h"
 
 #include "paddle/phi/common/bfloat16.h"
@@ -51,9 +53,9 @@ DenseTensor::DenseTensor(Allocator* a, const DenseTensorMeta& meta)
 DenseTensor::DenseTensor(Allocator* a, DenseTensorMeta&& meta)
     : meta_(meta), holder_(a->Allocate(SizeOf(dtype()) * numel())) {}
 
-DenseTensor::DenseTensor(const std::shared_ptr<phi::Allocation>& holder,
+DenseTensor::DenseTensor(std::shared_ptr<phi::Allocation>  holder,
                          const DenseTensorMeta& meta)
-    : meta_(meta), holder_(holder) {}
+    : meta_(meta), holder_(std::move(holder)) {}
 
 DenseTensor::DenseTensor(const DenseTensor& other) {  // NOLINT
   this->meta_ = other.meta();

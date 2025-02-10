@@ -14,6 +14,8 @@ limitations under the License. */
 
 #include "paddle/phi/core/sparse_csr_tensor.h"
 
+#include <utility>
+
 namespace phi {
 
 SparseCsrTensor::SparseCsrTensor() {
@@ -49,11 +51,11 @@ inline void check_shape(const DDim& dims) {
   }
 
 SparseCsrTensor::SparseCsrTensor(const DenseTensor& non_zero_crows,
-                                 const DenseTensor& non_zero_cols,
+                                 DenseTensor  non_zero_cols,
                                  const DenseTensor& non_zero_elements,
                                  const DDim& dims)
     : non_zero_crows_(non_zero_crows),
-      non_zero_cols_(non_zero_cols),
+      non_zero_cols_(std::move(non_zero_cols)),
       non_zero_elements_(non_zero_elements) {
   if (non_zero_crows.initialized()) {
     Check(non_zero_crows_, non_zero_cols_, non_zero_elements_, dims);

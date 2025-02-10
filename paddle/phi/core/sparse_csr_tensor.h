@@ -49,7 +49,7 @@ class SparseCsrTensor : public TensorBase,
   /// \param non_zero_elements The non zero elements of original dense tensor.
   /// \param dims The dims of original dense tensor.
   SparseCsrTensor(const DenseTensor& non_zero_crows,
-                  const DenseTensor& non_zero_cols,
+                  DenseTensor  non_zero_cols,
                   const DenseTensor& non_zero_elements,
                   const DDim& dims);
 

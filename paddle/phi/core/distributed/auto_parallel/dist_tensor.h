@@ -76,7 +76,7 @@ class DistTensor final
   DistTensor(const std::shared_ptr<phi::DenseTensor>& local_value,
              const DDim& global_dims,
              const ProcessMesh& process_mesh,
-             const Placements& placements);
+             Placements  placements);
 
   /// \brief Construct a empty dist tensor (for infer spmd)
   /// \param dims The global dimension of the current Tensor.

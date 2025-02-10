@@ -13,7 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 #include "paddle/phi/core/tensor_meta.h"
+<<<<<<< HEAD
+
+#include <utility>
+=======
 #include "paddle/common/flags.h"
+>>>>>>> 8b808f1ca1f3b066d25661279d07b83806836d58
 #include "paddle/phi/core/enforce.h"
 
 COMMON_DECLARE_bool(use_stride_kernel);
@@ -148,6 +153,11 @@ DenseTensorMeta::DenseTensorMeta(DataType dtype,
 DenseTensorMeta::DenseTensorMeta(DataType dtype,
                                  const DDim& dims,
                                  DataLayout layout,
+<<<<<<< HEAD
+                                 LoD  lod,
+                                 size_t offset)
+    : dims(dims), dtype(dtype), layout(layout), lod(std::move(lod)), offset(offset) {
+=======
                                  const LegacyLoD& legacy_lod,
                                  size_t offset)
     : dims(dims),
@@ -155,6 +165,7 @@ DenseTensorMeta::DenseTensorMeta(DataType dtype,
       layout(layout),
       legacy_lod(legacy_lod),
       offset(offset) {
+>>>>>>> 337f0d225e59843df33c4ca189ae312b8c36a4f3
   strides = calc_strides(dims);
   use_gpudnn = true;
 }
