@@ -577,6 +577,7 @@ NODE_H_FILE_TEMPLATE = """
 """
 
 FORWARD_CC_FILE_TEMPLATE = """
+#include "paddle/fluid/eager/api/generated/eager_generated/forwards/mean_max_min.h"
 #include "paddle/phi/api/lib/dygraph_api.h"
 #include "paddle/fluid/eager/api/generated/eager_generated/forwards/dygraph_functions.h"
 #include "paddle/fluid/eager/api/generated/eager_generated/backwards/nodes.h"
@@ -1813,9 +1814,15 @@ class DygraphForwardFunctionGenerator(DygraphFunctionGeneratorBase):
         for name, (rtype, pos) in forward_outputs_position_map.items():
             if num_outputs == 1 and len(intermediate_outputs) == 0:
                 get_outputs_str += f"{indent}auto& {name} = api_result;\n"
+                get_outputs_str += (
+                    f'PrintMeanMaxMin("{function_name}" ,"{name}", {name});\n'
+                )
             else:
                 get_outputs_str += (
                     f"{indent}auto& {name} = std::get<{pos}>(api_result);\n"
+                )
+                get_outputs_str += (
+                    f'PrintMeanMaxMin("{function_name}" ,"{name}", {name});\n'
                 )
 
         # Get return type list & outputs
