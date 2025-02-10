@@ -44,7 +44,6 @@ function gen_full_html_report_cinn(){
         '/paddle/paddle/cinn/adt/*' \
         '/paddle/paddle/cinn/api/*' \
         '/paddle/paddle/cinn/ast_gen_ius/*' \
-        '/paddle/paddle/cinn/auto_schedule/*' \
         '/paddle/paddle/cinn/backends/*' \
         '/paddle/paddle/cinn/common/*' \
         '/paddle/paddle/cinn/frontend/*' \

@@ -16,7 +16,6 @@
 
 #include <optional>
 
-#include "paddle/cinn/auto_schedule/tuning.h"
 #include "paddle/cinn/common/common.h"
 #include "paddle/cinn/ir/lowered_func.h"
 

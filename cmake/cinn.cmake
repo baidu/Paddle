@@ -169,7 +169,6 @@ cinn_cc_library(
   glog
   ${llvm_libs}
   param_proto
-  auto_schedule_proto
   schedule_desc_proto
   tile_config_proto
   absl
@@ -227,7 +226,6 @@ function(gen_cinncore LINKTYPE)
     glog
     ${llvm_libs}
     param_proto
-    auto_schedule_proto
     schedule_desc_proto
     tile_config_proto
     absl
@@ -320,10 +318,6 @@ if(PUBLISH_LIBS)
     COMMAND
       cmake -E copy ${CMAKE_BINARY_DIR}/paddle/cinn/hlir/pe/libparam_proto.a
       ${CMAKE_BINARY_DIR}/dist/cinn/lib/libparam_proto.a
-    COMMAND
-      cmake -E copy
-      ${CMAKE_BINARY_DIR}/paddle/cinn/auto_schedule/libauto_schedule_proto.a
-      ${CMAKE_BINARY_DIR}/dist/cinn/lib/libauto_schedule_proto.a
     COMMAND
       cmake -E copy
       ${CMAKE_BINARY_DIR}/paddle/cinn/ir/schedule/libschedule_desc_proto.a

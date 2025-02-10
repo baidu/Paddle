@@ -176,8 +176,6 @@ def git_commit():
     return str(git_commit)
 
 packages = ["cinn",
-            "cinn.auto_schedule",
-            "cinn.auto_schedule.cost_model",
             "cinn.ir",
             "cinn.libs",
             "cinn.version",

@@ -4,7 +4,6 @@ endif()
 
 add_subdirectory(adt)
 add_subdirectory(ast_gen_ius)
-add_subdirectory(auto_schedule)
 add_subdirectory(common)
 add_subdirectory(utils)
 add_subdirectory(poly)

@@ -253,12 +253,6 @@ PD_DEFINE_bool(enable_auto_tuner,
                BoolFromEnv("FLAGS_enable_auto_tuner", false),
                "Whether enable auto tuner.");
 
-PD_DEFINE_bool(auto_schedule_use_cost_model,
-               BoolFromEnv("FLAGS_auto_schedule_use_cost_model", true),
-               "Whether to use cost model in auto schedule, this is an "
-               "on-developing flag and it will be removed when "
-               "cost model is stable.");
-
 PD_DEFINE_bool(
     enhance_vertical_fusion_with_recompute,
     BoolFromEnv("FLAGS_enhance_vertical_fusion_with_recompute", true),
